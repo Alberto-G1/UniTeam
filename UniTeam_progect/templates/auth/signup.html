@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - PROJECT HUB</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="fixed top-4 right-4">
+        <div class="theme-toggle" id="themeToggle">
+            <i class="fas fa-sun" id="themeIcon"></i>
+        </div>
+    </div>
+
+    <div class="surface shadow-2xl rounded-xl overflow-hidden w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2">
+        <!-- Left Side - Hero Image -->
+        <div class="hero-image hidden lg:flex flex-col items-center justify-center p-8 text-white">
+            <div class="project-hub-logo w-28 h-28 mb-6">
+                <div class="logo-content h-full">
+                    <i class="fas fa-project-diagram text-3xl mb-2"></i>
+                    <span class="text-lg">HUB</span>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold mb-4 text-center">Welcome to PROJECT HUB</h2>
+            <p class="text-lg text-center opacity-90 max-w-sm">Your ultimate destination for managing and tracking all your projects in one place.</p>
+        </div>
+
+        <!-- Right Side - Sign Up Form -->
+        <div class="p-8 overflow-y-auto max-h-screen">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold">Create an Account</h1>
+                <p class="text-gray-500 mt-2">Join PROJECT HUB to manage your projects</p>
+            </div>
+
+            <!-- Display Django Messages -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="p-3 rounded-lg text-sm {% if message.tags == 'error' %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Sign Up Form -->
+            <form class="space-y-5" method="post">
+                {% csrf_token %}
+                <!-- Role Selection -->
+                <div>
+                    <label class="block text-sm font-medium mb-3">Select Your Role</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="role-card p-4 rounded-lg text-center" data-role="STUDENT">
+                            <div class="role-icon text-3xl mb-3 text-gray-400"><i class="fas fa-user-graduate"></i></div>
+                            <h3 class="font-semibold text-sm mb-1">Student</h3>
+                        </div>
+                        <div class="role-card p-4 rounded-lg text-center" data-role="LECTURER">
+                            <div class="role-icon text-3xl mb-3 text-gray-400"><i class="fas fa-chalkboard-teacher"></i></div>
+                            <h3 class="font-semibold text-sm mb-1">Lecturer</h3>
+                        </div>
+                    </div>
+                    {{ form.role }} {# This is the hidden input field #}
+                    <p id="role-error" class="text-xs text-red-500 hidden mt-1">Please select a role</p>
+                </div>
+
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium mb-1">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-user text-gray-500"></i></div>
+                        {{ form.username }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium mb-1">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-envelope text-gray-500"></i></div>
+                        {{ form.email }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-gray-500"></i></div>
+                        {{ form.password1 }}
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <button type="button" id="togglePassword" class="text-gray-500 focus:outline-none"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium mb-1">Confirm Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-gray-500"></i></div>
+                        {{ form.password2 }}
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="terms" class="h-4 w-4 accent-[#C0392B]" required>
+                    <label for="terms" class="ml-2 block text-sm"> I agree to the <a href="#" class="text-[#C0392B] hover:underline">Terms of Service</a></label>
+                </div>
+
+                <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold">Create Account</button>
+            </form>
+
+            <div class="text-center mt-6">
+                <p class="text-sm">Already have an account? <a href="{% url 'login' %}" class="text-[#C0392B] font-semibold hover:underline">Log in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+        // Role selection functionality
+        const roleCards = document.querySelectorAll('.role-card');
+        const selectedRoleInput = document.getElementById('id_role');
+        const roleError = document.getElementById('role-error');
+
+        roleCards.forEach(card => {
+            card.addEventListener('click', () => {
+                roleCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                const role = card.getAttribute('data-role');
+                selectedRoleInput.value = role.toUpperCase(); // Ensure value is uppercase for the form
+                roleError.classList.add('hidden');
+            });
+        });
+
+        // Password visibility toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('id_password1');
+        
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePassword.querySelector('i').classList.toggle('fa-eye');
+            togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+        
+        // Form validation before submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!selectedRoleInput.value) {
+                e.preventDefault(); // Stop form submission
+                roleError.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

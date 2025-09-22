@@ -1,0 +1,84 @@
+{% extends "base/base_student.html" %}
+{% load static %}
+
+{% block title %}Invite Members to {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+        <div>
+            <h1 class="text-3xl font-bold">Invite Teammates</h1>
+
+                <!-- Search and Filter Form -->
+            <form method="GET" class="my-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-700">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search by name..." class="input-field">
+                    <input type="text" name="course" value="{{ request.GET.course }}" placeholder="Filter by course..." class="input-field">
+                    <input type="text" name="skills" value="{{ request.GET.skills }}" placeholder="Filter by skills (comma-sep)..." class="input-field">
+                </div>
+                <button type="submit" class="btn btn-primary mt-4">Search</button>
+            </form>
+
+            <p class="text-gray-500">Search for students and send them an invitation to join '{{ project.title }}'.</p>
+        </div>
+        <a href="{{ project.get_absolute_url }}" class="btn btn-secondary py-2 px-4 rounded-lg"><i class="fas fa-arrow-left mr-2"></i>Back to Dashboard</a>
+    </div>
+    
+    <!-- Display Messages -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="p-3 rounded-lg text-sm 
+            {% if message.tags == 'success' %}bg-green-100 text-green-700
+            {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-700
+            {% else %}bg-blue-100 text-blue-700{% endif %}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Search Form -->
+    <form method="GET" class="mb-6">
+        <div class="relative">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search by username or name..." class="input-field pl-10">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+    </form>
+
+    <!-- Search Results -->
+    <div class="space-y-3">
+        {% for student in search_results %}
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+            <div class="flex items-center">
+                {% if student.avatar %}
+                    <img src="{{ student.avatar.url }}" class="w-12 h-12 rounded-full object-cover mr-4">
+                {% else %}
+                    <div class="w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center font-bold text-gray-600 mr-4 text-xl">
+                        {{ student.first_name.0|upper }}
+                    </div>
+                {% endif %}
+                <div>
+                    <p class="font-bold">{{ student.get_full_name }}</p>
+                    <p class="text-sm text-gray-500">@{{ student.username }}</p>
+                </div>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="receiver_id" value="{{ student.id }}">
+                <button type="submit" class="btn btn-primary text-white text-sm py-1 px-3 rounded-md">
+                    Send Invite
+                </button>
+            </form>
+        </div>
+        {% empty %}
+            {% if request.GET.q %}
+            <p class="text-center text-gray-500 py-4">No students found matching your search.</p>
+            {% else %}
+            <p class="text-center text-gray-500 py-4">Start typing in the search bar to find students to invite.</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+<style>.input-field {background-color: var(--input-bg); border: 1px solid var(--dark-gray); width: 100%; padding: .75rem; border-radius: .5rem;}</style>
+{% endblock %}

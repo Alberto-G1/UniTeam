@@ -1,0 +1,40 @@
+{% extends "base/base_student.html" %} {# Assumes leaders/co-leaders use student base #}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8 max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-2">{{ title }}</h1>
+    <p class="text-gray-500 mb-6">For project: <strong>{{ project.title }}</strong></p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="space-y-4">
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="text-xs text-red-500 mt-1">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="pt-4 flex justify-end space-x-3">
+                <a href="{% url 'project_dashboard' project.id %}" class="btn btn-secondary py-2 px-6 rounded-lg">Cancel</a>
+                <button type="submit" class="btn btn-primary text-white font-semibold py-2 px-6 rounded-lg">
+                    Save Milestone
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+/* You can move this to a global css file if you haven't already */
+.input-field {
+    background-color: var(--input-bg); border: 1px solid var(--dark-gray); color: var(--text-dark);
+    transition: all 0.3s ease; width: 100%; padding: 0.75rem; border-radius: 0.5rem; }
+.input-field:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.2); }
+</style>
+{% endblock %}

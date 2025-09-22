@@ -1,0 +1,28 @@
+{% extends "base/base_student.html" %}
+{% load static %}
+
+{% block title %}My Project Invitations{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <h1 class="text-3xl font-bold mb-2">My Project Invitations</h1>
+    <p class="text-gray-500 mb-6">You have {{ invitations|length }} pending invitation(s).</p>
+    
+    <div class="space-y-4">
+        {% for inv in invitations %}
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <p class="text-sm text-gray-500">Invitation from <span class="font-bold">{{ inv.sender.get_full_name }}</span></p>
+                <p class="text-lg font-semibold">Project: {{ inv.project.title }}</p>
+            </div>
+            <div class="flex items-center space-x-3 flex-shrink-0">
+                <a href="{% url 'respond_to_invitation' inv.id 'accept' %}" class="btn bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg">Accept</a>
+                <a href="{% url 'respond_to_invitation' inv.id 'decline' %}" class="btn bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg">Decline</a>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center text-gray-500 py-8">You have no pending project invitations.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

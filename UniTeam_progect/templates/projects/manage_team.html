@@ -1,0 +1,23 @@
+{% extends "base/base_student.html" %}
+{% block title %}Manage Team{% endblock %}
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <h1 class="text-3xl font-bold">Manage Team for '{{ project.title }}'</h1>
+    
+    <div class="mt-6">
+        {% for membership in memberships %}
+        <div class="flex justify-between items-center p-4 border-b">
+            <p>{{ membership.user.get_full_name }} (@{{ membership.user.username }})</p>
+            <form method="POST" action="{% url 'update_member_role' membership.id %}">
+                {% csrf_token %}
+                <select name="role" onchange="this.form.submit()">
+                    <option value="MEMBER" {% if membership.role == 'MEMBER' %}selected{% endif %}>Member</option>
+                    <option value="CO_LEADER" {% if membership.role == 'CO_LEADER' %}selected{% endif %}>Co-Leader</option>
+                    <option value="LEADER" {% if membership.role == 'LEADER' %}selected{% endif %}>Group Leader</option>
+                </select>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base/base_lecturer.html" %}
+{% load static %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <!-- Header with Edit Button -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 border-b pb-4 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">My Lecturer Profile</h1>
+            <p class="text-gray-500">Your personal and professional information.</p>
+        </div>
+        <a href="{% url 'profile_edit' %}" class="btn btn-primary text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto text-center">
+            <i class="fas fa-pencil-alt mr-2"></i>Edit Profile
+        </a>
+    </div>
+
+    <!-- Display Messages (e.g., after a successful update) -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="p-3 mb-4 rounded-lg text-sm bg-green-100 text-green-700" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Left Column: Avatar and Contact -->
+        <div class="md:col-span-1 text-center">
+            {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="Profile Avatar" class="w-40 h-40 rounded-full mx-auto object-cover border-4 border-accent-2">
+            {% else %}
+                <div class="w-40 h-40 rounded-full mx-auto bg-gray-300 flex items-center justify-center text-5xl font-bold text-gray-600">
+                    {{ user.first_name.0|default:'U'|upper }}{{ user.last_name.0|default:''|upper }}
+                </div>
+            {% endif %}
+            <h2 class="text-2xl font-bold mt-4">{{ user.get_full_name }}</h2>
+            <p class="text-gray-500">@{{ user.username }}</p>
+            <div class="text-left mt-6 space-y-3 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p><i class="fas fa-envelope fa-fw mr-2 text-gray-500"></i><span class="font-medium">Email:</span><br>{{ user.email }}</p>
+                <p><i class="fas fa-phone fa-fw mr-2 text-gray-500"></i><span class="font-medium">Phone:</span><br>{{ user.phone_number|default:"Not set" }}</p>
+                <p><i class="fas fa-map-marker-alt fa-fw mr-2 text-gray-500"></i><span class="font-medium">Office:</span><br>{{ user.lecturerprofile.office_location|default:"Not set" }}</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Details -->
+        <div class="md:col-span-2 space-y-8">
+            <div>
+                <h3 class="text-xl font-semibold border-b pb-2 mb-3">Professional Information</h3>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    <div><dt class="font-medium text-gray-500">Department</dt><dd class="text-lg">{{ user.lecturerprofile.department|default:"-" }}</dd></div>
+                </dl>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold border-b pb-2 mb-3">Courses Taught</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for course in user.lecturerprofile.courses_taught.all %}
+                        <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">{{ course.name }}</span>
+                    {% empty %}
+                        <p class="text-gray-500 text-sm">No courses listed.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold border-b pb-2 mb-3">Research Areas & Expertise</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for area in user.lecturerprofile.research_areas.all %}
+                        <span class="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">{{ area.name }}</span>
+                    {% empty %}
+                        <p class="text-gray-500 text-sm">No research areas listed.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base/base_student.html" %}
+{% load static %}
+
+{% block title %}{{ project.title }} - Dashboard{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <!-- Project Header -->
+    <div class="mb-6 border-b pb-4">
+        <p class="text-sm text-gray-500">{{ project.course_code|default:"General Project" }}</p>
+        <h1 class="text-3xl font-bold">{{ project.title }}</h1>
+        <p class="text-gray-600 mt-2">{{ project.description }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content Column (Tasks, Files, etc.) -->
+        <div class="lg:col-span-2 space-y-8">
+            <div>
+                <h2 class="text-2xl font-semibold mb-4">Milestones</h2>
+                <div class="space-y-4">
+                    {% for milestone in project.milestones.all %}
+                    <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border dark:border-gray-600">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-lg">{{ milestone.title }}</p>
+                                <p class="text-sm text-gray-500">Due: {{ milestone.due_date|date:"F j, Y" }}</p>
+                            </div>
+                            <!-- MEMBER ACTION: UPDATE STATUS -->
+                            {% if user in milestone.assigned_to.all %}
+                            <form action="{% url 'update_milestone_status' milestone.id %}" method="post" class="flex items-center gap-2">
+                                {% csrf_token %}
+                                <select name="status" class="input-field text-sm py-1">
+                                    {% for value, name in milestone.Status.choices %}
+                                        <option value="{{ value }}" {% if milestone.status == value %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-secondary py-1 px-2 text-xs">Update</button>
+                            </form>
+                            {% else %}
+                                <!-- Display read-only status for non-assigned milestones -->
+                                <span class="text-sm font-semibold px-2 py-1 rounded-full 
+                                    {% if milestone.status == 'COMPLETED' %}bg-green-100 text-green-800
+                                    {% elif milestone.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ milestone.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ milestone.description|linebreaksbr }}</p>
+                        <div class="mt-3 border-t dark:border-gray-600 pt-3">
+                            <p class="text-xs font-semibold text-gray-500 uppercase">Assigned To</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                {% for member in milestone.assigned_to.all %}
+                                    <div class="flex items-center bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded-full">
+                                        {% if member.avatar %}<img src="{{ member.avatar.url }}" class="w-5 h-5 rounded-full object-cover mr-2">{% endif %}
+                                        <span class="text-xs font-medium">{{ member.get_full_name }}</span>
+                                    </div>
+                                {% empty %}
+                                    <span class="text-xs text-gray-500 italic">Not assigned to anyone.</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                        <p class="text-gray-500 text-sm text-center py-4">No milestones have been added for this project yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar Column (Team Info) -->
+        <div class="lg:col-span-1 space-y-6">
+            <div>
+                <h2 class="text-xl font-semibold mb-3">Team Members</h2>
+                <ul class="space-y-3">
+                    {% for membership in team_memberships %}
+                    <li class="flex items-center">
+                        {% if membership.user.avatar %}<img src="{{ membership.user.avatar.url }}" class="w-10 h-10 rounded-full object-cover mr-3">{% else %}<div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-gray-600 mr-3">{{ membership.user.first_name.0|upper }}</div>{% endif %}
+                        <div>
+                            <p class="font-medium">{{ membership.user.get_full_name }}</p>
+                            <p class="text-xs font-semibold rounded-full px-2 py-0.5 inline-block {% if membership.role == 'LEADER' %} bg-yellow-100 text-yellow-800 {% else %} bg-gray-100 text-gray-800 {% endif %}">{{ membership.get_role_display }}</p>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if project.supervisor %}
+            <div>
+                <h2 class="text-xl font-semibold mb-3">Supervisor</h2>
+                <div class="flex items-center">
+                    {% if project.supervisor.avatar %}<img src="{{ project.supervisor.avatar.url }}" class="w-10 h-10 rounded-full object-cover mr-3">{% else %}<div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-gray-600 mr-3">{{ project.supervisor.first_name.0|upper }}</div>{% endif %}
+                    <div>
+                        <p class="font-medium">{{ project.supervisor.get_full_name }}</p>
+                        <p class="text-sm text-gray-500">Project Supervisor</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

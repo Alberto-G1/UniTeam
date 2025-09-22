@@ -1,0 +1,194 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Hub - Lecturer Portal</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+        <!-- Link to your static CSS file -->
+    <link rel="stylesheet" href="{% static 'css/lecturer_base.css' %}">
+
+</head>
+
+<body class="min-h-screen flex flex-col">
+    <!-- Top Header Bar -->
+    <header class="header-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo and Brand -->
+                <div class="flex items-center space-x-2">
+                    <button id="sidebarToggle" class="p-2 rounded-lg hover:bg-black hover:bg-opacity-10 transition-colors md:hidden">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-bars w-5 h-5 text-white"></i>
+                        </div>
+                    </button>
+                    <button id="desktopSidebarToggle" class="p-2 rounded-lg hover:bg-black hover:bg-opacity-10 transition-colors hidden md:block">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-bars w-5 h-5 text-white"></i>
+                        </div>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div class="logo-placeholder">PH</div>
+                        <span class="text-xl font-bold header-title">PROJECT HUB</span>
+                    </div>
+                </div>
+
+                <!-- Top Navigation -->
+                <nav class="hidden md:flex space-x-1 top-nav">
+                    <a href="#" class="top-nav-item">Home</a>
+                    <a href="#" class="top-nav-item">Students</a>
+                    <a href="{% url 'my_projects' %}" class="top-nav-item">Projects</a>
+                    <a href="#" class="top-nav-item">Logout</a>
+                </nav>
+
+                <!-- Right Side Controls -->
+                <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle -->
+                    <div class="theme-toggle" id="themeToggle" title="Toggle Theme">
+                        <i class="fas fa-sun"></i>
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    
+                    <!-- Profile Dropdown -->
+                    <div class="profile-dropdown">
+                        <div class="flex items-center cursor-pointer" id="profileButton">
+                            <div class="w-8 h-8 rounded-full bg-accent-1 flex items-center justify-center text-white font-bold mr-2">
+                                {% if user.avatar %}
+                                    <img src="{{ user.avatar.url }}" alt="Profile" class="w-8 h-8 rounded-full object-cover mr-2">
+                                {% else %}
+                                    <div class="w-8 h-8 rounded-full bg-accent-1 flex items-center justify-center text-white font-bold mr-2">
+                                        {{ user.first_name.0|default:'L'|upper }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <span class="text-sm font-medium hidden md:block">{{ user.get_full_name|default:user.username }}</span>
+                            <i class="fas fa-chevron-down ml-2 text-sm"></i>
+                        </div>
+                        
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <div class="dropdown-item border-b border-gray-200">
+                                <div class="flex flex-col">
+                                    <span class="font-medium">{{ user.get_full_name|default:user.username }}</span>
+                                    <span class="text-xs opacity-75">{{ user.email }}</span>
+                                </div>
+                            </div>
+                            <a href="{% url 'profile_details' %}" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                My Profile
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-question-circle"></i>
+                                Help & Support
+                            </a>
+                            <a href="{% url 'logout' %}" class="dropdown-item text-red-600 hover:text-red-700">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-bars w-6 h-6 text-white"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-1">
+        <!-- Sidebar -->
+        <aside class="sidebar sidebar-bg fixed h-full shadow-lg" id="sidebar">
+            <div class="h-full flex flex-col">
+                <div class="logo-container">
+                    <div class="logo-placeholder"><img src="{% static 'images/logo/uniteam_logo (1).png'%}" alt=""></div>
+                    <span class="sidebar-text font-bold text-lg">Lecturer Portal</span>
+                </div>
+
+                <nav class="p-4 flex-1">
+                    <a  href="{% url 'lecturer_dashboard' %}" class="sidebar-item {% if request.resolver_match.url_name == 'lecturer_dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-tooltip="Classes">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="sidebar-text">Classes</span>
+                    </a>
+                    <a href="{% url 'my_projects' %}" class="sidebar-item {% if 'project' in request.resolver_match.view_name and 'template' not in request.resolver_match.view_name %}active{% endif %}" data-tooltip="Supervised Projects">
+                        <div class="icon-wrapper"><i class="fas fa-folder-open"></i></div>
+                        <span class="sidebar-text">Supervised Projects</span>
+                    </a>
+                    <a href="{% url 'list_project_templates' %}" class="sidebar-item {% if 'template' in request.resolver_match.view_name %}active{% endif %}" data-tooltip="Project Templates">
+                        <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
+                        <span class="sidebar-text">Project Templates</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-tooltip="Reports">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="sidebar-text">Reports</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-tooltip="Calendar">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <span class="sidebar-text">Calendar</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-tooltip="Messages">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <span class="sidebar-text">Messages</span>
+                    </a>
+                </nav>
+
+                <!-- Sidebar Footer -->
+                <div class="sidebar-footer">
+                    <div class="flex items-center justify-between">
+                        <div class="sidebar-text text-xs opacity-75">Designed by John Doe</div>
+                        <div class="logo-placeholder" style="width: 30px; height: 30px; font-size: 12px;">JD</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Overlay (for closing sidebar on mobile) -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content surface flex-1 p-6 transition-all duration-300" id="mainContent">
+            <div class="max-w-7xl mx-auto">
+
+                {% block content %}
+                <!-- Child template content will be injected here -->
+                {% endblock %}
+
+            </div>
+        </main>
+    </div>
+
+
+        <!-- Link to your static JS file -->
+    <script src="{% static 'js/lecturer_base.js' %}"></script>
+
+</body>
+</html>

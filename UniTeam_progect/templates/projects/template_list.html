@@ -1,0 +1,63 @@
+{% extends "base/base_lecturer.html" %}
+{% load static %}
+
+{% block title %}Project Templates{% endblock %}
+
+{% block content %}
+<div class="surface shadow-xl rounded-lg p-6 md:p-8">
+    <!-- Header with Create Button -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 border-b pb-4 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">Project Templates</h1>
+            <p class="text-gray-500">Create and manage reusable project structures for your courses.</p>
+        </div>
+        
+        <!-- ============================================ -->
+        <!-- THIS IS THE BUTTON THAT WAS MISSING          -->
+        <!-- ============================================ -->
+        <a href="{% url 'create_project_template' %}" class="btn btn-primary text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto text-center flex-shrink-0">
+            <i class="fas fa-plus mr-2"></i>Create New Template
+        </a>
+        <!-- ============================================ -->
+    </div>
+
+    <!-- Display Messages if any -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="p-3 rounded-lg text-sm bg-green-100 text-green-700" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Project Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for template in templates %}
+        <a href="{% url 'project_template_details' template.id %}" class="card flex flex-col bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden transition-transform hover:transform hover:-translate-y-1 p-5">
+            <h3 class="text-xl font-bold mb-2">{{ template.title }}</h3>
+            <p class="text-sm font-semibold text-blue-600 mb-4">{{ template.course_code }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 flex-grow">
+                {{ template.description|truncatewords:20 }}
+            </p>
+        </a>
+        {% empty %}
+        <!-- ============================================ -->
+        <!--   IMPROVED "EMPTY STATE" MESSAGE             -->
+        <!-- ============================================ -->
+        <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="text-gray-400 mb-4">
+                <i class="fas fa-clipboard-list fa-4x"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">No Templates Found</h3>
+            <p class="text-gray-500 mt-2">You have not created any project templates yet.</p>
+            <a href="{% url 'create_project_template' %}" class="mt-4 inline-block btn btn-primary text-white font-semibold py-2 px-4 rounded-lg">
+                Create your first template
+            </a>
+        </div>
+        <!-- ============================================ -->
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

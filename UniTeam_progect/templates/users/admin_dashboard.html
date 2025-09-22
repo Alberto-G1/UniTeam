@@ -1,0 +1,115 @@
+{% extends "base/base_admin.html" %}
+{% load static %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+
+    <!-- Default Dashboard Content -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold mb-2">Admin Dashboard</h2>
+        <p class="text-gray-600">Welcome to the UniTeam PROJECT HUB admin panel, {{ user.username }}!</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="surface-bg rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg accent-1">
+                    <div class="fa-icon text-white">
+                        <i class="fas fa-users fa-lg"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-2xl font-bold">1,234</h3>
+                    <p class="text-gray-600">Total Users</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="surface-bg rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg accent-2">
+                    <div class="fa-icon text-white">
+                        <i class="fas fa-folder fa-lg"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-2xl font-bold">89</h3>
+                    <p class="text-gray-600">Active Projects</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="surface-bg rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg" style="background-color: #27AE60;">
+                    <div class="fa-icon text-white">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-2xl font-bold">156</h3>
+                    <p class="text-gray-600">Completed</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="surface-bg rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg" style="background-color: #F39C12;">
+                    <div class="fa-icon text-white">
+                        <i class="fas fa-clock fa-lg"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-2xl font-bold">23</h3>
+                    <p class="text-gray-600">Pending</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Content Area -->
+    <div class="surface-bg rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Recent Activity</h3>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between py-3 border-b">
+                <div class="flex items-center">
+                    <div class="fa-icon mr-3 text-green-500">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">New user registration</p>
+                        <p class="text-sm text-gray-600">john.doe@university.edu joined the platform</p>
+                    </div>
+                </div>
+                <span class="text-sm text-gray-500">2 hours ago</span>
+            </div>
+            <div class="flex items-center justify-between py-3 border-b">
+                <div class="flex items-center">
+                    <div class="fa-icon mr-3 text-blue-500">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">Project submission</p>
+                        <p class="text-sm text-gray-600">Group "Alpha" submitted their final report</p>
+                    </div>
+                </div>
+                <span class="text-sm text-gray-500">5 hours ago</span>
+            </div>
+            <div class="flex items-center justify-between py-3">
+                <div class="flex items-center">
+                    <div class="fa-icon mr-3 text-purple-500">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">System update</p>
+                        <p class="text-sm text-gray-600">UniTeam v2.1 deployed successfully</p>
+                    </div>
+                </div>
+                <span class="text-sm text-gray-500">1 day ago</span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
