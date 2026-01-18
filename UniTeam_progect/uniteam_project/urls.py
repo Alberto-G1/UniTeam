@@ -22,8 +22,12 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Traditional template views (keep for admin)
     path('accounts/', include('users.urls')),
     path('projects/', include('projects.urls')),
+    # API endpoints
+    path('api/auth/', include('users.api_urls')),
+    path('api/', include('projects.api_urls')),
     path('', RedirectView.as_view(pattern_name='login', permanent=False)),
 
 ]
