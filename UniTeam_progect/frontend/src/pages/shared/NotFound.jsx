@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './NotFound.css';
+import { useAuth } from '../../context/AuthContext';
+import '../NotFound.css';
 
 export default function NotFound({ feature = null, dashboardPath = null }) {
   const navigate = useNavigate();

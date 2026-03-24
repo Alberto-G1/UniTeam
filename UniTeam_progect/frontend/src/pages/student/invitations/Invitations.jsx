@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { invitationsAPI } from '../services/api';
-import './Invitations.css';
+import { invitationsAPI } from '../../../services/api';
+import '../../Invitations.css';
 
 export default function Invitations() {
   const [invitations, setInvitations] = useState([]);

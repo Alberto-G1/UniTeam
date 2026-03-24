@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { projectsAPI, invitationsAPI } from '../services/api';
-import './Dashboard.css';
+import { useAuth } from '../../../context/AuthContext';
+import { projectsAPI, invitationsAPI } from '../../../services/api';
+import '../../Dashboard.css';
 
 export const StudentDashboard = () => {
   const { user } = useAuth();

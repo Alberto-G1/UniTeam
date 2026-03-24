@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { usersAPI } from '../services/api';
-import './Dashboard.css';
+import { useAuth } from '../../../context/AuthContext';
+import { usersAPI } from '../../../services/api';
+import '../../Dashboard.css';
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
