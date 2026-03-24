@@ -48,10 +48,12 @@ export const StudentDashboard = () => {
       
       <div className="dashboard-stats">
         <div className="stat-card">
+          <i className="fa-solid fa-folder-open" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{projects.length}</h3>
           <p>Active Projects</p>
         </div>
         <div className="stat-card">
+          <i className="fa-solid fa-envelope" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{invitations.length}</h3>
           <p>Pending Invitations</p>
         </div>

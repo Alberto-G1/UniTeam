@@ -75,18 +75,22 @@ export const AdminDashboard = () => {
       
       <div className="dashboard-stats">
         <div className="stat-card">
+          <i className="fa-solid fa-users" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{stats.total}</h3>
           <p>Total Users</p>
         </div>
         <div className="stat-card">
+          <i className="fa-solid fa-user-graduate" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{stats.students}</h3>
           <p>Students</p>
         </div>
         <div className="stat-card">
+          <i className="fa-solid fa-chalkboard-teacher" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{stats.lecturers}</h3>
           <p>Approved Lecturers</p>
         </div>
         <div className="stat-card alert-card">
+          <i className="fa-solid fa-clock" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{stats.pendingLecturers}</h3>
           <p>Pending Approvals</p>
         </div>

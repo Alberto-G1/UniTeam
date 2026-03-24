@@ -16,6 +16,13 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { LecturerDashboard } from './pages/LecturerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 
+// Other Pages
+import ManageUsers from './pages/ManageUsers';
+import MyProjects from './pages/MyProjects';
+import Invitations from './pages/Invitations';
+import Profile from './pages/Profile';
+import ComingSoon from './components/ComingSoon';
+
 import './App.css';
 
 // Role-based dashboard router
@@ -76,9 +83,12 @@ function App() {
             }
           >
             <Route path="dashboard" element={<StudentDashboard />} />
-            <Route path="projects" element={<div>Projects List (Coming Soon)</div>} />
-            <Route path="invitations" element={<div>Invitations (Coming Soon)</div>} />
-            <Route path="profile" element={<div>Profile (Coming Soon)</div>} />
+            <Route path="projects" element={<MyProjects />} />
+            <Route path="projects/create" element={<ComingSoon feature="Create Project" dashboardPath="/student/dashboard" />} />
+            <Route path="projects/:id" element={<ComingSoon feature="Project Details" dashboardPath="/student/projects" />} />
+            <Route path="invitations" element={<Invitations />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/student/profile" />} />
           </Route>
 
           {/* Lecturer Routes */}
@@ -91,9 +101,12 @@ function App() {
             }
           >
             <Route path="dashboard" element={<LecturerDashboard />} />
-            <Route path="projects" element={<div>Supervised Projects (Coming Soon)</div>} />
-            <Route path="templates" element={<div>Templates (Coming Soon)</div>} />
-            <Route path="profile" element={<div>Profile (Coming Soon)</div>} />
+            <Route path="projects" element={<ComingSoon feature="Supervised Projects" dashboardPath="/lecturer/dashboard" />} />
+            <Route path="projects/:id" element={<ComingSoon feature="Project Details" dashboardPath="/lecturer/projects" />} />
+            <Route path="templates" element={<ComingSoon feature="Project Templates" dashboardPath="/lecturer/dashboard" />} />
+            <Route path="templates/create" element={<ComingSoon feature="Create Template" dashboardPath="/lecturer/templates" />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/lecturer/profile" />} />
           </Route>
 
           {/* Admin Routes */}
@@ -106,9 +119,11 @@ function App() {
             }
           >
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<div>Manage Users (Coming Soon)</div>} />
-            <Route path="lecturers/pending" element={<div>Pending Lecturers (Coming Soon)</div>} />
-            <Route path="profile" element={<div>Profile (Coming Soon)</div>} />
+            <Route path="users" element={<ManageUsers />} />
+            <Route path="users/:id/edit" element={<ComingSoon feature="Edit User" dashboardPath="/admin/users" />} />
+            <Route path="lecturers/pending" element={<ComingSoon feature="Pending Lecturers" dashboardPath="/admin/dashboard" />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/admin/profile" />} />
           </Route>
 
           {/* Shared Project Routes (accessible by students/lecturers) */}
@@ -116,7 +131,7 @@ function App() {
             path="/projects/:id"
             element={
               <ProtectedRoute>
-                <div>Project Details (Coming Soon)</div>
+                <ComingSoon feature="Project Details" dashboardPath="/" />
               </ProtectedRoute>
             }
           />
