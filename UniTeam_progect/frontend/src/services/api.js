@@ -215,6 +215,11 @@ export const usersAPI = {
     return response.data;
   },
 
+  delete: async (id) => {
+    const response = await api.delete(`${AUTH_BASE_URL}/users/${id}/`);
+    return response.data;
+  },
+
   approveLecturer: async (id) => {
     const response = await api.post(`${AUTH_BASE_URL}/users/${id}/approve_lecturer/`);
     return response.data;

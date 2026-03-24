@@ -13,8 +13,8 @@ export default function MyProjects() {
 
   const fetchProjects = async () => {
     try {
-      const response = await projectsAPI.getMyProjects();
-      const projectData = response.data.results || response.data;
+      const response = await projectsAPI.list();
+      const projectData = response.results || response;
       setProjects(projectData);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -26,7 +26,7 @@ export default function MyProjects() {
   const handleDeleteProject = async (projectId) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
-        await projectsAPI.deleteProject(projectId);
+        await projectsAPI.delete(projectId);
         fetchProjects();
       } catch (error) {
         console.error('Error deleting project:', error);

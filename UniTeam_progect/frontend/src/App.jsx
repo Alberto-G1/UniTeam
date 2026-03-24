@@ -20,8 +20,13 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers';
 import MyProjects from './pages/MyProjects';
 import Invitations from './pages/Invitations';
-import Profile from './pages/Profile';
-import ComingSoon from './components/ComingSoon';
+import StudentProfile from './pages/StudentProfile';
+import StudentProfileEdit from './pages/StudentProfileEdit';
+import LecturerProfile from './pages/LecturerProfile';
+import LecturerProfileEdit from './pages/LecturerProfileEdit';
+import AdminProfile from './pages/AdminProfile';
+import AdminProfileEdit from './pages/AdminProfileEdit';
+import NotFound from './pages/NotFound';
 
 import './App.css';
 
@@ -84,11 +89,11 @@ function App() {
           >
             <Route path="dashboard" element={<StudentDashboard />} />
             <Route path="projects" element={<MyProjects />} />
-            <Route path="projects/create" element={<ComingSoon feature="Create Project" dashboardPath="/student/dashboard" />} />
-            <Route path="projects/:id" element={<ComingSoon feature="Project Details" dashboardPath="/student/projects" />} />
+            <Route path="projects/create" element={<NotFound feature="Create Project" dashboardPath="/student/dashboard" />} />
+            <Route path="projects/:id" element={<NotFound feature="Project Details" dashboardPath="/student/projects" />} />
             <Route path="invitations" element={<Invitations />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/student/profile" />} />
+            <Route path="profile" element={<StudentProfile />} />
+            <Route path="profile/edit" element={<StudentProfileEdit />} />
           </Route>
 
           {/* Lecturer Routes */}
@@ -101,12 +106,12 @@ function App() {
             }
           >
             <Route path="dashboard" element={<LecturerDashboard />} />
-            <Route path="projects" element={<ComingSoon feature="Supervised Projects" dashboardPath="/lecturer/dashboard" />} />
-            <Route path="projects/:id" element={<ComingSoon feature="Project Details" dashboardPath="/lecturer/projects" />} />
-            <Route path="templates" element={<ComingSoon feature="Project Templates" dashboardPath="/lecturer/dashboard" />} />
-            <Route path="templates/create" element={<ComingSoon feature="Create Template" dashboardPath="/lecturer/templates" />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/lecturer/profile" />} />
+            <Route path="projects" element={<NotFound feature="Supervised Projects" dashboardPath="/lecturer/dashboard" />} />
+            <Route path="projects/:id" element={<NotFound feature="Project Details" dashboardPath="/lecturer/projects" />} />
+            <Route path="templates" element={<NotFound feature="Project Templates" dashboardPath="/lecturer/dashboard" />} />
+            <Route path="templates/create" element={<NotFound feature="Create Template" dashboardPath="/lecturer/templates" />} />
+            <Route path="profile" element={<LecturerProfile />} />
+            <Route path="profile/edit" element={<LecturerProfileEdit />} />
           </Route>
 
           {/* Admin Routes */}
@@ -120,10 +125,10 @@ function App() {
           >
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<ManageUsers />} />
-            <Route path="users/:id/edit" element={<ComingSoon feature="Edit User" dashboardPath="/admin/users" />} />
-            <Route path="lecturers/pending" element={<ComingSoon feature="Pending Lecturers" dashboardPath="/admin/dashboard" />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/edit" element={<ComingSoon feature="Edit Profile" dashboardPath="/admin/profile" />} />
+            <Route path="users/:id/edit" element={<NotFound feature="Edit User" dashboardPath="/admin/users" />} />
+            <Route path="lecturers/pending" element={<NotFound feature="Pending Lecturers" dashboardPath="/admin/dashboard" />} />
+            <Route path="profile" element={<AdminProfile />} />
+            <Route path="profile/edit" element={<AdminProfileEdit />} />
           </Route>
 
           {/* Shared Project Routes (accessible by students/lecturers) */}
@@ -131,13 +136,13 @@ function App() {
             path="/projects/:id"
             element={
               <ProtectedRoute>
-                <ComingSoon feature="Project Details" dashboardPath="/" />
+                <NotFound feature="Project Details" dashboardPath="/" />
               </ProtectedRoute>
             }
           />
 
           {/* 404 */}
-          <Route path="*" element={<div>404 - Page Not Found</div>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

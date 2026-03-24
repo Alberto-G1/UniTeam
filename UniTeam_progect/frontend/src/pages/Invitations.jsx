@@ -12,8 +12,8 @@ export default function Invitations() {
 
   const fetchInvitations = async () => {
     try {
-      const response = await invitationsAPI.getInvitations();
-      const invData = response.data.results || response.data;
+      const response = await invitationsAPI.list();
+      const invData = response.results || response;
       setInvitations(invData.filter(inv => inv.status === 'PENDING'));
     } catch (error) {
       console.error('Error fetching invitations:', error);
@@ -24,7 +24,7 @@ export default function Invitations() {
 
   const handleAccept = async (invId) => {
     try {
-      await invitationsAPI.acceptInvitation(invId);
+      await invitationsAPI.accept(invId);
       fetchInvitations();
     } catch (error) {
       console.error('Error accepting invitation:', error);
@@ -34,7 +34,7 @@ export default function Invitations() {
 
   const handleDecline = async (invId) => {
     try {
-      await invitationsAPI.declineInvitation(invId);
+      await invitationsAPI.decline(invId);
       fetchInvitations();
     } catch (error) {
       console.error('Error declining invitation:', error);
