@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { projectsAPI } from '../services/api';
-import './MyProjects.css';
+import { projectsAPI } from '../../../services/api';
+import '../../MyProjects.css';
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);

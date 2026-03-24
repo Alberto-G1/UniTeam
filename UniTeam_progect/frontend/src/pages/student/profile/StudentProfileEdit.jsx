@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/ProfileEdit.css';
+import { useAuth } from '../../../context/AuthContext';
+import '../../../styles/ProfileEdit.css';
 
-export default function AdminProfileEdit() {
+export default function StudentProfileEdit() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -14,22 +14,32 @@ export default function AdminProfileEdit() {
     email: '',
     phone_number: '',
     avatar: null,
-    role_title: '',
-    responsibilities: ''
+    personal_email: '',
+    university: '',
+    department: '',
+    course_name: '',
+    year_of_study: '',
+    bio: '',
+    skills: ''
   });
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     if (user) {
-      const profile = user.adminprofile || {};
+      const profile = user.studentprofile || {};
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
         phone_number: user.phone_number || '',
         avatar: null,
-        role_title: profile.role_title || '',
-        responsibilities: profile.responsibilities || ''
+        personal_email: profile.personal_email || '',
+        university: profile.university || '',
+        department: profile.department || '',
+        course_name: profile.course_name || '',
+        year_of_study: profile.year_of_study || '',
+        bio: profile.bio || '',
+        skills: profile.skills ? profile.skills.join(', ') : ''
       });
       if (user.avatar) {
         setPreview(user.avatar);
@@ -66,11 +76,11 @@ export default function AdminProfileEdit() {
     setError('');
     
     try {
-      // TODO: Implement API call to update admin profile
+      // TODO: Implement API call to update profile
       // For now, just show success message
       setTimeout(() => {
         alert('Profile updated successfully!');
-        navigate('/admin/profile');
+        navigate('/student/profile');
       }, 500);
     } catch (err) {
       setError('Failed to update profile. Please try again.');
@@ -85,10 +95,10 @@ export default function AdminProfileEdit() {
       <div className="profile-edit-header surface">
         <div className="profile-edit-header-content">
           <div>
-            <h1 className="profile-edit-title">Edit Admin Profile</h1>
+            <h1 className="profile-edit-title">Edit Student Profile</h1>
             <p className="profile-edit-subtitle">Make changes to your profile and click "Save Changes" when you're done</p>
           </div>
-          <Link to="/admin/profile" className="btn btn-secondary">
+          <Link to="/student/profile" className="btn btn-secondary">
             <i className="fa-solid fa-arrow-left"></i> Back to Profile
           </Link>
         </div>
@@ -157,7 +167,7 @@ export default function AdminProfileEdit() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">School Email</label>
                 <input
                   type="email"
                   id="email"
@@ -183,32 +193,104 @@ export default function AdminProfileEdit() {
               </div>
             </div>
 
-            {/* Admin Information */}
+            {/* Personal Information */}
             <div className="form-section">
-              <h3 className="form-section-title">Role Information</h3>
+              <h3 className="form-section-title">Personal Information</h3>
               <div className="form-group">
-                <label htmlFor="role_title">Role Title</label>
+                <label htmlFor="personal_email">Personal Email</label>
                 <input
-                  type="text"
-                  id="role_title"
-                  name="role_title"
-                  value={formData.role_title}
+                  type="email"
+                  id="personal_email"
+                  name="personal_email"
+                  value={formData.personal_email}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="e.g., System Administrator, Database Manager"
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="responsibilities">Responsibilities & Notes</label>
+                <label htmlFor="bio">Bio</label>
                 <textarea
-                  id="responsibilities"
-                  name="responsibilities"
-                  value={formData.responsibilities}
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
                   onChange={handleChange}
                   className="form-input"
-                  rows="6"
-                  placeholder="Describe your responsibilities and any additional notes..."
+                  rows="4"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </div>
+
+            {/* Academic Information */}
+            <div className="form-section">
+              <h3 className="form-section-title">Academic Information</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="university">University</label>
+                  <input
+                    type="text"
+                    id="university"
+                    name="university"
+                    value={formData.university}
+                    onChange={handleChange}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="department">Department</label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="course_name">Course</label>
+                  <input
+                    type="text"
+                    id="course_name"
+                    name="course_name"
+                    value={formData.course_name}
+                    onChange={handleChange}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="year_of_study">Year of Study</label>
+                  <select
+                    id="year_of_study"
+                    name="year_of_study"
+                    value={formData.year_of_study}
+                    onChange={handleChange}
+                    className="form-input"
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                    <option value="5">5th Year</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="skills">Skills (comma-separated)</label>
+                <input
+                  type="text"
+                  id="skills"
+                  name="skills"
+                  value={formData.skills}
+                  onChange={handleChange}
+                  className="form-input"
+                  placeholder="e.g., Python, JavaScript, React"
                 />
               </div>
             </div>
@@ -218,7 +300,7 @@ export default function AdminProfileEdit() {
               <button type="submit" className="btn btn-primary" disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
-              <Link to="/admin/profile" className="btn btn-secondary">
+              <Link to="/student/profile" className="btn btn-secondary">
                 Cancel
               </Link>
             </div>

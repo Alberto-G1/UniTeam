@@ -8,25 +8,25 @@ import { LecturerLayout } from './layouts/LecturerLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 
 // Auth Pages
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
+import { Login } from './pages/auth/Login';
+import { Signup } from './pages/auth/Signup';
 
 // Dashboard Pages
-import { StudentDashboard } from './pages/StudentDashboard';
-import { LecturerDashboard } from './pages/LecturerDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
+import { StudentDashboard } from './pages/student/dashboard/StudentDashboard';
+import { LecturerDashboard } from './pages/lecturer/dashboard/LecturerDashboard';
+import { AdminDashboard } from './pages/admin/dashboard/AdminDashboard';
 
 // Other Pages
-import ManageUsers from './pages/ManageUsers';
-import MyProjects from './pages/MyProjects';
-import Invitations from './pages/Invitations';
-import StudentProfile from './pages/StudentProfile';
-import StudentProfileEdit from './pages/StudentProfileEdit';
-import LecturerProfile from './pages/LecturerProfile';
-import LecturerProfileEdit from './pages/LecturerProfileEdit';
-import AdminProfile from './pages/AdminProfile';
-import AdminProfileEdit from './pages/AdminProfileEdit';
-import NotFound from './pages/NotFound';
+import ManageUsers from './pages/admin/users/ManageUsers';
+import MyProjects from './pages/student/projects/MyProjects';
+import Invitations from './pages/student/invitations/Invitations';
+import StudentProfile from './pages/student/profile/StudentProfile';
+import StudentProfileEdit from './pages/student/profile/StudentProfileEdit';
+import LecturerProfile from './pages/lecturer/profile/LecturerProfile';
+import LecturerProfileEdit from './pages/lecturer/profile/LecturerProfileEdit';
+import AdminProfile from './pages/admin/profile/AdminProfile';
+import AdminProfileEdit from './pages/admin/profile/AdminProfileEdit';
+import NotFound from './pages/shared/NotFound';
 
 import './App.css';
 

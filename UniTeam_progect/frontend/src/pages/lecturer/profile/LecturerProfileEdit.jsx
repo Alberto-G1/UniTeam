@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/ProfileEdit.css';
+import { useAuth } from '../../../context/AuthContext';
+import '../../../styles/ProfileEdit.css';
 
-export default function StudentProfileEdit() {
+export default function LecturerProfileEdit() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -14,32 +14,26 @@ export default function StudentProfileEdit() {
     email: '',
     phone_number: '',
     avatar: null,
-    personal_email: '',
-    university: '',
     department: '',
-    course_name: '',
-    year_of_study: '',
-    bio: '',
-    skills: ''
+    office_location: '',
+    courses_taught: '',
+    research_areas: ''
   });
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     if (user) {
-      const profile = user.studentprofile || {};
+      const profile = user.lecturerprofile || {};
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
         phone_number: user.phone_number || '',
         avatar: null,
-        personal_email: profile.personal_email || '',
-        university: profile.university || '',
         department: profile.department || '',
-        course_name: profile.course_name || '',
-        year_of_study: profile.year_of_study || '',
-        bio: profile.bio || '',
-        skills: profile.skills ? profile.skills.join(', ') : ''
+        office_location: profile.office_location || '',
+        courses_taught: profile.courses_taught ? profile.courses_taught.join(', ') : '',
+        research_areas: profile.research_areas ? profile.research_areas.join(', ') : ''
       });
       if (user.avatar) {
         setPreview(user.avatar);
@@ -76,11 +70,11 @@ export default function StudentProfileEdit() {
     setError('');
     
     try {
-      // TODO: Implement API call to update profile
+      // TODO: Implement API call to update lecturer profile
       // For now, just show success message
       setTimeout(() => {
         alert('Profile updated successfully!');
-        navigate('/student/profile');
+        navigate('/lecturer/profile');
       }, 500);
     } catch (err) {
       setError('Failed to update profile. Please try again.');
@@ -95,10 +89,10 @@ export default function StudentProfileEdit() {
       <div className="profile-edit-header surface">
         <div className="profile-edit-header-content">
           <div>
-            <h1 className="profile-edit-title">Edit Student Profile</h1>
+            <h1 className="profile-edit-title">Edit Lecturer Profile</h1>
             <p className="profile-edit-subtitle">Make changes to your profile and click "Save Changes" when you're done</p>
           </div>
-          <Link to="/student/profile" className="btn btn-secondary">
+          <Link to="/lecturer/profile" className="btn btn-secondary">
             <i className="fa-solid fa-arrow-left"></i> Back to Profile
           </Link>
         </div>
@@ -167,7 +161,7 @@ export default function StudentProfileEdit() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">School Email</label>
+                <label htmlFor="email">Email</label>
                 <input
                   type="email"
                   id="email"
@@ -193,50 +187,10 @@ export default function StudentProfileEdit() {
               </div>
             </div>
 
-            {/* Personal Information */}
+            {/* Professional Information */}
             <div className="form-section">
-              <h3 className="form-section-title">Personal Information</h3>
-              <div className="form-group">
-                <label htmlFor="personal_email">Personal Email</label>
-                <input
-                  type="email"
-                  id="personal_email"
-                  name="personal_email"
-                  value={formData.personal_email}
-                  onChange={handleChange}
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="bio">Bio</label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  className="form-input"
-                  rows="4"
-                  placeholder="Tell us about yourself..."
-                />
-              </div>
-            </div>
-
-            {/* Academic Information */}
-            <div className="form-section">
-              <h3 className="form-section-title">Academic Information</h3>
+              <h3 className="form-section-title">Professional Information</h3>
               <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="university">University</label>
-                  <input
-                    type="text"
-                    id="university"
-                    name="university"
-                    value={formData.university}
-                    onChange={handleChange}
-                    className="form-input"
-                  />
-                </div>
                 <div className="form-group">
                   <label htmlFor="department">Department</label>
                   <input
@@ -248,49 +202,42 @@ export default function StudentProfileEdit() {
                     className="form-input"
                   />
                 </div>
-              </div>
-
-              <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="course_name">Course</label>
+                  <label htmlFor="office_location">Office Location</label>
                   <input
                     type="text"
-                    id="course_name"
-                    name="course_name"
-                    value={formData.course_name}
+                    id="office_location"
+                    name="office_location"
+                    value={formData.office_location}
                     onChange={handleChange}
                     className="form-input"
                   />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="year_of_study">Year of Study</label>
-                  <select
-                    id="year_of_study"
-                    name="year_of_study"
-                    value={formData.year_of_study}
-                    onChange={handleChange}
-                    className="form-input"
-                  >
-                    <option value="">Select Year</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
-                  </select>
-                </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="skills">Skills (comma-separated)</label>
+                <label htmlFor="courses_taught">Courses Taught (comma-separated)</label>
                 <input
                   type="text"
-                  id="skills"
-                  name="skills"
-                  value={formData.skills}
+                  id="courses_taught"
+                  name="courses_taught"
+                  value={formData.courses_taught}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="e.g., Python, JavaScript, React"
+                  placeholder="e.g., CS101, CS102, Advanced Algorithms"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="research_areas">Research Areas (comma-separated)</label>
+                <input
+                  type="text"
+                  id="research_areas"
+                  name="research_areas"
+                  value={formData.research_areas}
+                  onChange={handleChange}
+                  className="form-input"
+                  placeholder="e.g., Machine Learning, Data Science, Artificial Intelligence"
                 />
               </div>
             </div>
@@ -300,7 +247,7 @@ export default function StudentProfileEdit() {
               <button type="submit" className="btn btn-primary" disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
-              <Link to="/student/profile" className="btn btn-secondary">
+              <Link to="/lecturer/profile" className="btn btn-secondary">
                 Cancel
               </Link>
             </div>

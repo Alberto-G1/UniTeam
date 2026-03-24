@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/Profile.css';
+import { useAuth } from '../../../context/AuthContext';
+import '../../../styles/Profile.css';
 
-export default function LecturerProfile() {
+export default function StudentProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
 
@@ -21,7 +21,7 @@ export default function LecturerProfile() {
     );
   }
 
-  const lecturerProfile = user?.lecturerprofile || {};
+  const studentProfile = user?.studentprofile || {};
 
   return (
     <div className="profile-wrapper">
@@ -29,10 +29,10 @@ export default function LecturerProfile() {
       <div className="profile-header surface">
         <div className="profile-header-content">
           <div>
-            <h1 className="profile-title">My Lecturer Profile</h1>
-            <p className="profile-subtitle">Your professional and academic information</p>
+            <h1 className="profile-title">My Student Profile</h1>
+            <p className="profile-subtitle">Your personal and academic information</p>
           </div>
-          <Link to="/lecturer/profile/edit" className="btn btn-primary">
+          <Link to="/student/profile/edit" className="btn btn-primary">
             <i className="fa-solid fa-pencil"></i> Edit Profile
           </Link>
         </div>
@@ -50,7 +50,7 @@ export default function LecturerProfile() {
             />
           ) : (
             <div className="profile-avatar-placeholder">
-              <span>{profile.first_name?.[0]?.toUpperCase() || 'L'}{profile.last_name?.[0]?.toUpperCase() || ''}</span>
+              <span>{profile.first_name?.[0]?.toUpperCase() || 'S'}{profile.last_name?.[0]?.toUpperCase() || ''}</span>
             </div>
           )}
           
@@ -64,10 +64,20 @@ export default function LecturerProfile() {
             <div className="contact-item">
               <i className="fa-solid fa-envelope"></i>
               <div>
-                <p className="contact-label">Email</p>
+                <p className="contact-label">School Email</p>
                 <p className="contact-value">{profile.email}</p>
               </div>
             </div>
+
+            {studentProfile.personal_email && (
+              <div className="contact-item">
+                <i className="fa-solid fa-envelope-open-text"></i>
+                <div>
+                  <p className="contact-label">Personal Email</p>
+                  <p className="contact-value">{studentProfile.personal_email}</p>
+                </div>
+              </div>
+            )}
 
             {profile.phone_number && (
               <div className="contact-item">
@@ -83,49 +93,49 @@ export default function LecturerProfile() {
 
         {/* Right Column: Details */}
         <div className="profile-details">
-          {/* Professional Information */}
+          {/* About Me */}
           <div className="profile-section surface">
-            <h3 className="section-title">Professional Information</h3>
+            <h3 className="section-title">About Me</h3>
+            <p className="section-content">
+              {studentProfile.bio || 'No bio provided.'}
+            </p>
+          </div>
+
+          {/* Academic Information */}
+          <div className="profile-section surface">
+            <h3 className="section-title">Academic Information</h3>
             <div className="profile-info-grid">
-              <div className="info-item full-width">
+              <div className="info-item">
+                <label className="info-label">University</label>
+                <p className="info-value">{studentProfile.university || '-'}</p>
+              </div>
+              <div className="info-item">
                 <label className="info-label">Department</label>
-                <p className="info-value">{lecturerProfile.department || '-'}</p>
+                <p className="info-value">{studentProfile.department || '-'}</p>
               </div>
-              <div className="info-item full-width">
-                <label className="info-label">Office Location</label>
-                <p className="info-value">{lecturerProfile.office_location || '-'}</p>
+              <div className="info-item">
+                <label className="info-label">Course</label>
+                <p className="info-value">{studentProfile.course_name || '-'}</p>
+              </div>
+              <div className="info-item">
+                <label className="info-label">Year of Study</label>
+                <p className="info-value">{studentProfile.year_of_study || '-'}</p>
               </div>
             </div>
           </div>
 
-          {/* Courses Taught */}
+          {/* Skills */}
           <div className="profile-section surface">
-            <h3 className="section-title">Courses Taught</h3>
+            <h3 className="section-title">Skills</h3>
             <div className="skills-container">
-              {lecturerProfile.courses_taught && lecturerProfile.courses_taught.length > 0 ? (
-                lecturerProfile.courses_taught.map((course, index) => (
-                  <span key={index} className="skill-badge course-badge">
-                    {course}
+              {studentProfile.skills && studentProfile.skills.length > 0 ? (
+                studentProfile.skills.map((skill, index) => (
+                  <span key={index} className="skill-badge">
+                    {skill}
                   </span>
                 ))
               ) : (
-                <p className="empty-message">No courses listed</p>
-              )}
-            </div>
-          </div>
-
-          {/* Research Areas */}
-          <div className="profile-section surface">
-            <h3 className="section-title">Research Areas</h3>
-            <div className="skills-container">
-              {lecturerProfile.research_areas && lecturerProfile.research_areas.length > 0 ? (
-                lecturerProfile.research_areas.map((area, index) => (
-                  <span key={index} className="skill-badge research-badge">
-                    {area}
-                  </span>
-                ))
-              ) : (
-                <p className="empty-message">No research areas listed</p>
+                <p className="empty-message">No skills listed</p>
               )}
             </div>
           </div>

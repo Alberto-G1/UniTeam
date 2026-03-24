@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/ProfileEdit.css';
+import { useAuth } from '../../../context/AuthContext';
+import '../../../styles/ProfileEdit.css';
 
-export default function LecturerProfileEdit() {
+export default function AdminProfileEdit() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -14,26 +14,22 @@ export default function LecturerProfileEdit() {
     email: '',
     phone_number: '',
     avatar: null,
-    department: '',
-    office_location: '',
-    courses_taught: '',
-    research_areas: ''
+    role_title: '',
+    responsibilities: ''
   });
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     if (user) {
-      const profile = user.lecturerprofile || {};
+      const profile = user.adminprofile || {};
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
         phone_number: user.phone_number || '',
         avatar: null,
-        department: profile.department || '',
-        office_location: profile.office_location || '',
-        courses_taught: profile.courses_taught ? profile.courses_taught.join(', ') : '',
-        research_areas: profile.research_areas ? profile.research_areas.join(', ') : ''
+        role_title: profile.role_title || '',
+        responsibilities: profile.responsibilities || ''
       });
       if (user.avatar) {
         setPreview(user.avatar);
@@ -70,11 +66,11 @@ export default function LecturerProfileEdit() {
     setError('');
     
     try {
-      // TODO: Implement API call to update lecturer profile
+      // TODO: Implement API call to update admin profile
       // For now, just show success message
       setTimeout(() => {
         alert('Profile updated successfully!');
-        navigate('/lecturer/profile');
+        navigate('/admin/profile');
       }, 500);
     } catch (err) {
       setError('Failed to update profile. Please try again.');
@@ -89,10 +85,10 @@ export default function LecturerProfileEdit() {
       <div className="profile-edit-header surface">
         <div className="profile-edit-header-content">
           <div>
-            <h1 className="profile-edit-title">Edit Lecturer Profile</h1>
+            <h1 className="profile-edit-title">Edit Admin Profile</h1>
             <p className="profile-edit-subtitle">Make changes to your profile and click "Save Changes" when you're done</p>
           </div>
-          <Link to="/lecturer/profile" className="btn btn-secondary">
+          <Link to="/admin/profile" className="btn btn-secondary">
             <i className="fa-solid fa-arrow-left"></i> Back to Profile
           </Link>
         </div>
@@ -187,57 +183,32 @@ export default function LecturerProfileEdit() {
               </div>
             </div>
 
-            {/* Professional Information */}
+            {/* Admin Information */}
             <div className="form-section">
-              <h3 className="form-section-title">Professional Information</h3>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="department">Department</label>
-                  <input
-                    type="text"
-                    id="department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="office_location">Office Location</label>
-                  <input
-                    type="text"
-                    id="office_location"
-                    name="office_location"
-                    value={formData.office_location}
-                    onChange={handleChange}
-                    className="form-input"
-                  />
-                </div>
-              </div>
-
+              <h3 className="form-section-title">Role Information</h3>
               <div className="form-group">
-                <label htmlFor="courses_taught">Courses Taught (comma-separated)</label>
+                <label htmlFor="role_title">Role Title</label>
                 <input
                   type="text"
-                  id="courses_taught"
-                  name="courses_taught"
-                  value={formData.courses_taught}
+                  id="role_title"
+                  name="role_title"
+                  value={formData.role_title}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="e.g., CS101, CS102, Advanced Algorithms"
+                  placeholder="e.g., System Administrator, Database Manager"
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="research_areas">Research Areas (comma-separated)</label>
-                <input
-                  type="text"
-                  id="research_areas"
-                  name="research_areas"
-                  value={formData.research_areas}
+                <label htmlFor="responsibilities">Responsibilities & Notes</label>
+                <textarea
+                  id="responsibilities"
+                  name="responsibilities"
+                  value={formData.responsibilities}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="e.g., Machine Learning, Data Science, Artificial Intelligence"
+                  rows="6"
+                  placeholder="Describe your responsibilities and any additional notes..."
                 />
               </div>
             </div>
@@ -247,7 +218,7 @@ export default function LecturerProfileEdit() {
               <button type="submit" className="btn btn-primary" disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
-              <Link to="/lecturer/profile" className="btn btn-secondary">
+              <Link to="/admin/profile" className="btn btn-secondary">
                 Cancel
               </Link>
             </div>

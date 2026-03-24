@@ -72,7 +72,6 @@ frontend/src/
 ```
 
 ## Key Changes & Best Practices
-
 ### 1. **Role-Specific Profile Pages**
    - **Before**: Single generic `Profile.jsx` that tried to handle all roles
    - **After**: Three role-specific pages
@@ -86,6 +85,7 @@ frontend/src/
    - **After**: Three role-specific edit pages
      - `StudentProfileEdit.jsx` → `/student/profile/edit`
      - `LecturerProfileEdit.jsx` → `/lecturer/profile/edit`
+## 📁 Complete Directory Structure@@\`\`\`
      - `AdminProfileEdit.jsx` → `/admin/profile/edit`
    - **Why**: Each role has different profile fields to edit
 
