@@ -48,10 +48,12 @@ export const LecturerDashboard = () => {
       
       <div className="dashboard-stats">
         <div className="stat-card">
+          <i className="fa-solid fa-chalkboard-user" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{projects.length}</h3>
           <p>Supervised Projects</p>
         </div>
         <div className="stat-card">
+          <i className="fa-solid fa-file-lines" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
           <h3>{templates.length}</h3>
           <p>Project Templates</p>
         </div>

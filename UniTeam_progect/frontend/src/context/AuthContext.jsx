@@ -3,6 +3,20 @@ import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
+const API_BASE_URL = 'http://localhost:8000';
+
+// Helper to normalize user data with full avatar URL
+const normalizeUser = (userData) => {
+  if (!userData) return null;
+  
+  return {
+    ...userData,
+    avatar: userData.avatar && !userData.avatar.startsWith('http') 
+      ? `${API_BASE_URL}${userData.avatar}`
+      : userData.avatar
+  };
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -16,13 +30,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Initialize theme on mount
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
     // Check if user is logged in on mount
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
           const userData = await authAPI.getCurrentUser();
-          setUser(userData);
+          setUser(normalizeUser(userData));
         } catch (error) {
           console.error('Failed to get current user:', error);
           logout();
@@ -41,9 +59,11 @@ export const AuthProvider = ({ children }) => {
       // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      localStorage.setItem('user', JSON.stringify(data.user));
       
-      setUser(data.user);
+      const normalizedUser = normalizeUser(data.user);
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      
+      setUser(normalizedUser);
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
@@ -61,9 +81,11 @@ export const AuthProvider = ({ children }) => {
       // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      localStorage.setItem('user', JSON.stringify(data.user));
       
-      setUser(data.user);
+      const normalizedUser = normalizeUser(data.user);
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      
+      setUser(normalizedUser);
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);

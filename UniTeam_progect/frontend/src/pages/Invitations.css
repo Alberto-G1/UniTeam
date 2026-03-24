@@ -1,0 +1,195 @@
+.invitations-container {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.invitations-header {
+  margin-bottom: 2.5rem;
+}
+
+.invitations-header h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
+
+.invitations-header p {
+  color: var(--dark-gray);
+  font-size: 1rem;
+}
+
+.invitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.invitation-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.invitation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--accent-1), var(--accent-2));
+}
+
+.invitation-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  border-color: var(--accent-2);
+}
+
+.invitation-content {
+  padding: 2rem;
+  padding-left: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.invitation-info {
+  flex: 1;
+}
+
+.invitation-from {
+  font-size: 0.875rem;
+  color: var(--dark-gray);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.invitation-from strong {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.invitation-project {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.invitation-project strong {
+  color: var(--accent-2);
+}
+
+.invitation-description {
+  color: var(--dark-gray);
+  line-height: 1.7;
+  font-size: 0.975rem;
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.invitation-actions .btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.invitation-actions .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 2px dashed var(--border-color);
+  margin: 2rem 0;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+
+.empty-state p {
+  color: var(--dark-gray);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Loading State */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent-2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 3rem auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 768px) {
+  .invitation-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .invitation-actions {
+    flex-shrink: 0;
+  }
+
+  .invitation-actions .btn {
+    flex: initial;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 767px) {
+  .invitations-container {
+    padding: 1rem;
+  }
+
+  .invitation-actions {
+    flex-direction: column;
+  }
+}
