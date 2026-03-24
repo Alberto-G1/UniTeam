@@ -15,8 +15,8 @@ export default function ManageUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await usersAPI.getUsers();
-      let userData = response.data.results || response.data;
+      const response = await usersAPI.list();
+      let userData = response.results || response;
       
       // Apply filter
       if (filter !== 'all') {
@@ -33,7 +33,7 @@ export default function ManageUsers() {
 
   const handleApprove = async (userId) => {
     try {
-      await usersAPI.updateUser(userId, { lecturerprofile: { is_approved: true } });
+      await usersAPI.approveLecturer(userId);
       fetchUsers();
     } catch (error) {
       console.error('Error approving user:', error);
@@ -44,7 +44,7 @@ export default function ManageUsers() {
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await usersAPI.deleteUser(userId);
+        await usersAPI.delete(userId);
         fetchUsers();
       } catch (error) {
         console.error('Error deleting user:', error);
