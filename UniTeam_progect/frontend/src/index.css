@@ -1,5 +1,11 @@
 /* src/index.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 :root {
+
+  --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
   /* Light Theme Colors - StudyFlow Palette */
   --bg-page: #F4FCF9;
   --bg-sidebar: #0B3D2E;
@@ -90,12 +96,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: var(--font-primary);
+
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-page);

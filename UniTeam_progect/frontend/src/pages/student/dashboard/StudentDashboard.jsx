@@ -1,7 +1,10 @@
+// src/pages/student/dashboard/StudentDashboard.jsx (updated)
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { projectsAPI, invitationsAPI } from '../../../services/api';
+import StatCard from '../../../components/StatCard';
+import ProgressBar from '../../../components/ProgressBar';
 import '../../Dashboard.css';
 
 export const StudentDashboard = () => {
@@ -18,7 +21,6 @@ export const StudentDashboard = () => {
           invitationsAPI.list(),
         ]);
         
-        // Handle paginated responses from DRF
         const projectsList = Array.isArray(projectsData) ? projectsData : projectsData.results || [];
         const invitationsList = Array.isArray(invitationsData) ? invitationsData : invitationsData.results || [];
         
@@ -44,66 +46,127 @@ export const StudentDashboard = () => {
 
   return (
     <div className="dashboard">
-      <h1>Welcome back, {user?.first_name || user?.username}!</h1>
-      
-      <div className="dashboard-stats">
-        <div className="stat-card">
-          <i className="fa-solid fa-folder-open" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
-          <h3>{projects.length}</h3>
-          <p>Active Projects</p>
-        </div>
-        <div className="stat-card">
-          <i className="fa-solid fa-envelope" style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.9}}></i>
-          <h3>{invitations.length}</h3>
-          <p>Pending Invitations</p>
-        </div>
+      <div className="dashboard-header">
+        <h1>Welcome back, {user?.first_name || user?.username}!</h1>
+        <p className="dashboard-subtitle">Here's what's happening with your projects today.</p>
+      </div>
+
+      <div className="stat-grid">
+        <StatCard
+          type="green"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>}
+          value={projects.length}
+          label="Active Projects"
+          trend="up"
+          trendValue="12%"
+        />
+        <StatCard
+          type="teal"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>}
+          value="14"
+          label="Completed Tasks"
+          trend="up"
+          trendValue="8%"
+        />
+        <StatCard
+          type="purple"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+          value="5"
+          label="Team Members"
+          trend="up"
+          trendValue="3%"
+        />
+        <StatCard
+          type="gold"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+          value={invitations.length}
+          label="Pending Invitations"
+          trend="new"
+          trendValue="2 new"
+        />
       </div>
 
       {invitations.length > 0 && (
-        <div className="dashboard-section">
-          <h2>Pending Invitations</h2>
-          <div className="alert alert-info">
-            You have {invitations.length} pending invitation(s).{' '}
-            <Link to="/invitations">View all</Link>
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Pending Invitations</span>
+            <Link to="/student/invitations" className="card-action">View all →</Link>
+          </div>
+          <div className="card-content">
+            <div className="alert info" style={{ marginBottom: 0 }}>
+              <div className="alert-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </div>
+              <div className="alert-content">
+                <div className="alert-title">You have {invitations.length} pending invitation(s)</div>
+                <div className="alert-msg">Check your invitations to join new projects.</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2>My Projects</h2>
-          <Link to="/projects/create" className="btn btn-primary">
-            Create New Project
-          </Link>
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">My Projects</span>
+          <Link to="/student/projects/create" className="btn btn-primary btn-sm">+ Create New</Link>
         </div>
         
         {projects.length === 0 ? (
-          <p className="empty-state">
-            No projects yet. <Link to="/projects/create">Create your first project</Link>
-          </p>
+          <div className="empty-state">
+            <div className="empty-state-icon"><i className="fa-regular fa-folder-open"></i></div>
+            <p>No projects yet. <Link to="/student/projects/create">Create your first project</Link></p>
+          </div>
         ) : (
           <div className="projects-grid">
             {projects.slice(0, 4).map((project) => (
               <Link
                 key={project.id}
-                to={`/projects/${project.id}`}
+                to={`/student/projects/${project.id}`}
                 className="project-card"
               >
                 <h3>{project.title}</h3>
-                <p>{project.course_code}</p>
-                <p className="text-muted">
-                  Due: {new Date(project.deadline).toLocaleDateString()}
-                </p>
+                <p className="project-description">{project.description?.substring(0, 100)}...</p>
+                <div className="project-meta">
+                  <span>Due: {new Date(project.deadline).toLocaleDateString()}</span>
+                  <span className="badge badge-member">In Progress</span>
+                </div>
               </Link>
             ))}
           </div>
         )}
         
         {projects.length > 4 && (
-          <Link to="/projects" className="view-all-link">
-            View all projects →
-          </Link>
+          <div className="card-footer">
+            <Link to="/student/projects" className="card-action">View all projects →</Link>
+          </div>
         )}
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Project Progress</span>
+          <span className="card-action">Details</span>
+        </div>
+        <div className="progress-section">
+          <ProgressBar label="Dissertation" percentage={68} color="var(--green-accent)" />
+          <ProgressBar label="Stats Project" percentage={45} color="var(--purple)" />
+          <ProgressBar label="Group Report" percentage={90} color="var(--green-completed)" />
+          <ProgressBar label="Lab Circuits" percentage={22} color="var(--gold)" />
+          
+          <div style={{ marginTop: '1rem', paddingTop: '0.875rem', borderTop: '1px solid var(--border-subtle)' }}>
+            <div className="legend">
+              <div className="legend-item"><div className="legend-dot" style={{ background: 'var(--green-completed)' }}></div>Done</div>
+              <div className="legend-item"><div className="legend-dot" style={{ background: 'var(--green-accent)' }}></div>Active</div>
+              <div className="legend-item"><div className="legend-dot" style={{ background: 'var(--gold)' }}></div>Due soon</div>
+              <div className="legend-item"><div className="legend-dot" style={{ background: 'var(--red)' }}></div>Overdue</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
