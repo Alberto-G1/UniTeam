@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlow — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    /* Light mode */
+    --bg-page: #F4FCF9;
+    --bg-sidebar: linear-gradient(180deg, #176B52 0%, #1FA97E 100%);
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #f0faf6;
+    --bg-input: #EAF5F0;
+    --border: #C8E8E0;
+    --border-subtle: #E0F7F2;
+
+    --text-primary: #0E2E22;
+    --text-secondary: #4A7060;
+    --text-muted: #7A9A8A;
+    --text-white: #FFFFFF;
+    --text-on-sidebar: rgba(178,239,227,0.85);
+
+    --green-primary: #1FA97E;
+    --green-dark: #176B52;
+    --green-accent: #27C99A;
+    --green-completed: #3DAA5C;
+    --green-tint: rgba(31,169,126,0.1);
+
+    --purple: #6B5EA8;
+    --purple-tint: rgba(107,94,168,0.12);
+    --gold: #E8A020;
+    --gold-tint: rgba(232,160,32,0.12);
+    --red: #E05252;
+    --red-tint: rgba(224,82,82,0.12);
+
+    --sidebar-active: rgba(255,255,255,0.18);
+    --sidebar-dot-active: #27C99A;
+    --sidebar-dot: rgba(255,255,255,0.25);
+
+    --shadow-card: 0 2px 16px rgba(14,46,34,0.07);
+    --shadow-hover: 0 6px 28px rgba(14,46,34,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  [data-theme="dark"] {
+    --bg-page: #1A2232;
+    --bg-sidebar: linear-gradient(180deg, #212E40 0%, #1e2d3d 100%);
+    --bg-card: #263142;
+    --bg-card-hover: #2E3A50;
+    --bg-input: #2E3A50;
+    --border: #374558;
+    --border-subtle: #2E3A50;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #B0BEC5;
+    --text-muted: #6B7E95;
+    --text-white: #FFFFFF;
+    --text-on-sidebar: #6B7E95;
+
+    --green-primary: #1FA97E;
+    --green-dark: #176B52;
+    --green-accent: #27C99A;
+    --green-completed: #3DAA5C;
+    --green-tint: rgba(31,169,126,0.15);
+
+    --purple: #A89AE0;
+    --purple-tint: rgba(107,94,168,0.2);
+    --gold: #F0BC5E;
+    --gold-tint: rgba(232,160,32,0.15);
+    --red: #F07070;
+    --red-tint: rgba(224,82,82,0.15);
+
+    --sidebar-active: #176B52;
+    --sidebar-dot-active: #27C99A;
+    --sidebar-dot: #374558;
+
+    --shadow-card: 0 2px 16px rgba(0,0,0,0.25);
+    --shadow-hover: 0 6px 28px rgba(0,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--bg-sidebar);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 14px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .sidebar::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    pointer-events: none;
+  }
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    bottom: 40px; right: -30px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+    pointer-events: none;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.15);
+  }
+  .logo-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .logo-icon svg { width: 18px; height: 18px; }
+  .logo-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+
+  .profile-block {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 24px; padding: 10px 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+  }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--green-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff;
+    flex-shrink: 0; border: 2px solid rgba(255,255,255,0.3);
+  }
+  .profile-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .profile-role { font-size: 10px; color: rgba(178,239,227,0.7); margin-top: 1px; }
+
+  .nav-section-label {
+    font-size: 9px; font-weight: 600; color: rgba(178,239,227,0.45);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0 10px; margin-bottom: 6px; margin-top: 4px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    cursor: pointer; margin-bottom: 2px;
+    transition: background 0.15s;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.1); }
+  .nav-item.active { background: var(--sidebar-active); }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sidebar-dot); flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .nav-item.active .nav-dot { background: var(--sidebar-dot-active); }
+  .nav-label { font-size: 12px; color: rgba(178,239,227,0.75); font-weight: 500; }
+  .nav-item.active .nav-label { color: #fff; font-weight: 600; }
+  .nav-badge {
+    margin-left: auto; font-size: 9px; font-weight: 700;
+    background: var(--green-accent); color: #fff;
+    padding: 2px 6px; border-radius: 10px;
+  }
+
+  .sidebar-bottom {
+    margin-top: auto; padding-top: 16px;
+    border-top: 0.5px solid rgba(255,255,255,0.12);
+  }
+
+  /* ── MAIN ── */
+  .main {
+    flex: 1; overflow: hidden;
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 28px;
+    background: var(--bg-card);
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .page-title { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.4px; }
+  .page-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .search-bar {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-input); border: 0.5px solid var(--border);
+    border-radius: 10px; padding: 8px 14px; width: 220px;
+    transition: all 0.2s;
+  }
+  .search-bar:focus-within { border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--green-tint); }
+  .search-bar svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+  .search-bar input {
+    border: none; background: none; outline: none;
+    font-size: 12px; color: var(--text-primary); font-family: inherit; width: 100%;
+  }
+  .search-bar input::placeholder { color: var(--text-muted); }
+
+  .theme-toggle {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--bg-input); border: 0.5px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; color: var(--text-muted);
+  }
+  .theme-toggle:hover { background: var(--green-tint); border-color: var(--green-accent); color: var(--green-accent); }
+
+  .btn-new {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--green-primary); color: #fff;
+    border: none; border-radius: 9px; padding: 8px 16px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.2s;
+    box-shadow: 0 3px 12px rgba(31,169,126,0.35);
+  }
+  .btn-new:hover { background: var(--green-accent); transform: translateY(-1px); box-shadow: 0 5px 18px rgba(31,169,126,0.4); }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1; overflow-y: auto;
+    padding: 24px 28px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--green-accent); }
+  .stat-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .stat-card.green::before { background: var(--green-accent); }
+  .stat-card.completed::before { background: var(--green-completed); }
+  .stat-card.purple::before { background: var(--purple); }
+  .stat-card.gold::before { background: var(--gold); }
+
+  .stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .stat-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stat-icon.green { background: var(--green-tint); color: var(--green-accent); }
+  .stat-icon.completed { background: rgba(61,170,92,0.12); color: var(--green-completed); }
+  .stat-icon.purple { background: var(--purple-tint); color: var(--purple); }
+  .stat-icon.gold { background: var(--gold-tint); color: var(--gold); }
+  .stat-icon svg { width: 18px; height: 18px; }
+
+  .stat-trend {
+    font-size: 10px; font-weight: 600; padding: 3px 7px;
+    border-radius: 20px; display: flex; align-items: center; gap: 3px;
+  }
+  .stat-trend.up { background: rgba(61,170,92,0.12); color: var(--green-completed); }
+  .stat-trend.down { background: var(--red-tint); color: var(--red); }
+
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); letter-spacing: -1px; line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+  /* ── MIDDLE SECTION ── */
+  .middle-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 14px;
+  }
+
+  /* ── CARD BASE ── */
+  .card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 0.5px solid var(--border-subtle);
+  }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .card-action { font-size: 11px; color: var(--green-accent); cursor: pointer; font-weight: 600; }
+  .card-action:hover { text-decoration: underline; }
+
+  /* ── TASKS ── */
+  .task-list { padding: 8px 20px 16px; }
+  .task-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border-subtle);
+    transition: background 0.15s;
+  }
+  .task-item:last-child { border-bottom: none; }
+
+  .task-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--border); flex-shrink: 0;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .task-check.done { background: var(--green-completed); border-color: var(--green-completed); }
+  .task-check.done::after { content: '✓'; font-size: 10px; color: #fff; font-weight: 700; }
+  .task-check.progress { border-color: var(--purple); }
+  .task-check.soon { border-color: var(--gold); }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-name.done-text { color: var(--text-muted); text-decoration: line-through; }
+  .task-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .task-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 9px;
+    border-radius: 20px; flex-shrink: 0;
+  }
+  .task-badge.done { background: var(--green-tint); color: var(--green-accent); }
+  .task-badge.progress { background: var(--purple-tint); color: var(--purple); }
+  .task-badge.soon { background: var(--gold-tint); color: var(--gold); }
+  .task-badge.overdue { background: var(--red-tint); color: var(--red); }
+  .task-badge.pending { background: var(--border-subtle); color: var(--text-muted); }
+
+  /* ── PROGRESS CARD ── */
+  .progress-section { padding: 16px 20px; }
+  .progress-item { margin-bottom: 14px; }
+  .progress-item:last-child { margin-bottom: 0; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .progress-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .progress-pct { font-size: 11px; font-weight: 600; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .progress-track { height: 6px; background: var(--border-subtle); border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 10px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+  /* ── BOTTOM GRID ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 300px;
+    gap: 14px;
+  }
+
+  /* ── CHART ── */
+  .chart-wrap { padding: 16px 20px; height: 200px; position: relative; }
+
+  /* ── TEAM ── */
+  .team-list { padding: 8px 20px 16px; }
+  .member-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 0.5px solid var(--border-subtle);
+  }
+  .member-item:last-child { border-bottom: none; }
+  .member-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .member-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .member-role { font-size: 10px; color: var(--text-muted); }
+  .member-tasks { margin-left: auto; font-size: 10px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--green-accent); }
+
+  /* ── UPCOMING ── */
+  .upcoming-list { padding: 8px 20px 16px; }
+  .upcoming-item {
+    display: flex; gap: 12px;
+    padding: 10px 0; border-bottom: 0.5px solid var(--border-subtle);
+    align-items: flex-start;
+  }
+  .upcoming-item:last-child { border-bottom: none; }
+  .upcoming-date {
+    width: 38px; text-align: center; flex-shrink: 0;
+    background: var(--bg-input); border-radius: 8px;
+    padding: 5px 4px;
+  }
+  .upcoming-day { font-size: 16px; font-weight: 700; color: var(--green-primary); line-height: 1; }
+  .upcoming-month { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .upcoming-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+  .upcoming-sub { font-size: 10px; color: var(--text-muted); }
+
+  /* ── OVERVIEW BAR ── */
+  .overview-bar {
+    display: flex; gap: 3px; height: 8px;
+    border-radius: 10px; overflow: hidden; margin-top: 12px;
+  }
+  .ov-seg { height: 100%; transition: flex 0.8s cubic-bezier(.4,0,.2,1); }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SCROLLBAR */
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stat-card { animation: fadeUp 0.4s ease both; }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+  .notification-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); margin-left: auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="logo-name">StudyFlow</span>
+  </div>
+
+  <div class="profile-block">
+    <div class="avatar">JS</div>
+    <div>
+      <div class="profile-name">John Smith</div>
+      <div class="profile-role">Year 3 · Computer Sci</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Main</div>
+  <a class="nav-item active">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Dashboard</span>
+  </a>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Projects</span>
+    <span class="nav-badge">4</span>
+  </a>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Tasks</span>
+    <span class="nav-badge">12</span>
+  </a>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Calendar</span>
+  </a>
+
+  <div class="nav-section-label" style="margin-top:14px;">Resources</div>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Reports</span>
+  </a>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Team</span>
+  </a>
+  <a class="nav-item" onclick="setActive(this)">
+    <div class="nav-dot"></div>
+    <span class="nav-label">Files</span>
+  </a>
+
+  <div class="sidebar-bottom">
+    <a class="nav-item" onclick="setActive(this)">
+      <div class="nav-dot"></div>
+      <span class="nav-label">Settings</span>
+    </a>
+    <a class="nav-item" onclick="setActive(this)">
+      <div class="nav-dot"></div>
+      <span class="nav-label">Help</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle">Thursday, 26 March 2026</div>
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search tasks, projects…">
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <button class="btn-new">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New Task
+    </button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid">
+      <div class="stat-card green">
+        <div class="stat-top">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <span class="stat-trend up">↑ 12%</span>
+        </div>
+        <div class="stat-value">8</div>
+        <div class="stat-label">Active Projects</div>
+      </div>
+      <div class="stat-card completed">
+        <div class="stat-top">
+          <div class="stat-icon completed">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="stat-trend up">↑ 8%</span>
+        </div>
+        <div class="stat-value">14</div>
+        <div class="stat-label">Completed Tasks</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-top">
+          <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <span class="stat-trend up">↑ 3%</span>
+        </div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">Team Members</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-top">
+          <div class="stat-icon gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <span class="stat-trend down">↑ 2 new</span>
+        </div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">Due This Week</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: TASKS + PROGRESS -->
+    <div class="middle-grid">
+
+      <!-- TASKS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Latest Tasks</span>
+          <span class="card-action">View all →</span>
+        </div>
+        <div class="task-list">
+          <div class="task-item">
+            <div class="task-check done"></div>
+            <div class="task-info">
+              <div class="task-name done-text">Research paper outline</div>
+              <div class="task-meta">Computer Science · Due Mar 20</div>
+            </div>
+            <span class="task-badge done">Done</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check progress"></div>
+            <div class="task-info">
+              <div class="task-name">Data collection & analysis</div>
+              <div class="task-meta">Statistics · Due Mar 28</div>
+            </div>
+            <span class="task-badge progress">In Progress</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check done"></div>
+            <div class="task-info">
+              <div class="task-name done-text">Group presentation slides</div>
+              <div class="task-meta">Business Management · Due Mar 22</div>
+            </div>
+            <span class="task-badge done">Done</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check soon"></div>
+            <div class="task-info">
+              <div class="task-name">Final dissertation draft</div>
+              <div class="task-meta">Computer Science · Due Apr 1</div>
+            </div>
+            <span class="task-badge soon">Due Soon</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check"></div>
+            <div class="task-info">
+              <div class="task-name">Lab report — circuits</div>
+              <div class="task-meta">Electronics · Due Apr 5</div>
+            </div>
+            <span class="task-badge overdue">Overdue</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check"></div>
+            <div class="task-info">
+              <div class="task-name">Literature review</div>
+              <div class="task-meta">Psychology · Due Apr 10</div>
+            </div>
+            <span class="task-badge pending">Not Started</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- PROJECT PROGRESS -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Project Progress</span>
+            <span class="card-action">Details</span>
+          </div>
+          <div class="progress-section">
+            <div class="progress-item">
+              <div class="progress-top">
+                <span class="progress-name">Dissertation</span>
+                <span class="progress-pct">68%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width:68%;background:var(--green-accent);"></div>
+              </div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-top">
+                <span class="progress-name">Stats Project</span>
+                <span class="progress-pct">45%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width:45%;background:var(--purple);"></div>
+              </div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-top">
+                <span class="progress-name">Group Report</span>
+                <span class="progress-pct">90%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width:90%;background:var(--green-completed);"></div>
+              </div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-top">
+                <span class="progress-name">Lab Circuits</span>
+                <span class="progress-pct">22%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width:22%;background:var(--gold);"></div>
+              </div>
+            </div>
+
+            <!-- Overview bar -->
+            <div style="margin-top:16px; padding-top:14px; border-top:0.5px solid var(--border-subtle);">
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Overall breakdown</div>
+              <div class="overview-bar">
+                <div class="ov-seg" style="flex:14;background:var(--green-completed);"></div>
+                <div class="ov-seg" style="flex:5;background:var(--green-accent);"></div>
+                <div class="ov-seg" style="flex:3;background:var(--gold);"></div>
+                <div class="ov-seg" style="flex:2;background:var(--red);"></div>
+                <div class="ov-seg" style="flex:4;background:var(--border);"></div>
+              </div>
+              <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green-completed);"></div>Done</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green-accent);"></div>Active</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gold);"></div>Due soon</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div>Overdue</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM: CHART + TEAM + UPCOMING -->
+    <div class="bottom-grid">
+
+      <!-- CHART -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Task Activity</span>
+          <div style="display:flex;gap:8px;">
+            <span class="legend-item"><div class="legend-dot" style="background:var(--green-accent);"></div>Completed</span>
+            <span class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div>Added</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- TEAM -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Team</span>
+          <span class="card-action">Manage</span>
+        </div>
+        <div class="team-list">
+          <div class="member-item">
+            <div class="member-avatar" style="background:#1FA97E;">JS</div>
+            <div>
+              <div class="member-name">John Smith</div>
+              <div class="member-role">Lead · CS</div>
+            </div>
+            <span class="member-tasks">8 tasks</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background:#6B5EA8;">AM</div>
+            <div>
+              <div class="member-name">Amara Mensah</div>
+              <div class="member-role">Research</div>
+            </div>
+            <span class="member-tasks">5 tasks</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background:#E8A020;">KO</div>
+            <div>
+              <div class="member-name">Kofi Owusu</div>
+              <div class="member-role">Design</div>
+            </div>
+            <span class="member-tasks">4 tasks</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background:#3DAA5C;">LN</div>
+            <div>
+              <div class="member-name">Lydia Nakato</div>
+              <div class="member-role">Data</div>
+            </div>
+            <span class="member-tasks">6 tasks</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background:#27C99A;">TR</div>
+            <div>
+              <div class="member-name">Tunde Raji</div>
+              <div class="member-role">Backend</div>
+            </div>
+            <span class="member-tasks">3 tasks</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPCOMING -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upcoming</span>
+          <span class="card-action">Calendar</span>
+        </div>
+        <div class="upcoming-list">
+          <div class="upcoming-item">
+            <div class="upcoming-date">
+              <div class="upcoming-day">28</div>
+              <div class="upcoming-month">Mar</div>
+            </div>
+            <div>
+              <div class="upcoming-title">Data Analysis Due</div>
+              <div class="upcoming-sub">Statistics · 11:59 PM</div>
+            </div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-date">
+              <div class="upcoming-day">01</div>
+              <div class="upcoming-month">Apr</div>
+            </div>
+            <div>
+              <div class="upcoming-title">Dissertation Draft</div>
+              <div class="upcoming-sub">CS · Submit to Turnitin</div>
+            </div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-date">
+              <div class="upcoming-day">05</div>
+              <div class="upcoming-month">Apr</div>
+            </div>
+            <div>
+              <div class="upcoming-title">Lab Report</div>
+              <div class="upcoming-sub">Electronics · Hard copy</div>
+            </div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-date">
+              <div class="upcoming-day">10</div>
+              <div class="upcoming-month">Apr</div>
+            </div>
+            <div>
+              <div class="upcoming-title">Literature Review</div>
+              <div class="upcoming-sub">Psychology · 3000 words</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const icon = document.getElementById('theme-icon');
+    if (isDark) {
+      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    }
+    setTimeout(buildChart, 50);
+  }
+
+  // Nav active
+  function setActive(el) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Chart
+  let chartInstance = null;
+  function buildChart() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(55,69,88,0.8)' : 'rgba(200,232,224,0.6)';
+    const labelColor = isDark ? '#6B7E95' : '#7A9A8A';
+
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+        datasets: [
+          {
+            label: 'Completed',
+            data: [4, 7, 5, 9, 6, 8],
+            backgroundColor: isDark ? 'rgba(39,201,154,0.7)' : 'rgba(31,169,126,0.75)',
+            borderRadius: 5, borderSkipped: false,
+          },
+          {
+            label: 'Added',
+            data: [6, 5, 8, 7, 9, 10],
+            backgroundColor: isDark ? 'rgba(168,154,224,0.55)' : 'rgba(107,94,168,0.45)',
+            borderRadius: 5, borderSkipped: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: isDark ? '#263142' : '#fff',
+          titleColor: isDark ? '#fff' : '#0E2E22',
+          bodyColor: isDark ? '#B0BEC5' : '#4A7060',
+          borderColor: isDark ? '#374558' : '#C8E8E0',
+          borderWidth: 1, cornerRadius: 8, padding: 10,
+        }},
+        scales: {
+          x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11, family: 'Plus Jakarta Sans' } }, border: { display: false } },
+          y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Plus Jakarta Sans' }, stepSize: 2 }, border: { display: false } }
+        },
+        barPercentage: 0.6, categoryPercentage: 0.7,
+      }
+    });
+  }
+
+  window.addEventListener('load', buildChart);
+</script>
+</body>
+</html>
