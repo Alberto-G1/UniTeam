@@ -1,0 +1,53 @@
+/* src/components/ProgressBar.css */
+.progress-item {
+  margin-bottom: 1rem;
+}
+
+.progress-item:last-child {
+  margin-bottom: 0;
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4375rem;
+}
+
+.progress-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progress-pct {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+
+.progress-track {
+  height: 7px;
+  background: var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+}

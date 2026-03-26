@@ -1,14 +1,14 @@
+// src/context/AuthContext.jsx (updated)
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { useToast } from '../components/ToastContainer';
 
 const AuthContext = createContext(null);
 
 const API_BASE_URL = 'http://localhost:8000';
 
-// Helper to normalize user data with full avatar URL
 const normalizeUser = (userData) => {
   if (!userData) return null;
-  
   return {
     ...userData,
     avatar: userData.avatar && !userData.avatar.startsWith('http') 
@@ -28,13 +28,12 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    // Initialize theme on mount
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     
-    // Check if user is logged in on mount
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (token) {
@@ -56,7 +55,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authAPI.login(username, password);
       
-      // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
       
@@ -64,12 +62,15 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       
       setUser(normalizedUser);
+      showToast('success', 'Welcome back!', `Logged in as ${normalizedUser.first_name || normalizedUser.username}`);
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      const errorMsg = error.response?.data?.error || 'Login failed. Please check your credentials.';
+      showToast('error', 'Login Failed', errorMsg);
       return {
         success: false,
-        error: error.response?.data?.error || 'Login failed',
+        error: errorMsg,
       };
     }
   };
@@ -78,7 +79,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authAPI.register(userData);
       
-      // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
       
@@ -86,12 +86,15 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       
       setUser(normalizedUser);
+      showToast('success', 'Account Created!', `Welcome to Project Hub, ${normalizedUser.first_name || normalizedUser.username}!`);
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
+      const errorMsg = error.response?.data?.error || 'Registration failed. Please try again.';
+      showToast('error', 'Registration Failed', errorMsg);
       return {
         success: false,
-        error: error.response?.data || 'Registration failed',
+        error: errorMsg,
       };
     }
   };
@@ -101,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
+    showToast('info', 'Signed Out', 'You have been successfully logged out.');
   };
 
   const value = {

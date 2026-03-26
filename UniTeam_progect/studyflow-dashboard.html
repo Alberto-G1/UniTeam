@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlow — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   CSS VARIABLES
+═══════════════════════════════════════════ */
+:root {
+  --bg-page: #F4FCF9;
+  --bg-sidebar: #0B3D2E;
+  --bg-sidebar-2: #176B52;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #f0faf6;
+  --bg-input: #EAF5F0;
+  --border: rgba(200,232,224,0.8);
+  --border-subtle: rgba(200,232,224,0.4);
+
+  --text-primary: #0E2E22;
+  --text-secondary: #4A7060;
+  --text-muted: #7A9A8A;
+  --text-on-sidebar: rgba(178,239,227,0.75);
+
+  --green-primary: #1FA97E;
+  --green-dark: #176B52;
+  --green-accent: #27C99A;
+  --green-completed: #3DAA5C;
+  --green-tint: rgba(31,169,126,0.1);
+
+  --purple: #6B5EA8;
+  --purple-tint: rgba(107,94,168,0.12);
+  --gold: #E8A020;
+  --gold-tint: rgba(232,160,32,0.12);
+  --red: #E05252;
+  --red-tint: rgba(224,82,82,0.12);
+  --blue: #3A8EDE;
+  --blue-tint: rgba(58,142,222,0.12);
+
+  --sidebar-active-bg: #fff;
+  --sidebar-active-text: #0B3D2E;
+  --sidebar-active-icon: #1FA97E;
+
+  --shadow-card: 0 2px 20px rgba(14,46,34,0.07);
+  --shadow-hover: 0 8px 32px rgba(14,46,34,0.13);
+  --shadow-modal: 0 24px 80px rgba(14,46,34,0.18);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+
+  --topbar-h: 64px;
+  --sidebar-w: 240px;
+  --sidebar-collapsed-w: 64px;
+
+  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theme="dark"] {
+  --bg-page: #1A2232;
+  --bg-sidebar: linear-gradient(180deg, #212E40 0%, #1e2d3d 100%);
+  --bg-sidebar-2: #0D2B20;
+  --bg-card: #263142;
+  --bg-card-hover: #2E3A50;
+  --bg-input: #2E3A50;
+  --border: #374558;
+  --border-subtle: #2E3A50;
+
+
+  --text-primary: #E8F5F0;
+  --text-secondary: #7EC4A8;
+  --text-muted: #4A7060;
+  --text-on-sidebar: rgba(120,200,170,0.65);
+
+  --green-primary: #27C99A;
+  --green-dark: #1FA97E;
+  --green-accent: #3DE0B0;
+  --green-completed: #4DC96C;
+  --green-tint: rgba(39,201,154,0.12);
+
+  --purple: #9B8FD4;
+  --purple-tint: rgba(155,143,212,0.15);
+  --gold: #F0BC5E;
+  --gold-tint: rgba(240,188,94,0.12);
+  --red: #F07878;
+  --red-tint: rgba(240,120,120,0.12);
+  --blue: #5AAAF0;
+  --blue-tint: rgba(90,170,240,0.12);
+
+  --sidebar-active-bg: rgba(39,201,154,0.15);
+  --sidebar-active-text: #3DE0B0;
+  --sidebar-active-icon: #3DE0B0;
+
+  --shadow-card: 0 2px 20px rgba(0,0,0,0.35);
+  --shadow-hover: 0 8px 32px rgba(0,0,0,0.45);
+  --shadow-modal: 0 24px 80px rgba(0,0,0,0.6);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  overflow: hidden;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100;
+  transition: width var(--transition), transform var(--transition);
+  overflow: hidden;
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(39,201,154,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Logo */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 18px 18px;
+  border-bottom: 1px solid rgba(39,201,154,0.1);
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green-primary), var(--green-accent));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(39,201,154,0.35);
+}
+.logo-icon svg { width: 18px; height: 18px; }
+.logo-name {
+  font-size: 15px; font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+.logo-version {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-on-sidebar);
+  background: rgba(39,201,154,0.15);
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+
+/* Nav scroll area */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 12px;
+}
+.sidebar-nav::-webkit-scrollbar { width: 0; }
+
+.nav-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(120,180,155,0.35);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0 8px;
+  margin: 12px 0 6px;
+}
+.nav-section-label:first-child { margin-top: 0; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: background var(--transition), color var(--transition);
+  text-decoration: none;
+  position: relative;
+  overflow: visible;
+}
+
+.nav-item:hover {
+  background: rgba(39,201,154,0.08);
+}
+
+/* THE KEY EFFECT: active item appears "cut out" of the sidebar */
+.nav-item.active {
+  background: var(--sidebar-active-bg);
+  box-shadow: 0 4px 20px rgba(39,201,154,0.25);
+}
+
+[data-theme="light"] .nav-item.active {
+  background: #fff;
+  box-shadow: 8px 0 20px rgba(14,46,34,0.15), 0 4px 16px rgba(14,46,34,0.1);
+  margin-left: -4px;
+  padding-left: 14px;
+  width: calc(100% + 8px);
+  border-radius: 10px 0 0 10px;
+}
+[data-theme="light"] .nav-item.active::after {
+  content: '';
+  position: absolute;
+  right: -12px; top: 0; bottom: 0;
+  width: 14px;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 20%, 100% 80%, 0 100%);
+}
+
+[data-theme="dark"] .nav-item.active {
+  background: rgba(39,201,154,0.13);
+  border: 1px solid rgba(39,201,154,0.2);
+  margin-left: -4px;
+  padding-left: 14px;
+  width: calc(100% + 8px);
+  border-radius: 10px 0 0 10px;
+}
+
+.nav-item-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+  color: var(--text-on-sidebar);
+}
+.nav-item-icon svg { width: 15px; height: 15px; }
+
+.nav-item.active .nav-item-icon {
+  background: rgba(39,201,154,0.15);
+  color: var(--sidebar-active-icon);
+}
+[data-theme="light"] .nav-item.active .nav-item-icon {
+  background: var(--green-tint);
+  color: var(--green-primary);
+}
+
+.nav-label {
+  font-size: 12.5px;
+  color: var(--text-on-sidebar);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+.nav-item.active .nav-label {
+  color: var(--sidebar-active-text);
+  font-weight: 700;
+}
+[data-theme="light"] .nav-item.active .nav-label { color: #0B3D2E; }
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 9px; font-weight: 700;
+  background: var(--green-accent);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.nav-item.active .nav-badge {
+  background: var(--green-primary);
+}
+
+/* Sidebar profile at bottom */
+.sidebar-profile {
+  padding: 12px;
+  border-top: 1px solid rgba(39,201,154,0.1);
+  flex-shrink: 0;
+}
+.sidebar-profile-card {
+  background: rgba(39,201,154,0.07);
+  border: 1px solid rgba(39,201,154,0.12);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-theme="light"] .sidebar-profile-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.sidebar-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 12px rgba(39,201,154,0.3);
+  position: relative;
+}
+.sidebar-avatar-status {
+  position: absolute;
+  bottom: 1px; right: 1px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #4DC96C;
+  border: 2px solid var(--bg-sidebar);
+}
+.sidebar-profile-info { flex: 1; min-width: 0; }
+.sidebar-profile-name {
+  font-size: 12px; font-weight: 700;
+  color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-profile-role {
+  font-size: 10px;
+  color: var(--text-on-sidebar);
+  margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-profile-action {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-on-sidebar);
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+.sidebar-profile-action:hover { background: rgba(255,255,255,0.15); }
+.sidebar-profile-action svg { width: 13px; height: 13px; }
+
+/* ═══════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════ */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+  transition: margin-left var(--transition);
+}
+
+/* ═══════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════ */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 90;
+  transition: background var(--transition), border-color var(--transition);
+  backdrop-filter: blur(12px);
+}
+
+.hamburger {
+  display: none;
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover { color: var(--green-accent); border-color: var(--green-accent); }
+.hamburger svg { width: 16px; height: 16px; }
+
+.topbar-title { flex-shrink: 0; }
+.topbar-title h1 {
+  font-size: 17px; font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+.topbar-title p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.topbar-search {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  width: 240px;
+  transition: all var(--transition);
+  cursor: text;
+}
+.topbar-search:focus-within {
+  border-color: var(--green-accent);
+  box-shadow: 0 0 0 3px var(--green-tint);
+  width: 280px;
+}
+.topbar-search svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+.topbar-search input {
+  border: none; background: none; outline: none;
+  font-size: 12px; font-family: inherit;
+  color: var(--text-primary); width: 100%;
+}
+.topbar-search input::placeholder { color: var(--text-muted); }
+.topbar-search kbd {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--text-muted);
+  background: var(--border-subtle);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+
+/* Topbar actions */
+.topbar-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--transition);
+  position: relative;
+  flex-shrink: 0;
+}
+.icon-btn:hover {
+  background: var(--green-tint);
+  border-color: var(--green-accent);
+  color: var(--green-accent);
+}
+.icon-btn svg { width: 15px; height: 15px; }
+
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg-card);
+}
+
+/* User dropdown */
+.user-dropdown-wrap { position: relative; flex-shrink: 0; }
+
+.user-trigger {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.user-trigger:hover {
+  border-color: var(--green-accent);
+  background: var(--green-tint);
+}
+.user-trigger-avatar {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.user-trigger-info { line-height: 1.2; }
+.user-trigger-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.user-trigger-role { font-size: 10px; color: var(--text-muted); }
+.user-trigger-caret {
+  width: 14px; height: 14px;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+.user-dropdown-wrap.open .user-trigger-caret { transform: rotate(180deg); }
+
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px); right: 0;
+  width: 240px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-modal);
+  z-index: 200;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.97);
+  transform-origin: top right;
+  transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+.user-dropdown-wrap.open .user-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.dropdown-profile-header {
+  padding: 16px;
+  background: linear-gradient(135deg, var(--green-tint), var(--purple-tint));
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; gap: 12px;
+}
+.dropdown-avatar-lg {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(39,201,154,0.4);
+  position: relative;
+}
+.dropdown-avatar-status {
+  position: absolute;
+  bottom: 2px; right: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #4DC96C;
+  border: 2px solid var(--bg-card);
+}
+.dropdown-user-name { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+.dropdown-user-email { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.dropdown-user-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600;
+  background: var(--green-tint);
+  color: var(--green-accent);
+  border-radius: 20px; padding: 3px 8px;
+  margin-top: 6px;
+}
+
+.dropdown-menu-body { padding: 8px; }
+.dropdown-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--transition);
+  color: var(--text-secondary);
+  font-size: 13px; font-weight: 500;
+}
+.dropdown-menu-item:hover { background: var(--bg-input); color: var(--text-primary); }
+.dropdown-menu-item svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-muted); }
+.dropdown-menu-item.danger { color: var(--red); }
+.dropdown-menu-item.danger svg { color: var(--red); }
+.dropdown-menu-item.danger:hover { background: var(--red-tint); }
+.dropdown-divider { height: 1px; background: var(--border-subtle); margin: 6px 0; }
+
+.btn-primary {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--green-primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition);
+  box-shadow: 0 3px 14px rgba(31,169,126,0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-primary:hover {
+  background: var(--green-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(31,169,126,0.45);
+}
+.btn-primary svg { width: 12px; height: 12px; }
+
+/* ═══════════════════════════════════════════
+   CONTENT
+═══════════════════════════════════════════ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ═══════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  bottom: 80px; right: 24px;
+  z-index: 1000;
+  display: flex; flex-direction: column-reverse; gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 300px; max-width: 380px;
+  box-shadow: var(--shadow-modal);
+  pointer-events: all;
+  animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  position: relative;
+  overflow: hidden;
+}
+.toast.removing {
+  animation: toastOut 0.25s cubic-bezier(0.4,0,1,1) both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(60px) scale(0.92); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); max-height: 100px; margin-bottom: 0; }
+  to   { opacity: 0; transform: translateX(60px) scale(0.92); max-height: 0; margin-bottom: -10px; }
+}
+
+.toast-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+}
+.toast.success .toast-bar { background: var(--green-completed); }
+.toast.error .toast-bar { background: var(--red); }
+.toast.info .toast-bar { background: var(--blue); }
+.toast.warning .toast-bar { background: var(--gold); }
+
+.toast-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.toast.success .toast-icon { background: rgba(77,201,108,0.15); color: var(--green-completed); }
+.toast.error .toast-icon { background: var(--red-tint); color: var(--red); }
+.toast.info .toast-icon { background: var(--blue-tint); color: var(--blue); }
+.toast.warning .toast-icon { background: var(--gold-tint); color: var(--gold); }
+.toast-icon svg { width: 17px; height: 17px; }
+
+.toast-content { flex: 1; min-width: 0; }
+.toast-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.toast-msg { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+
+.toast-close {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: none; border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.toast-close:hover { background: var(--bg-input); color: var(--text-primary); }
+.toast-close svg { width: 12px; height: 12px; }
+
+.toast-progress {
+  position: absolute;
+  bottom: 0; left: 4px; right: 0;
+  height: 2px;
+  background: var(--border-subtle);
+  border-radius: 0 0 12px 0;
+  overflow: hidden;
+}
+.toast-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  animation: toastProgress linear both;
+}
+.toast.success .toast-progress-bar { background: var(--green-completed); }
+.toast.error .toast-progress-bar { background: var(--red); }
+.toast.info .toast-progress-bar { background: var(--blue); }
+.toast.warning .toast-progress-bar { background: var(--gold); }
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ═══════════════════════════════════════════
+   MODAL OVERLAY
+═══════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; visibility: hidden;
+  transition: all 0.25s;
+}
+.modal-overlay.open {
+  opacity: 1; visibility: visible;
+}
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  width: 100%; max-width: 520px;
+  transform: translateY(24px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.34,1.2,0.64,1);
+  overflow: hidden;
+}
+.modal-overlay.open .modal {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.modal-title {
+  font-size: 16px; font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.modal-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+.modal-close:hover { background: var(--red-tint); border-color: var(--red); color: var(--red); }
+.modal-close svg { width: 14px; height: 14px; }
+
+.modal-body { padding: 24px; }
+.modal-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Confirm modal variant */
+.confirm-modal .modal { max-width: 420px; }
+.confirm-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.confirm-icon.danger { background: var(--red-tint); color: var(--red); }
+.confirm-icon.warning { background: var(--gold-tint); color: var(--gold); }
+.confirm-icon.info { background: var(--blue-tint); color: var(--blue); }
+.confirm-icon svg { width: 26px; height: 26px; }
+.confirm-modal .modal-body { text-align: center; padding: 28px 28px 20px; }
+.confirm-title { font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.4px; margin-bottom: 8px; }
+.confirm-msg { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════
+   FORM ELEMENTS
+═══════════════════════════════════════════ */
+.form-group { margin-bottom: 18px; }
+.form-group:last-child { margin-bottom: 0; }
+
+.form-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  letter-spacing: 0.01em;
+}
+.form-label .required { color: var(--red); font-size: 13px; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+
+.form-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px; font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition);
+  appearance: none;
+}
+.form-input:focus {
+  border-color: var(--green-accent);
+  box-shadow: 0 0 0 3px var(--green-tint);
+  background: var(--bg-card);
+}
+.form-input.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-tint);
+}
+.form-input::placeholder { color: var(--text-muted); }
+.form-error { font-size: 11px; color: var(--red); margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+.form-error svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+.input-group { position: relative; }
+.input-group .input-icon {
+  position: absolute;
+  left: 12px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--text-muted);
+  pointer-events: none;
+}
+.input-group .form-input { padding-left: 38px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.form-select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 38px 10px 14px;
+  font-size: 13px; font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237A9A8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.form-select:focus { border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--green-tint); }
+.form-select option { background: var(--bg-card); color: var(--text-primary); }
+
+.form-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+/* Checkbox */
+.form-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.form-check input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--green-primary);
+  cursor: pointer;
+}
+.form-check-label { font-size: 12.5px; color: var(--text-secondary); }
+
+/* Tags input */
+.tags-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-height: 44px;
+  cursor: text;
+  transition: all var(--transition);
+}
+.tags-wrap:focus-within { border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--green-tint); }
+.tag-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--green-tint);
+  color: var(--green-accent);
+  border-radius: 6px; padding: 3px 8px;
+  font-size: 11px; font-weight: 600;
+}
+.tag-chip button {
+  background: none; border: none; cursor: pointer;
+  color: var(--green-accent); opacity: 0.7; font-size: 13px; line-height: 1;
+  padding: 0; transition: opacity var(--transition);
+}
+.tag-chip button:hover { opacity: 1; }
+.tags-input {
+  border: none; background: none; outline: none;
+  font-family: inherit; font-size: 12px;
+  color: var(--text-primary); min-width: 80px;
+}
+.tags-input::placeholder { color: var(--text-muted); }
+
+/* ═══════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition);
+  cursor: pointer;
+  position: relative; overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; top: 0;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.stat-card:hover::after { opacity: 1; }
+.stat-card.green::after   { background: linear-gradient(135deg, transparent 60%, rgba(39,201,154,0.06)); }
+.stat-card.teal::after    { background: linear-gradient(135deg, transparent 60%, rgba(61,170,92,0.06)); }
+.stat-card.purple::after  { background: linear-gradient(135deg, transparent 60%, rgba(107,94,168,0.06)); }
+.stat-card.gold::after    { background: linear-gradient(135deg, transparent 60%, rgba(232,160,32,0.06)); }
+
+.stat-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.stat-card.green  .stat-accent { background: linear-gradient(90deg, var(--green-accent), var(--green-primary)); }
+.stat-card.teal   .stat-accent { background: linear-gradient(90deg, var(--green-completed), #27C99A); }
+.stat-card.purple .stat-accent { background: linear-gradient(90deg, var(--purple), #9B72CF); }
+.stat-card.gold   .stat-accent { background: linear-gradient(90deg, var(--gold), #F0BC5E); }
+
+.stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.stat-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.stat-card.green  .stat-icon { background: var(--green-tint); color: var(--green-accent); }
+.stat-card.teal   .stat-icon { background: rgba(61,170,92,0.12); color: var(--green-completed); }
+.stat-card.purple .stat-icon { background: var(--purple-tint); color: var(--purple); }
+.stat-card.gold   .stat-icon { background: var(--gold-tint); color: var(--gold); }
+.stat-icon svg { width: 18px; height: 18px; }
+
+.stat-trend {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 20px;
+  display: flex; align-items: center; gap: 3px;
+}
+.stat-trend.up   { background: rgba(61,170,92,0.12); color: var(--green-completed); }
+.stat-trend.down { background: var(--red-tint); color: var(--red); }
+.stat-trend.new  { background: var(--gold-tint); color: var(--gold); }
+
+.stat-value {
+  font-size: 30px; font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 4px; font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: background var(--transition), border-color var(--transition);
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.card-title { font-size: 14px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.2px; }
+.card-action {
+  font-size: 11px; color: var(--green-accent);
+  cursor: pointer; font-weight: 700;
+  display: flex; align-items: center; gap: 4px;
+  transition: color var(--transition);
+}
+.card-action:hover { color: var(--green-primary); }
+
+/* ═══════════════════════════════════════════
+   TASKS
+═══════════════════════════════════════════ */
+.middle-grid { display: grid; grid-template-columns: 1fr 340px; gap: 14px; }
+
+.task-list { padding: 6px 16px 14px; }
+.task-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.task-item:last-child { border-bottom: none; }
+.task-item:hover { background: var(--bg-input); padding-left: 12px; padding-right: 8px; margin: 0 -4px; }
+
+.task-check {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.task-check.done  { background: var(--green-completed); border-color: var(--green-completed); }
+.task-check.done::after { content: '✓'; font-size: 10px; color: #fff; font-weight: 800; }
+.task-check.inprog { border-color: var(--purple); border-style: dashed; }
+.task-check.soon  { border-color: var(--gold); }
+.task-check.overdue{ border-color: var(--red); }
+
+.task-info { flex: 1; min-width: 0; }
+.task-name {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.task-name.done-text { color: var(--text-muted); text-decoration: line-through; }
+.task-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.task-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
+}
+.task-badge.done     { background: var(--green-tint); color: var(--green-accent); }
+.task-badge.progress { background: var(--purple-tint); color: var(--purple); }
+.task-badge.soon     { background: var(--gold-tint); color: var(--gold); }
+.task-badge.overdue  { background: var(--red-tint); color: var(--red); }
+.task-badge.pending  { background: var(--border-subtle); color: var(--text-muted); }
+
+/* ═══════════════════════════════════════════
+   PROGRESS
+═══════════════════════════════════════════ */
+.progress-section { padding: 16px 20px; }
+.progress-item { margin-bottom: 16px; }
+.progress-item:last-child { margin-bottom: 0; }
+.progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.progress-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.progress-pct { font-size: 11px; font-weight: 700; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.progress-track {
+  height: 7px; background: var(--border-subtle);
+  border-radius: 10px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 10px;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+}
+
+.overview-bar { display: flex; gap: 3px; height: 8px; border-radius: 10px; overflow: hidden; margin-top: 12px; }
+.ov-seg { height: 100%; transition: flex 0.8s cubic-bezier(0.4,0,0.2,1); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════
+   BOTTOM GRID
+═══════════════════════════════════════════ */
+.bottom-grid { display: grid; grid-template-columns: 1fr 1fr 280px; gap: 14px; }
+.chart-wrap { padding: 16px 20px; height: 200px; position: relative; }
+
+/* TEAM */
+.team-list { padding: 6px 16px 14px; }
+.member-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.member-item:last-child { border-bottom: none; }
+.member-item:hover { background: var(--bg-input); padding-left: 10px; padding-right: 6px; margin: 0 -4px; }
+.member-avatar {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.member-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.member-role { font-size: 10.5px; color: var(--text-muted); }
+.member-tasks { margin-left: auto; font-size: 10px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--green-accent); }
+
+/* UPCOMING */
+.upcoming-list { padding: 6px 16px 14px; }
+.upcoming-item {
+  display: flex; gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: flex-start;
+  transition: all var(--transition);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.upcoming-item:last-child { border-bottom: none; }
+.upcoming-item:hover { background: var(--bg-input); padding-left: 10px; padding-right: 6px; margin: 0 -4px; }
+.upcoming-date {
+  width: 40px; text-align: center; flex-shrink: 0;
+  background: var(--bg-input); border-radius: 9px; padding: 6px 4px;
+  border: 1px solid var(--border);
+}
+.upcoming-day { font-size: 17px; font-weight: 800; color: var(--green-primary); line-height: 1; font-family: 'DM Mono', monospace; }
+.upcoming-month { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.upcoming-title { font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.upcoming-sub { font-size: 10.5px; color: var(--text-muted); }
+
+/* ═══════════════════════════════════════════
+   FORM PAGE SECTION
+═══════════════════════════════════════════ */
+.section-divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 4px 0;
+}
+.section-divider-line { flex: 1; height: 1px; background: var(--border-subtle); }
+.section-divider-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.form-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-page-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+/* Alert banners */
+.alert {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: 12px;
+  border-left: 4px solid;
+  position: relative; overflow: hidden;
+}
+.alert.success { background: rgba(61,170,92,0.1); border-color: var(--green-completed); }
+.alert.error   { background: var(--red-tint); border-color: var(--red); }
+.alert.info    { background: var(--blue-tint); border-color: var(--blue); }
+.alert.warning { background: var(--gold-tint); border-color: var(--gold); }
+
+.alert-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.alert.success .alert-icon { background: rgba(61,170,92,0.15); color: var(--green-completed); }
+.alert.error   .alert-icon { background: var(--red-tint); color: var(--red); }
+.alert.info    .alert-icon { background: var(--blue-tint); color: var(--blue); }
+.alert.warning .alert-icon { background: var(--gold-tint); color: var(--gold); }
+.alert-icon svg { width: 18px; height: 18px; }
+
+.alert-content { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.alert.success .alert-title { color: var(--green-completed); }
+.alert.error   .alert-title { color: var(--red); }
+.alert.info    .alert-title { color: var(--blue); }
+.alert.warning .alert-title { color: var(--gold); }
+.alert-msg { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.alert-close {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); transition: all var(--transition);
+  flex-shrink: 0;
+}
+.alert-close:hover { background: rgba(0,0,0,0.08); }
+.alert-close svg { width: 12px; height: 12px; }
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  border: none; transition: all var(--transition);
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-lg { padding: 12px 24px; font-size: 14px; }
+
+.btn-green   { background: var(--green-primary); color: #fff; box-shadow: 0 3px 12px rgba(31,169,126,0.35); }
+.btn-green:hover { background: var(--green-accent); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(31,169,126,0.45); }
+.btn-outline { background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); }
+.btn-outline:hover { background: var(--bg-input); border-color: var(--green-accent); color: var(--green-accent); }
+.btn-danger  { background: var(--red); color: #fff; box-shadow: 0 3px 12px rgba(224,82,82,0.3); }
+.btn-danger:hover { background: #c94040; transform: translateY(-1px); }
+.btn-ghost   { background: transparent; color: var(--text-muted); border: none; }
+.btn-ghost:hover { background: var(--bg-input); color: var(--text-primary); }
+
+/* ═══════════════════════════════════════════
+   FLOATING BADGE
+═══════════════════════════════════════════ */
+.powered-by {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 300;
+  display: flex; align-items: center; gap: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 7px 14px 7px 10px;
+  box-shadow: var(--shadow-hover);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+.powered-by:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(31,169,126,0.2); border-color: var(--green-accent); }
+.powered-by-icon {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--green-primary), var(--green-accent));
+  display: flex; align-items: center; justify-content: center;
+}
+.powered-by-icon svg { width: 12px; height: 12px; }
+.powered-by-text { font-size: 10.5px; font-weight: 700; color: var(--text-muted); line-height: 1.2; }
+.powered-by-name { font-size: 11px; font-weight: 800; color: var(--text-primary); }
+
+/* ═══════════════════════════════════════════
+   MOBILE OVERLAY
+═══════════════════════════════════════════ */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+  backdrop-filter: blur(3px);
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.1s; }
+.stat-card:nth-child(3) { animation-delay: 0.15s; }
+.stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 1200px) {
+  .bottom-grid { grid-template-columns: 1fr 1fr; }
+  .bottom-grid .card:last-child { grid-column: 1 / -1; }
+  .form-page-grid.three { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 960px) {
+  :root { --sidebar-w: 240px; }
+  .main { margin-left: 0; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay { display: block; opacity: 0; pointer-events: none; transition: opacity var(--transition); }
+  .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+  .hamburger { display: flex; }
+  .middle-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-page-grid { grid-template-columns: 1fr; }
+  .form-page-grid.three { grid-template-columns: 1fr; }
+  .topbar-search { width: 180px; }
+  .topbar-search:focus-within { width: 210px; }
+}
+
+@media (max-width: 640px) {
+  .content { padding: 16px; gap: 14px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 0 16px; }
+  .topbar-search { display: none; }
+  .user-trigger-info { display: none; }
+  .user-trigger { padding: 6px; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  :root { --topbar-h: 56px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <span class="logo-name">StudyFlow</span>
+      <span class="logo-version">v2.0</span>
+    </div>
+
+    <!-- Nav -->
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <a class="nav-item active" onclick="setActive(this); showPage('dashboard')">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <span class="nav-label">Projects</span>
+        <span class="nav-badge">4</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <span class="nav-label">Tasks</span>
+        <span class="nav-badge">12</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <span class="nav-label">Calendar</span>
+      </a>
+
+      <div class="nav-section-label">Resources</div>
+      <a class="nav-item" onclick="setActive(this); showPage('forms'); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <span class="nav-label">Forms &amp; UI</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <span class="nav-label">Reports</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <span class="nav-label">Team</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        </div>
+        <span class="nav-label">Files</span>
+      </a>
+
+      <div class="nav-section-label">Account</div>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        </div>
+        <span class="nav-label">Settings</span>
+      </a>
+      <a class="nav-item" onclick="setActive(this); closeSidebar()">
+        <div class="nav-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <span class="nav-label">Help</span>
+      </a>
+    </div>
+
+    <!-- Profile at bottom -->
+    <div class="sidebar-profile">
+      <div class="sidebar-profile-card">
+        <div class="sidebar-avatar">
+          JS
+          <div class="sidebar-avatar-status"></div>
+        </div>
+        <div class="sidebar-profile-info">
+          <div class="sidebar-profile-name">John Smith</div>
+          <div class="sidebar-profile-role">Year 3 · Computer Sci</div>
+        </div>
+        <button class="sidebar-profile-action" onclick="openModal('settingsModal')" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <div class="topbar-title">
+      <h1 id="pageTitle">Dashboard</h1>
+      <p>Thursday, 26 March 2026</p>
+    </div>
+
+    <div class="topbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search tasks, projects…">
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+
+      <button class="icon-btn" onclick="showToast('info','3 New Notifications','You have unread messages from your team.')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+
+      <!-- User Dropdown -->
+      <div class="user-dropdown-wrap" id="userDropdown">
+        <div class="user-trigger" onclick="toggleDropdown()">
+          <div class="user-trigger-avatar">JS</div>
+          <div class="user-trigger-info">
+            <div class="user-trigger-name">John Smith</div>
+            <div class="user-trigger-role">Year 3 · CS</div>
+          </div>
+          <svg class="user-trigger-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <div class="user-dropdown-menu">
+          <div class="dropdown-profile-header">
+            <div class="dropdown-avatar-lg">
+              JS
+              <div class="dropdown-avatar-status"></div>
+            </div>
+            <div>
+              <div class="dropdown-user-name">John Smith</div>
+              <div class="dropdown-user-email">j.smith@uni.edu</div>
+              <div class="dropdown-user-badge">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Year 3 · CS Lead
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-menu-body">
+            <div class="dropdown-menu-item" onclick="showToast('info','Profile','Opening your profile...')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              My Profile
+            </div>
+            <div class="dropdown-menu-item" onclick="showToast('info','Settings','Opening settings...')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              Account Settings
+            </div>
+            <div class="dropdown-menu-item" onclick="showToast('info','Billing','Opening billing...')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Billing & Plan
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-menu-item danger" onclick="openConfirm('logout')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="openModal('newTaskModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New Task
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════ CONTENT ═══════ -->
+  <div class="content" id="contentArea">
+
+    <!-- ════ DASHBOARD PAGE ════ -->
+    <div id="page-dashboard">
+
+      <!-- STAT CARDS -->
+      <div class="stat-grid">
+        <div class="stat-card green">
+          <div class="stat-accent"></div>
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <span class="stat-trend up">↑ 12%</span>
+          </div>
+          <div class="stat-value">8</div>
+          <div class="stat-label">Active Projects</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-accent"></div>
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="stat-trend up">↑ 8%</span>
+          </div>
+          <div class="stat-value">14</div>
+          <div class="stat-label">Completed Tasks</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-accent"></div>
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <span class="stat-trend up">↑ 3%</span>
+          </div>
+          <div class="stat-value">5</div>
+          <div class="stat-label">Team Members</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-accent"></div>
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span class="stat-trend new">+2 new</span>
+          </div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">Due This Week</div>
+        </div>
+      </div>
+
+      <!-- MIDDLE -->
+      <div class="middle-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Latest Tasks</span>
+            <span class="card-action">View all →</span>
+          </div>
+          <div class="task-list">
+            <div class="task-item">
+              <div class="task-check done"></div>
+              <div class="task-info">
+                <div class="task-name done-text">Research paper outline</div>
+                <div class="task-meta">Computer Science · Due Mar 20</div>
+              </div>
+              <span class="task-badge done">Done</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check inprog"></div>
+              <div class="task-info">
+                <div class="task-name">Data collection &amp; analysis</div>
+                <div class="task-meta">Statistics · Due Mar 28</div>
+              </div>
+              <span class="task-badge progress">In Progress</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check done"></div>
+              <div class="task-info">
+                <div class="task-name done-text">Group presentation slides</div>
+                <div class="task-meta">Business Management · Due Mar 22</div>
+              </div>
+              <span class="task-badge done">Done</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check soon"></div>
+              <div class="task-info">
+                <div class="task-name">Final dissertation draft</div>
+                <div class="task-meta">Computer Science · Due Apr 1</div>
+              </div>
+              <span class="task-badge soon">Due Soon</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check overdue"></div>
+              <div class="task-info">
+                <div class="task-name">Lab report — circuits</div>
+                <div class="task-meta">Electronics · Due Apr 5</div>
+              </div>
+              <span class="task-badge overdue">Overdue</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check"></div>
+              <div class="task-info">
+                <div class="task-name">Literature review</div>
+                <div class="task-meta">Psychology · Due Apr 10</div>
+              </div>
+              <span class="task-badge pending">Not Started</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Project Progress</span>
+              <span class="card-action">Details</span>
+            </div>
+            <div class="progress-section">
+              <div class="progress-item">
+                <div class="progress-top">
+                  <span class="progress-name">Dissertation</span>
+                  <span class="progress-pct">68%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:68%;background:var(--green-accent);"></div>
+                </div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-top">
+                  <span class="progress-name">Stats Project</span>
+                  <span class="progress-pct">45%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:45%;background:var(--purple);"></div>
+                </div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-top">
+                  <span class="progress-name">Group Report</span>
+                  <span class="progress-pct">90%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:90%;background:var(--green-completed);"></div>
+                </div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-top">
+                  <span class="progress-name">Lab Circuits</span>
+                  <span class="progress-pct">22%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:22%;background:var(--gold);"></div>
+                </div>
+              </div>
+              <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-subtle);">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">Overall breakdown</div>
+                <div class="overview-bar">
+                  <div class="ov-seg" style="flex:14;background:var(--green-completed);"></div>
+                  <div class="ov-seg" style="flex:5;background:var(--green-accent);"></div>
+                  <div class="ov-seg" style="flex:3;background:var(--gold);"></div>
+                  <div class="ov-seg" style="flex:2;background:var(--red);"></div>
+                  <div class="ov-seg" style="flex:4;background:var(--border);"></div>
+                </div>
+                <div class="legend">
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--green-completed);"></div>Done</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--green-accent);"></div>Active</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--gold);"></div>Due soon</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div>Overdue</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM -->
+      <div class="bottom-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Task Activity</span>
+            <div style="display:flex;gap:10px;">
+              <span class="legend-item"><div class="legend-dot" style="background:var(--green-accent);"></div>Completed</span>
+              <span class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div>Added</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Team</span>
+            <span class="card-action">Manage</span>
+          </div>
+          <div class="team-list">
+            <div class="member-item">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#1FA97E,#27C99A);">JS</div>
+              <div><div class="member-name">John Smith</div><div class="member-role">Lead · CS</div></div>
+              <span class="member-tasks">8 tasks</span>
+            </div>
+            <div class="member-item">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#6B5EA8,#9B8FD4);">AM</div>
+              <div><div class="member-name">Amara Mensah</div><div class="member-role">Research</div></div>
+              <span class="member-tasks">5 tasks</span>
+            </div>
+            <div class="member-item">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#E8A020,#F0BC5E);">KO</div>
+              <div><div class="member-name">Kofi Owusu</div><div class="member-role">Design</div></div>
+              <span class="member-tasks">4 tasks</span>
+            </div>
+            <div class="member-item">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#3DAA5C,#4DC96C);">LN</div>
+              <div><div class="member-name">Lydia Nakato</div><div class="member-role">Data</div></div>
+              <span class="member-tasks">6 tasks</span>
+            </div>
+            <div class="member-item">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#27C99A,#3DE0B0);">TR</div>
+              <div><div class="member-name">Tunde Raji</div><div class="member-role">Backend</div></div>
+              <span class="member-tasks">3 tasks</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Upcoming</span>
+            <span class="card-action">Calendar</span>
+          </div>
+          <div class="upcoming-list">
+            <div class="upcoming-item">
+              <div class="upcoming-date"><div class="upcoming-day">28</div><div class="upcoming-month">Mar</div></div>
+              <div><div class="upcoming-title">Data Analysis Due</div><div class="upcoming-sub">Statistics · 11:59 PM</div></div>
+            </div>
+            <div class="upcoming-item">
+              <div class="upcoming-date"><div class="upcoming-day">01</div><div class="upcoming-month">Apr</div></div>
+              <div><div class="upcoming-title">Dissertation Draft</div><div class="upcoming-sub">CS · Submit to Turnitin</div></div>
+            </div>
+            <div class="upcoming-item">
+              <div class="upcoming-date"><div class="upcoming-day">05</div><div class="upcoming-month">Apr</div></div>
+              <div><div class="upcoming-title">Lab Report</div><div class="upcoming-sub">Electronics · Hard copy</div></div>
+            </div>
+            <div class="upcoming-item">
+              <div class="upcoming-date"><div class="upcoming-day">10</div><div class="upcoming-month">Apr</div></div>
+              <div><div class="upcoming-title">Literature Review</div><div class="upcoming-sub">Psychology · 3000 words</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-dashboard -->
+
+
+    <!-- ════ FORMS & UI PAGE ════ -->
+    <div id="page-forms" style="display:none;">
+
+      <!-- Alerts -->
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Message Patterns</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="alert success">
+          <div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="alert-content">
+            <div class="alert-title">Task Completed Successfully</div>
+            <div class="alert-msg">Your dissertation draft has been submitted. The team has been notified.</div>
+          </div>
+          <button class="alert-close" onclick="this.closest('.alert').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="alert error">
+          <div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div class="alert-content">
+            <div class="alert-title">Submission Failed</div>
+            <div class="alert-msg">File upload exceeded 25MB limit. Please compress your document and try again.</div>
+          </div>
+          <button class="alert-close" onclick="this.closest('.alert').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="alert info">
+          <div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+          <div class="alert-content">
+            <div class="alert-title">New Team Member Added</div>
+            <div class="alert-msg">Lydia Nakato has joined the Data Analysis project. Check your calendar for the kickoff meeting.</div>
+          </div>
+          <button class="alert-close" onclick="this.closest('.alert').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="alert warning">
+          <div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="alert-content">
+            <div class="alert-title">Deadline Approaching</div>
+            <div class="alert-msg">You have 2 tasks due in the next 48 hours. Review your task list to stay on track.</div>
+          </div>
+          <button class="alert-close" onclick="this.closest('.alert').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </div>
+
+      <!-- Toast Demos -->
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Toast Notifications</div>
+        <div class="section-divider-line"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Toast / Notification Demos</span>
+          <span class="card-action">Click to trigger</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-wrap:wrap;gap:10px;">
+          <button class="btn btn-sm btn-green" onclick="showToast('success','Task Submitted','Your dissertation draft was submitted successfully.')">✓ Success Toast</button>
+          <button class="btn btn-sm" style="background:var(--red-tint);color:var(--red);border:1.5px solid var(--red-tint);" onclick="showToast('error','Upload Failed','File size exceeded 25MB limit.')">✕ Error Toast</button>
+          <button class="btn btn-sm" style="background:var(--blue-tint);color:var(--blue);border:1.5px solid var(--blue-tint);" onclick="showToast('info','New Message','Amara sent you a file for review.')">ℹ Info Toast</button>
+          <button class="btn btn-sm" style="background:var(--gold-tint);color:var(--gold);border:1.5px solid var(--gold-tint);" onclick="showToast('warning','Due Soon','Lab report is due in 24 hours.')">⚠ Warning Toast</button>
+        </div>
+      </div>
+
+      <!-- Modal Demos -->
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Modal & Dialog Patterns</div>
+        <div class="section-divider-line"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Modals & Confirmations</span>
+          <span class="card-action">Click to open</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-wrap:wrap;gap:10px;">
+          <button class="btn btn-green" onclick="openModal('newTaskModal')">+ New Task Form</button>
+          <button class="btn btn-outline" onclick="openModal('settingsModal')">⚙ Settings Modal</button>
+          <button class="btn" style="background:var(--red-tint);color:var(--red);border:1.5px solid transparent;" onclick="openConfirm('delete')">🗑 Delete Confirm</button>
+          <button class="btn btn-outline" onclick="openConfirm('logout')">→ Logout Confirm</button>
+          <button class="btn" style="background:var(--gold-tint);color:var(--gold);border:1.5px solid transparent;" onclick="openConfirm('archive')">📦 Archive Confirm</button>
+        </div>
+      </div>
+
+      <!-- Form Showcase -->
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Form Elements</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div class="form-page-grid">
+        <!-- Basic Form -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Basic Form Fields</span>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Full Name <span class="required">*</span></label>
+              <div class="input-group">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <input class="form-input" type="text" placeholder="Enter your full name">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address <span class="required">*</span></label>
+              <div class="input-group">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <input class="form-input error" type="email" value="invalid-email" placeholder="you@uni.edu">
+              </div>
+              <div class="form-error">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Please enter a valid email address
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Year</label>
+                <select class="form-select">
+                  <option>Year 1</option>
+                  <option>Year 2</option>
+                  <option selected>Year 3</option>
+                  <option>Year 4</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Department</label>
+                <select class="form-select">
+                  <option>Computer Science</option>
+                  <option>Mathematics</option>
+                  <option>Statistics</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced Fields -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Advanced Inputs</span>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Project Description</label>
+              <textarea class="form-input form-textarea" placeholder="Describe your project goals and scope…"></textarea>
+              <div class="form-hint">Max 500 characters. Be clear and concise.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tags</label>
+              <div class="tags-wrap" onclick="this.querySelector('.tags-input').focus()">
+                <span class="tag-chip">Research <button onclick="this.parentElement.remove()">×</button></span>
+                <span class="tag-chip">CS <button onclick="this.parentElement.remove()">×</button></span>
+                <span class="tag-chip">Dissertation <button onclick="this.parentElement.remove()">×</button></span>
+                <input class="tags-input" placeholder="Add tag…" onkeydown="handleTagInput(event, this)">
+              </div>
+              <div class="form-hint">Press Enter to add a tag</div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Due Date</label>
+              <div class="input-group">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <input class="form-input" type="date" value="2026-04-01">
+              </div>
+            </div>
+            <label class="form-check">
+              <input type="checkbox" checked>
+              <span class="form-check-label">Notify team members on submission</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Button showcase -->
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Button Styles</div>
+        <div class="section-divider-line"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Buttons & Actions</span></div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn btn-sm btn-green">Small</button>
+            <button class="btn btn-green">Default</button>
+            <button class="btn btn-lg btn-green">Large</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn btn-green" onclick="showToast('success','Saved!','Your changes have been saved.')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+              Confirm & Save
+            </button>
+            <button class="btn btn-outline">Cancel</button>
+            <button class="btn btn-danger" onclick="openConfirm('delete')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Delete
+            </button>
+            <button class="btn btn-ghost">Skip</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-forms -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- New Task Modal -->
+<div class="modal-overlay" id="newTaskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Create New Task</div>
+        <div class="modal-subtitle">Add a task to your project board</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('newTaskModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Task Title <span class="required">*</span></label>
+        <div class="input-group">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <input class="form-input" type="text" placeholder="e.g. Write literature review" id="taskTitleInput">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Project</label>
+          <select class="form-select">
+            <option>Dissertation</option>
+            <option>Stats Project</option>
+            <option>Group Report</option>
+            <option>Lab Circuits</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Priority</label>
+          <select class="form-select">
+            <option>High</option>
+            <option selected>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:18px;">
+        <label class="form-label">Due Date</label>
+        <div class="input-group">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <input class="form-input" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input form-textarea" placeholder="Add any relevant notes or references…" style="min-height:80px;"></textarea>
+      </div>
+      <label class="form-check">
+        <input type="checkbox" checked>
+        <span class="form-check-label">Notify team members</span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('newTaskModal')">Cancel</button>
+      <button class="btn btn-green" onclick="submitNewTask()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+        Create Task
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Account Settings</div>
+        <div class="modal-subtitle">Manage your profile and preferences</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('settingsModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-input);border-radius:12px;border:1px solid var(--border);margin-bottom:20px;">
+        <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#27C99A,#1FA97E);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(39,201,154,0.3);">JS</div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:var(--text-primary);">John Smith</div>
+          <div style="font-size:12px;color:var(--text-muted);">j.smith@uni.edu</div>
+        </div>
+        <button class="btn btn-sm btn-outline" style="margin-left:auto;">Change Photo</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">First Name</label>
+          <input class="form-input" type="text" value="John">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Last Name</label>
+          <input class="form-input" type="text" value="Smith">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" value="j.smith@uni.edu">
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input class="form-input" type="password" placeholder="Leave blank to keep current">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('settingsModal')">Cancel</button>
+      <button class="btn btn-green" onclick="closeModal('settingsModal');showToast('success','Settings Saved','Your profile has been updated.')">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modals -->
+<div class="modal-overlay confirm-modal" id="confirmDelete">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="confirm-icon danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </div>
+      <div class="confirm-title">Delete Task?</div>
+      <div class="confirm-msg">This will permanently delete "Lab Report — Circuits" and all associated data. This action cannot be undone.</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn btn-outline" onclick="closeModal('confirmDelete')">Keep Task</button>
+      <button class="btn btn-danger" onclick="closeModal('confirmDelete');showToast('error','Task Deleted','Lab Report has been permanently deleted.')">Delete Forever</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay confirm-modal" id="confirmLogout">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="confirm-icon info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <div class="confirm-title">Sign Out?</div>
+      <div class="confirm-msg">You'll be signed out of StudyFlow. Any unsaved changes will be lost.</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn btn-outline" onclick="closeModal('confirmLogout')">Stay</button>
+      <button class="btn btn-green" onclick="closeModal('confirmLogout');showToast('info','Signed Out','See you next time, John!')">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay confirm-modal" id="confirmArchive">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="confirm-icon warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+      </div>
+      <div class="confirm-title">Archive Project?</div>
+      <div class="confirm-msg">Archiving will hide this project from your dashboard. You can restore it anytime from your archive.</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn btn-outline" onclick="closeModal('confirmArchive')">Cancel</button>
+      <button class="btn" style="background:var(--gold);color:#fff;box-shadow:0 3px 12px rgba(232,160,32,0.3);" onclick="closeModal('confirmArchive');showToast('warning','Project Archived','You can restore it from archives anytime.')">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST CONTAINER ═══════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════════ FLOATING POWERED BY ═══════════════ -->
+<a class="powered-by" href="#" title="Powered by StudyFlow v2.0">
+  <div class="powered-by-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <div>
+    <div class="powered-by-text">Powered by</div>
+    <div class="powered-by-name">StudyFlow</div>
+  </div>
+</a>
+
+<script>
+/* ═══════════════════════════════════════
+   THEME
+═══════════════════════════════════════ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const icon = document.getElementById('themeIcon');
+  if (isDark) {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+  setTimeout(buildChart, 50);
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function setActive(el) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const label = el.querySelector('.nav-label');
+  if (label) document.getElementById('pageTitle').textContent = label.textContent;
+}
+
+function showPage(page) {
+  document.getElementById('page-dashboard').style.display = page === 'dashboard' ? '' : 'none';
+  document.getElementById('page-forms').style.display = page === 'forms' ? '' : 'none';
+  if (page === 'dashboard') setTimeout(buildChart, 60);
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR (MOBILE)
+═══════════════════════════════════════ */
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════
+   USER DROPDOWN
+═══════════════════════════════════════ */
+function toggleDropdown() {
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('userDropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
+
+/* ═══════════════════════════════════════
+   MODALS
+═══════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function openConfirm(type) {
+  const map = { delete: 'confirmDelete', logout: 'confirmLogout', archive: 'confirmArchive' };
+  if (map[type]) openModal(map[type]);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+// Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+    document.getElementById('userDropdown')?.classList.remove('open');
+  }
+});
+
+/* ═══════════════════════════════════════
+   TOASTS
+═══════════════════════════════════════ */
+const toastIcons = {
+  success: '<polyline points="20 6 9 17 4 12"/>',
+  error:   '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+  warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+};
+
+let toastCount = 0;
+function showToast(type, title, msg, duration = 4500) {
+  const id = 'toast_' + (++toastCount);
+  const container = document.getElementById('toastContainer');
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.id = id;
+  toast.innerHTML = `
+    <div class="toast-bar"></div>
+    <div class="toast-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        ${toastIcons[type]}
+      </svg>
+    </div>
+    <div class="toast-content">
+      <div class="toast-title">${title}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+    <button class="toast-close" onclick="removeToast('${id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="toast-progress">
+      <div class="toast-progress-bar" style="animation-duration:${duration}ms;"></div>
+    </div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => removeToast(id), duration);
+}
+
+function removeToast(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('removing');
+  setTimeout(() => el.remove(), 280);
+}
+
+/* ═══════════════════════════════════════
+   NEW TASK
+═══════════════════════════════════════ */
+function submitNewTask() {
+  const title = document.getElementById('taskTitleInput').value.trim();
+  closeModal('newTaskModal');
+  if (title) {
+    showToast('success', 'Task Created', `"${title}" has been added to your board.`);
+  } else {
+    showToast('success', 'Task Created', 'New task added to your project board.');
+  }
+}
+
+/* ═══════════════════════════════════════
+   TAGS INPUT
+═══════════════════════════════════════ */
+function handleTagInput(e, input) {
+  if (e.key === 'Enter' && input.value.trim()) {
+    e.preventDefault();
+    const wrap = input.closest('.tags-wrap');
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.innerHTML = `${input.value.trim()} <button onclick="this.parentElement.remove()">×</button>`;
+    wrap.insertBefore(chip, input);
+    input.value = '';
+  }
+}
+
+/* ═══════════════════════════════════════
+   CHART
+═══════════════════════════════════════ */
+let chartInstance = null;
+function buildChart() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor  = isDark ? 'rgba(30,80,60,0.5)' : 'rgba(200,232,224,0.6)';
+  const labelColor = isDark ? '#4A7060' : '#7A9A8A';
+  const ctx = document.getElementById('activityChart');
+  if (!ctx) return;
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Oct','Nov','Dec','Jan','Feb','Mar'],
+      datasets: [
+        {
+          label: 'Completed',
+          data: [4,7,5,9,6,8],
+          backgroundColor: isDark ? 'rgba(39,201,154,0.65)' : 'rgba(31,169,126,0.72)',
+          borderRadius: 5, borderSkipped: false,
+        },
+        {
+          label: 'Added',
+          data: [6,5,8,7,9,10],
+          backgroundColor: isDark ? 'rgba(155,143,212,0.5)' : 'rgba(107,94,168,0.42)',
+          borderRadius: 5, borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#112720' : '#fff',
+          titleColor: isDark ? '#E8F5F0' : '#0E2E22',
+          bodyColor: isDark ? '#7EC4A8' : '#4A7060',
+          borderColor: isDark ? 'rgba(30,80,60,0.7)' : '#C8E8E0',
+          borderWidth: 1, cornerRadius: 10, padding: 12,
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11, family: 'Plus Jakarta Sans' } }, border: { display: false } },
+        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11, family: 'Plus Jakarta Sans' }, stepSize: 2 }, border: { display: false } }
+      },
+      barPercentage: 0.6, categoryPercentage: 0.7,
+    }
+  });
+}
+
+window.addEventListener('load', buildChart);
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+/* src/components/TagsInput.css */
+.tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  cursor: text;
+  transition: all var(--transition);
+}
+
+.tags-wrap:focus-within {
+  border-color: var(--green-accent);
+  box-shadow: 0 0 0 3px var(--green-tint);
+}
+
+.tag-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3125rem;
+  background: var(--green-tint);
+  color: var(--green-accent);
+  border-radius: 6px;
+  padding: 0.1875rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--green-accent);
+  opacity: 0.7;
+  font-size: 0.8125rem;
+  line-height: 1;
+  padding: 0;
+  transition: opacity var(--transition);
+}
+
+.tag-chip button:hover {
+  opacity: 1;
+}
+
+.tags-input {
+  border: none;
+  background: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  min-width: 80px;
+}
+
+.tags-input::placeholder {
+  color: var(--text-muted);
+}
