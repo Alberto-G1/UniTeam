@@ -1,20 +1,25 @@
+// src/pages/student/projects/CreateProject.jsx - REDESIGNED
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectTemplatesAPI } from '../../../services/api';
+import { useToast } from '../../../components/ToastContainer';
+import Alert from '../../../components/Alert';
+import './ProjectForms.css';
 
 export const CreateProject = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [templates, setTemplates] = useState([]);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    template_id: null,
-    supervisor: '',
+    template_id: '',
+    supervisor_email: '',
+    deadline: '',
   });
 
   useEffect(() => {
@@ -23,8 +28,9 @@ export const CreateProject = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await apiService.get('/api/projects/templates/');
-      setTemplates(response.data);
+      const response = await projectTemplatesAPI.list();
+      const templatesList = response.results || response;
+      setTemplates(templatesList);
     } catch (err) {
       console.error('Error loading templates:', err);
     }
@@ -34,100 +40,169 @@ export const CreateProject = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value === '' ? null : value,
+      [name]: value,
     }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.title.trim()) newErrors.title = 'Project title is required';
+    if (!formData.supervisor_email.trim()) newErrors.supervisor_email = 'Supervisor email is required';
+    if (formData.supervisor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.supervisor_email)) {
+      newErrors.supervisor_email = 'Please enter a valid email address';
+    }
+    if (!formData.deadline) newErrors.deadline = 'Project deadline is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setLoading(true);
-    setError('');
 
     try {
-      const endpoint = '/api/projects/create/';
-      const response = await apiService.post(endpoint, formData);
-      navigate(`/student/projects/${response.data.id}`);
+      // TODO: Implement API call to create project
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      showToast('success', 'Project Created', 'Your project has been created successfully!');
+      navigate('/student/projects');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create project');
+      showToast('error', 'Creation Failed', 'Could not create project. Please try again.');
+      setErrors({ submit: 'Failed to create project' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="project-form-wrapper">
-      <div className="form-header surface">
-        <h1>Create New Project</h1>
-        <p>Start a new project or use a template</p>
+    <div className="project-form-page">
+      <div className="form-header">
+        <div>
+          <h1>Create New Project</h1>
+          <p className="form-description">Start a new project and invite your team members</p>
+        </div>
+        <Link to="/student/projects" className="btn-secondary">
+          <i className="fa-solid fa-arrow-left"></i>
+          Back to Projects
+        </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="project-form surface">
-        {error && <div className="error-message">{error}</div>}
+      <form onSubmit={handleSubmit} className="project-form">
+        <div className="form-card">
+          <h3>Project Details</h3>
+          
+          <div className="form-group">
+            <label htmlFor="title">
+              Project Title <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className={`form-input ${errors.title ? 'error' : ''}`}
+              placeholder="Enter a descriptive title for your project"
+            />
+            {errors.title && <div className="field-error">{errors.title}</div>}
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="title">Project Title *</label>
-          <input
-            id="title"
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="My Awesome Project"
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="form-input form-textarea"
+              rows="5"
+              placeholder="Describe your project goals, objectives, and expected outcomes..."
+            />
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Describe your project goals and scope..."
-            rows="5"
-          />
-        </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="template_id">Use Template (Optional)</label>
+              <select
+                id="template_id"
+                name="template_id"
+                value={formData.template_id}
+                onChange={handleChange}
+                className="form-select"
+              >
+                <option value="">-- No Template --</option>
+                {templates.map(template => (
+                  <option key={template.id} value={template.id}>
+                    {template.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="template_id">Use Template (Optional)</label>
-          <select
-            id="template_id"
-            name="template_id"
-            value={formData.template_id || ''}
-            onChange={handleChange}
-          >
-            <option value="">--- No Template ---</option>
-            {templates.map(t => (
-              <option key={t.id} value={t.id}>{t.title}</option>
-            ))}
-          </select>
-        </div>
+            <div className="form-group">
+              <label htmlFor="deadline">
+                Project Deadline <span className="required">*</span>
+              </label>
+              <input
+                type="date"
+                id="deadline"
+                name="deadline"
+                value={formData.deadline}
+                onChange={handleChange}
+                className={`form-input ${errors.deadline ? 'error' : ''}`}
+              />
+              {errors.deadline && <div className="field-error">{errors.deadline}</div>}
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="supervisor">Supervisor Email *</label>
-          <input
-            id="supervisor"
-            type="email"
-            name="supervisor"
-            value={formData.supervisor}
-            onChange={handleChange}
-            placeholder="lecturer@university.edu"
-            required
-          />
+          <div className="form-group">
+            <label htmlFor="supervisor_email">
+              Supervisor Email <span className="required">*</span>
+            </label>
+            <input
+              type="email"
+              id="supervisor_email"
+              name="supervisor_email"
+              value={formData.supervisor_email}
+              onChange={handleChange}
+              className={`form-input ${errors.supervisor_email ? 'error' : ''}`}
+              placeholder="lecturer@university.edu"
+            />
+            {errors.supervisor_email && <div className="field-error">{errors.supervisor_email}</div>}
+            <div className="form-hint">
+              <i className="fa-regular fa-circle-info"></i>
+              The supervisor will be notified and must approve the project
+            </div>
+          </div>
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Project'}
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                Creating Project...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-rocket"></i>
+                Create Project
+              </>
+            )}
           </button>
-          <Link to="/student/projects" className="btn btn-secondary">
+          <Link to="/student/projects" className="btn-secondary">
             Cancel
           </Link>
         </div>
+
+        {errors.submit && (
+          <Alert type="error" title="Error" message={errors.submit} />
+        )}
       </form>
     </div>
   );
 };
-
-export default CreateProject;

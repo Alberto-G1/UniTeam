@@ -1,20 +1,22 @@
+// src/pages/student/projects/EditProject.jsx - REDESIGNED
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectsAPI } from '../../../services/api';
+import { useToast } from '../../../components/ToastContainer';
+import Alert from '../../../components/Alert';
+import './ProjectForms.css';
 
 export const EditProject = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
-  const [project, setProject] = useState(null);
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    deadline: '',
   });
 
   useEffect(() => {
@@ -23,14 +25,15 @@ export const EditProject = () => {
 
   const loadProject = async () => {
     try {
-      const response = await apiService.get(`/api/projects/${id}/`);
-      setProject(response.data);
+      const response = await projectsAPI.get(id);
       setFormData({
         title: response.data.title,
-        description: response.data.description,
+        description: response.data.description || '',
+        deadline: response.data.deadline || '',
       });
-    } catch (err) {
-      setError('Failed to load project');
+    } catch (error) {
+      console.error('Error loading project:', error);
+      showToast('error', 'Error', 'Failed to load project');
     } finally {
       setLoading(false);
     }
@@ -42,69 +45,133 @@ export const EditProject = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.title.trim()) newErrors.title = 'Project title is required';
+    if (!formData.deadline) newErrors.deadline = 'Project deadline is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setSaving(true);
-    setError('');
 
     try {
-      await apiService.put(`/api/projects/${id}/`, formData);
-      navigate(`/student/projects/${id}`, { state: { message: 'Project updated successfully' } });
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update project');
+      await projectsAPI.update(id, formData);
+      showToast('success', 'Updated', 'Project has been updated successfully');
+      navigate(`/student/projects/${id}`);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      showToast('error', 'Update Failed', 'Could not update project');
+      setErrors({ submit: 'Failed to update project' });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="loading">Loading project...</div>;
-  if (!project) return <div className="error">Project not found</div>;
+  if (loading) {
+    return (
+      <div className="project-form-page">
+        <div className="loading-container">
+          <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="project-form-wrapper">
-      <div className="form-header surface">
-        <h1>Edit Project: {project.title}</h1>
+    <div className="project-form-page">
+      <div className="form-header">
+        <div>
+          <h1>Edit Project</h1>
+          <p className="form-description">Update your project information</p>
+        </div>
+        <Link to={`/student/projects/${id}`} className="btn-secondary">
+          <i className="fa-solid fa-arrow-left"></i>
+          Back to Project
+        </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="project-form surface">
-        {error && <div className="error-message">{error}</div>}
+      <form onSubmit={handleSubmit} className="project-form">
+        <div className="form-card">
+          <h3>Project Information</h3>
+          
+          <div className="form-group">
+            <label htmlFor="title">
+              Project Title <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className={`form-input ${errors.title ? 'error' : ''}`}
+              placeholder="Enter project title"
+            />
+            {errors.title && <div className="field-error">{errors.title}</div>}
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="title">Project Title</label>
-          <input
-            id="title"
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="form-input form-textarea"
+              rows="6"
+              placeholder="Describe your project goals and objectives..."
+            />
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows="5"
-          />
+          <div className="form-group">
+            <label htmlFor="deadline">
+              Project Deadline <span className="required">*</span>
+            </label>
+            <input
+              type="date"
+              id="deadline"
+              name="deadline"
+              value={formData.deadline}
+              onChange={handleChange}
+              className={`form-input ${errors.deadline ? 'error' : ''}`}
+            />
+            {errors.deadline && <div className="field-error">{errors.deadline}</div>}
+          </div>
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button type="submit" className="btn-primary" disabled={saving}>
+            {saving ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                Saving...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-floppy-disk"></i>
+                Save Changes
+              </>
+            )}
           </button>
-          <Link to={`/student/projects/${id}`} className="btn btn-secondary">
+          <Link to={`/student/projects/${id}`} className="btn-secondary">
             Cancel
           </Link>
         </div>
+
+        {errors.submit && (
+          <Alert type="error" title="Error" message={errors.submit} />
+        )}
       </form>
     </div>
   );
 };
-
-export default EditProject;
