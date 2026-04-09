@@ -1,7 +1,9 @@
+// src/pages/student/profile/StudentProfile.jsx - COMPLETELY REDESIGNED
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import '../../../styles/Profile.css';
+import Alert from '../../../components/Alert';
+import './StudentProfile.css';
 
 export default function StudentProfile() {
   const { user } = useAuth();
@@ -15,52 +17,64 @@ export default function StudentProfile() {
 
   if (!profile) {
     return (
-      <div className="profile-container">
-        <div className="spinner"></div>
+      <div className="student-profile-page">
+        <div className="loading-container">
+          <div className="spinner"></div>
+        </div>
       </div>
     );
   }
 
   const studentProfile = user?.studentprofile || {};
 
+  const getInitials = () => {
+    if (profile.first_name && profile.last_name) {
+      return `${profile.first_name[0]}${profile.last_name[0]}`;
+    }
+    return profile.username?.[0]?.toUpperCase() || 'S';
+  };
+
   return (
-    <div className="profile-wrapper">
-      {/* Header Section */}
-      <div className="profile-header surface">
+    <div className="student-profile-page">
+      {/* Header */}
+      <div className="profile-header">
         <div className="profile-header-content">
           <div>
-            <h1 className="profile-title">My Student Profile</h1>
-            <p className="profile-subtitle">Your personal and academic information</p>
+            <h1>My Profile</h1>
+            <p className="profile-subtitle">Manage your personal and academic information</p>
           </div>
-          <Link to="/student/profile/edit" className="btn btn-primary">
-            <i className="fa-solid fa-pencil"></i> Edit Profile
+          <Link to="/student/profile/edit" className="btn-primary">
+            <i className="fa-solid fa-pencil"></i>
+            Edit Profile
           </Link>
         </div>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Profile Grid */}
       <div className="profile-grid">
-        {/* Left Column: Avatar and Contact */}
-        <div className="profile-sidebar surface">
-          {profile.avatar ? (
-            <img 
-              src={profile.avatar} 
-              alt="Profile Avatar" 
-              className="profile-avatar"
-            />
-          ) : (
-            <div className="profile-avatar-placeholder">
-              <span>{profile.first_name?.[0]?.toUpperCase() || 'S'}{profile.last_name?.[0]?.toUpperCase() || ''}</span>
-            </div>
-          )}
+        {/* Left Column - Avatar & Basic Info */}
+        <div className="profile-sidebar-card">
+          <div className="avatar-container">
+            {profile.avatar ? (
+              <img src={profile.avatar} alt={profile.first_name} className="profile-avatar" />
+            ) : (
+              <div className="profile-avatar-placeholder">
+                {getInitials()}
+              </div>
+            )}
+            <div className="avatar-status online"></div>
+          </div>
           
           <div className="profile-identity">
-            <h2 className="profile-fullname">{profile.first_name} {profile.last_name}</h2>
+            <h2>{profile.first_name} {profile.last_name}</h2>
             <p className="profile-username">@{profile.username}</p>
+            <span className="role-badge student">
+              <i className="fa-solid fa-user-graduate"></i>
+              Student
+            </span>
           </div>
 
-          {/* Contact Information */}
-          <div className="profile-contact-section">
+          <div className="profile-contact">
             <div className="contact-item">
               <i className="fa-solid fa-envelope"></i>
               <div>
@@ -68,7 +82,6 @@ export default function StudentProfile() {
                 <p className="contact-value">{profile.email}</p>
               </div>
             </div>
-
             {studentProfile.personal_email && (
               <div className="contact-item">
                 <i className="fa-solid fa-envelope-open-text"></i>
@@ -78,67 +91,119 @@ export default function StudentProfile() {
                 </div>
               </div>
             )}
-
             {profile.phone_number && (
               <div className="contact-item">
                 <i className="fa-solid fa-phone"></i>
                 <div>
-                  <p className="contact-label">Phone</p>
+                  <p className="contact-label">Phone Number</p>
                   <p className="contact-value">{profile.phone_number}</p>
                 </div>
               </div>
             )}
+            <div className="contact-item">
+              <i className="fa-solid fa-calendar"></i>
+              <div>
+                <p className="contact-label">Member Since</p>
+                <p className="contact-value">
+                  {new Date(profile.date_joined).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right Column: Details */}
+        {/* Right Column - Details */}
         <div className="profile-details">
-          {/* About Me */}
-          <div className="profile-section surface">
-            <h3 className="section-title">About Me</h3>
-            <p className="section-content">
-              {studentProfile.bio || 'No bio provided.'}
+          {/* About Section */}
+          <div className="detail-card">
+            <h3>
+              <i className="fa-solid fa-circle-info"></i>
+              About Me
+            </h3>
+            <p className="detail-content">
+              {studentProfile.bio || 'No bio provided. Click edit to add information about yourself.'}
             </p>
           </div>
 
           {/* Academic Information */}
-          <div className="profile-section surface">
-            <h3 className="section-title">Academic Information</h3>
-            <div className="profile-info-grid">
-              <div className="info-item">
-                <label className="info-label">University</label>
-                <p className="info-value">{studentProfile.university || '-'}</p>
+          <div className="detail-card">
+            <h3>
+              <i className="fa-solid fa-graduation-cap"></i>
+              Academic Information
+            </h3>
+            <div className="detail-grid">
+              <div className="detail-item">
+                <label>University</label>
+                <p>{studentProfile.university || 'Not specified'}</p>
               </div>
-              <div className="info-item">
-                <label className="info-label">Department</label>
-                <p className="info-value">{studentProfile.department || '-'}</p>
+              <div className="detail-item">
+                <label>Department</label>
+                <p>{studentProfile.department || 'Not specified'}</p>
               </div>
-              <div className="info-item">
-                <label className="info-label">Course</label>
-                <p className="info-value">{studentProfile.course_name || '-'}</p>
+              <div className="detail-item">
+                <label>Course</label>
+                <p>{studentProfile.course_name || 'Not specified'}</p>
               </div>
-              <div className="info-item">
-                <label className="info-label">Year of Study</label>
-                <p className="info-value">{studentProfile.year_of_study || '-'}</p>
+              <div className="detail-item">
+                <label>Year of Study</label>
+                <p>{studentProfile.year_of_study || 'Not specified'}</p>
               </div>
             </div>
           </div>
 
           {/* Skills */}
-          <div className="profile-section surface">
-            <h3 className="section-title">Skills</h3>
+          <div className="detail-card">
+            <h3>
+              <i className="fa-solid fa-code"></i>
+              Skills & Expertise
+            </h3>
             <div className="skills-container">
               {studentProfile.skills && studentProfile.skills.length > 0 ? (
                 studentProfile.skills.map((skill, index) => (
-                  <span key={index} className="skill-badge">
+                  <span key={index} className="skill-tag">
                     {skill}
                   </span>
                 ))
               ) : (
-                <p className="empty-message">No skills listed</p>
+                <p className="empty-text">No skills added yet</p>
               )}
             </div>
           </div>
+
+          {/* Stats Overview */}
+          <div className="detail-card stats-overview">
+            <h3>
+              <i className="fa-solid fa-chart-simple"></i>
+              Academic Overview
+            </h3>
+            <div className="stats-row">
+              <div className="stat-box">
+                <span className="stat-number">8</span>
+                <span className="stat-label">Active Projects</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-number">12</span>
+                <span className="stat-label">Completed Tasks</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-number">5</span>
+                <span className="stat-label">Team Members</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Alert for incomplete profile */}
+          {!studentProfile.bio && !studentProfile.skills?.length && (
+            <Alert
+              type="warning"
+              title="Complete Your Profile"
+              message="Adding a bio and skills helps your team members know you better."
+            />
+          )}
         </div>
       </div>
     </div>
