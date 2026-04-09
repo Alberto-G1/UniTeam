@@ -1,7 +1,9 @@
+// src/pages/auth/Login.jsx - FULL SCREEN REDESIGN
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import '../Auth.css';
+import { useToast } from '../../components/ToastContainer';
+import './Auth.css';
 
 export const Login = () => {
   const [formData, setFormData] = useState({
@@ -9,12 +11,13 @@ export const Login = () => {
     password: '',
     rememberMe: false,
   });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState('light');
   
   const { login } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +31,7 @@ export const Login = () => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+    showToast('info', 'Theme Changed', `${newTheme === 'dark' ? 'Dark' : 'Light'} mode activated`);
   };
 
   const handleChange = (e) => {
@@ -36,117 +40,224 @@ export const Login = () => {
       ...formData,
       [e.target.name]: value,
     });
-    setError('');
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: null });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.username.trim()) {
+      newErrors.username = 'Email or username is required';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setLoading(true);
-    setError('');
 
     const result = await login(formData.username, formData.password);
     
     if (result.success) {
+      showToast('success', 'Welcome back!', 'You have successfully logged in.');
       navigate('/');
     } else {
-      setError(result.error);
+      showToast('error', 'Login Failed', result.error || 'Invalid credentials. Please try again.');
+      setErrors({ submit: result.error });
     }
     
     setLoading(false);
   };
 
   return (
-    <div className="auth-container">
-      <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-        <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'}></i>
+    <div className="auth-fullscreen">
+      <button className="theme-toggle-fullscreen" onClick={toggleTheme}>
+        <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'}></i>
       </button>
 
-      <div className="auth-shell surface">
-        <div className="auth-hero-panel hero-image">
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem' }}>Welcome Back!</h2>
-          <p style={{ fontSize: '1rem', opacity: 0.9, maxWidth: '320px' }}>Log in to access your projects and continue where you left off.</p>
-        </div>
-
-        <div className="auth-form-panel">
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Please sign in to your account</p>
-          
-          {error && (
-            <div className="alert alert-error">
-              {error}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">Email or Username</label>
-              <div className="input-with-icon">
-                <i className="fas fa-user"></i>
-                <input
-                  type="text"
-                  name="username"
-                  className="input-field"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="Administrator"
-                  required
-                  autoFocus
-                />
+      <div className="auth-grid">
+        {/* Left Side - Brand Section */}
+        <div className="auth-brand-section">
+          <div className="brand-content">
+            <div className="brand-logo">
+              <div className="logo-icon-large">
+                <i className="fa-solid fa-graduation-cap"></i>
               </div>
+              <h1 className="brand-name">PROJECT HUB</h1>
+              <p className="brand-tagline">University Project Management System</p>
             </div>
             
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <div className="input-with-icon">
-                <i className="fas fa-lock"></i>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  className="input-field"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label="Toggle password"
+            <div className="brand-features">
+              <div className="feature-card">
+                <i className="fa-solid fa-diagram-project"></i>
+                <h3>Project Management</h3>
+                <p>Organize and track your academic projects efficiently</p>
+              </div>
+              <div className="feature-card">
+                <i className="fa-solid fa-users"></i>
+                <h3>Team Collaboration</h3>
+                <p>Work seamlessly with your team members</p>
+              </div>
+              <div className="feature-card">
+                <i className="fa-solid fa-chart-line"></i>
+                <h3>Progress Tracking</h3>
+                <p>Monitor milestones and deadlines in real-time</p>
+              </div>
+            </div>
+
+            <div className="brand-stats">
+              <div className="stat">
+                <span className="stat-number">500+</span>
+                <span className="stat-label">Active Projects</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat">
+                <span className="stat-number">2,000+</span>
+                <span className="stat-label">Happy Students</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat">
+                <span className="stat-number">50+</span>
+                <span className="stat-label">Universities</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Form Section */}
+        <div className="auth-form-container">
+          <div className="form-wrapper">
+            <div className="form-header">
+              <h2>Welcome Back</h2>
+              <p>Sign in to continue to your dashboard</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="auth-form-full">
+              <div className="input-group-full">
+                <label htmlFor="username">
+                  <i className="fa-regular fa-envelope"></i>
+                  Email or Username
+                </label>
+                <div className={`input-field-wrapper ${errors.username ? 'error' : ''}`}>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="Enter your email or username"
+                    autoFocus
+                  />
+                </div>
+                {errors.username && <span className="field-error">{errors.username}</span>}
+              </div>
+
+              <div className="input-group-full">
+                <label htmlFor="password">
+                  <i className="fa-solid fa-lock"></i>
+                  Password
+                </label>
+                <div className={`input-field-wrapper ${errors.password ? 'error' : ''}`}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    className="toggle-password-full"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <i className={showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'}></i>
+                  </button>
+                </div>
+                {errors.password && <span className="field-error">{errors.password}</span>}
+              </div>
+
+              <div className="form-options-full">
+                <label className="checkbox-label-full">
+                  <input
+                    type="checkbox"
+                    name="rememberMe"
+                    checked={formData.rememberMe}
+                    onChange={handleChange}
+                  />
+                  <span>Remember me</span>
+                </label>
+                <Link to="/forgot-password" className="forgot-link-full">
+                  Forgot password?
+                </Link>
+              </div>
+
+              <button type="submit" className="submit-btn-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin"></i>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-arrow-right-to-bracket"></i>
+                    Sign In
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="form-footer">
+              <p>
+                Don't have an account? <Link to="/signup">Create an account</Link>
+              </p>
+            </div>
+
+            <div className="demo-section">
+              <div className="demo-divider">
+                <span>Quick Demo Access</span>
+              </div>
+              <div className="demo-buttons">
+                <button 
+                  className="demo-btn-full admin"
+                  onClick={() => {
+                    setFormData({ ...formData, username: 'admin@projecthub.com', password: 'admin123' });
+                    showToast('info', 'Demo Credentials', 'Admin credentials loaded');
+                  }}
                 >
-                  <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+                  <i className="fa-solid fa-shield-halved"></i>
+                  Admin Demo
+                </button>
+                <button 
+                  className="demo-btn-full student"
+                  onClick={() => {
+                    setFormData({ ...formData, username: 'student@university.edu', password: 'student123' });
+                    showToast('info', 'Demo Credentials', 'Student credentials loaded');
+                  }}
+                >
+                  <i className="fa-solid fa-user-graduate"></i>
+                  Student Demo
+                </button>
+                <button 
+                  className="demo-btn-full lecturer"
+                  onClick={() => {
+                    setFormData({ ...formData, username: 'lecturer@university.edu', password: 'lecturer123' });
+                    showToast('info', 'Demo Credentials', 'Lecturer credentials loaded');
+                  }}
+                >
+                  <i className="fa-solid fa-chalkboard-user"></i>
+                  Lecturer Demo
                 </button>
               </div>
             </div>
-
-            <div className="checkbox-row">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  className="remember-checkbox"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                />
-                <span>Remember me</span>
-              </label>
-              <Link to="/forgot-password" className="forgot-password">
-                Forgot password?
-              </Link>
-            </div>
-            
-            <button
-              type="submit"
-              className="btn-primary btn-block"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-          
-          <p className="auth-footer">
-            Don't have an account? <Link to="/signup">Sign up</Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>
