@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/ManageUsers.css';
+import { usersAPI } from '../../../services/api';
+import './ManageUsers.css';
 
 export const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -15,8 +15,9 @@ export const UserList = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await apiService.get('/api/admin/users/');
-      setUsers(response.data);
+      const response = await usersAPI.list();
+      const list = Array.isArray(response) ? response : response.results || [];
+      setUsers(list);
     } catch (err) {
       setError('Failed to load users');
     } finally {
