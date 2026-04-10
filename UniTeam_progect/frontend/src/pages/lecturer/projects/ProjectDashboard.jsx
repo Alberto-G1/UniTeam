@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectsAPI } from '../../../services/api';
+import '../../student/projects/ProjectForms.css';
 
 export const ProjectDashboard = () => {
   const { id } = useParams();
@@ -18,14 +18,14 @@ export const ProjectDashboard = () => {
   const loadProjectData = async () => {
     try {
       const [projectRes, milestonesRes, teamRes] = await Promise.all([
-        apiService.get(`/api/projects/${id}/`),
-        apiService.get(`/api/projects/${id}/milestones/`),
-        apiService.get(`/api/projects/${id}/team/`),
+        projectsAPI.get(id),
+        projectsAPI.getMilestones(id),
+        projectsAPI.getTeam(id),
       ]);
 
-      setProject(projectRes.data);
-      setMilestones(milestonesRes.data);
-      setTeamMembers(teamRes.data);
+      setProject(projectRes);
+      setMilestones(milestonesRes || []);
+      setTeamMembers(teamRes?.members || []);
     } catch (err) {
       setError('Failed to load project data');
     } finally {
@@ -44,9 +44,7 @@ export const ProjectDashboard = () => {
           <p className="project-status">Status: {project.status}</p>
         </div>
         <div className="header-actions">
-          <Link to={`/lecturer/projects/${id}/edit`} className="btn btn-primary">
-            Edit Project
-          </Link>
+          <span className="btn btn-secondary">Supervisor View</span>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { milestonesAPI, projectsAPI } from '../../../services/api';
+import '../../student/projects/ProjectForms.css';
 
 export const MilestoneForm = () => {
   const { id, milestoneId } = useParams();
@@ -25,12 +25,16 @@ export const MilestoneForm = () => {
 
   const loadMilestone = async () => {
     try {
-      const response = await apiService.get(`/api/projects/${id}/milestones/${milestoneId}/`);
+      const milestones = await projectsAPI.getMilestones(id);
+      const response = (milestones || []).find((m) => String(m.id) === String(milestoneId));
+      if (!response) {
+        throw new Error('Milestone not found');
+      }
       setFormData({
-        title: response.data.title,
-        description: response.data.description,
-        due_date: response.data.due_date,
-        status: response.data.status,
+        title: response.title,
+        description: response.description,
+        due_date: response.due_date,
+        status: response.status,
       });
     } catch (err) {
       setError('Failed to load milestone');
@@ -53,10 +57,17 @@ export const MilestoneForm = () => {
     setError('');
 
     try {
+      const payload = {
+        project: Number(id),
+        title: formData.title,
+        description: formData.description,
+        due_date: formData.due_date,
+        status: formData.status,
+      };
       if (isEdit) {
-        await apiService.put(`/api/projects/${id}/milestones/${milestoneId}/`, formData);
+        await milestonesAPI.update(milestoneId, payload);
       } else {
-        await apiService.post(`/api/projects/${id}/milestones/`, formData);
+        await milestonesAPI.create(payload);
       }
       navigate(`/lecturer/projects/${id}`);
     } catch (err) {

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectsAPI } from '../../../services/api';
+import '../../student/projects/ProjectForms.css';
 
 export const CreateProject = () => {
   const navigate = useNavigate();
@@ -27,8 +26,11 @@ export const CreateProject = () => {
     setError('');
 
     try {
-      const response = await apiService.post('/api/projects/lecturer-create/', formData);
-      navigate(`/lecturer/projects/${response.data.id}`);
+      const response = await projectsAPI.create({
+        ...formData,
+        deadline: new Date().toISOString().split('T')[0],
+      });
+      navigate(`/lecturer/projects/${response.id}`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create project');
     } finally {

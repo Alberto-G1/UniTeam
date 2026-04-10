@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectsAPI } from '../../../services/api';
+import '../../student/projects/MyProjects.css';
 
 export const MyProjects = () => {
-  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -17,8 +15,9 @@ export const MyProjects = () => {
 
   const loadProjects = async () => {
     try {
-      const response = await apiService.get('/api/projects/supervised/');
-      setProjects(response.data);
+      const response = await projectsAPI.list();
+      const list = response?.results || response || [];
+      setProjects(list);
     } catch (err) {
       setError('Failed to load projects');
     } finally {
