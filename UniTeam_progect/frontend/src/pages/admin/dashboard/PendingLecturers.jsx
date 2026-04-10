@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/ManageUsers.css';
+import { usersAPI } from '../../../services/api';
+import '../users/ManageUsers.css';
 
 export const PendingLecturers = () => {
   const [pendingLecturers, setPendingLecturers] = useState([]);
@@ -15,8 +15,9 @@ export const PendingLecturers = () => {
 
   const loadPendingLecturers = async () => {
     try {
-      const response = await apiService.get('/api/admin/lecturers/pending/');
-      setPendingLecturers(response.data);
+      const response = await usersAPI.list();
+      const list = Array.isArray(response) ? response : response.results || [];
+      setPendingLecturers(list.filter((u) => u.role === 'LECTURER' && !u.is_approved));
     } catch (err) {
       setError('Failed to load pending lecturers');
     } finally {
@@ -27,26 +28,12 @@ export const PendingLecturers = () => {
   const handleApprove = async (id) => {
     setActionLoading(id);
     try {
-      await apiService.post(`/api/admin/lecturers/${id}/approve/`);
+      await usersAPI.approveLecturer(id);
       setPendingLecturers(l => l.filter(x => x.id !== id));
     } catch (err) {
       setError('Failed to approve lecturer');
     } finally {
       setActionLoading(null);
-    }
-  };
-
-  const handleReject = async (id) => {
-    if (confirm('Are you sure you want to reject this lecturer?')) {
-      setActionLoading(id);
-      try {
-        await apiService.post(`/api/admin/lecturers/${id}/reject/`);
-        setPendingLecturers(l => l.filter(x => x.id !== id));
-      } catch (err) {
-        setError('Failed to reject lecturer');
-      } finally {
-        setActionLoading(null);
-      }
     }
   };
 
@@ -89,13 +76,6 @@ export const PendingLecturers = () => {
                       disabled={actionLoading === l.id}
                     >
                       {actionLoading === l.id ? 'Processing...' : 'Approve'}
-                    </button>
-                    <button
-                      onClick={() => handleReject(l.id)}
-                      className="btn btn-sm btn-danger"
-                      disabled={actionLoading === l.id}
-                    >
-                      {actionLoading === l.id ? 'Processing...' : 'Reject'}
                     </button>
                   </td>
                 </tr>

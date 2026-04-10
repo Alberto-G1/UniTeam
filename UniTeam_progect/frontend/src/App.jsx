@@ -39,6 +39,8 @@ import TemplateForm from './pages/lecturer/templates/TemplateForm';
 import TemplateDetails from './pages/lecturer/templates/TemplateDetails';
 import AdminProfile from './pages/admin/profile/AdminProfile';
 import AdminProfileEdit from './pages/admin/profile/AdminProfileEdit';
+import EditUser from './pages/admin/users/EditUser';
+import PendingLecturers from './pages/admin/dashboard/PendingLecturers';
 import NotFound from './pages/shared/NotFound';
 
 import './App.css';
@@ -145,8 +147,8 @@ function App() {
             >
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<ManageUsers />} />
-              <Route path="users/:id/edit" element={<NotFound feature="Edit User" dashboardPath="/admin/users" />} />
-              <Route path="lecturers/pending" element={<NotFound feature="Pending Lecturers" dashboardPath="/admin/dashboard" />} />
+              <Route path="users/:id/edit" element={<EditUser />} />
+              <Route path="lecturers/pending" element={<PendingLecturers />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="profile/edit" element={<AdminProfileEdit />} />
             </Route>

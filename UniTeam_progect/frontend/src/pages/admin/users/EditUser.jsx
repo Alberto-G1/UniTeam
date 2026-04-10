@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/ManageUsers.css';
+import { usersAPI } from '../../../services/api';
+import './ManageUsers.css';
 
 export const EditUser = () => {
   const { id } = useParams();
@@ -11,11 +11,12 @@ export const EditUser = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
+    username: '',
     first_name: '',
     last_name: '',
     email: '',
-    is_active: true,
     role: 'STUDENT',
+    phone_number: '',
   });
 
   useEffect(() => {
@@ -24,14 +25,15 @@ export const EditUser = () => {
 
   const loadUser = async () => {
     try {
-      const response = await apiService.get(`/api/admin/users/${id}/`);
-      setUser(response.data);
+      const response = await usersAPI.get(id);
+      setUser(response);
       setFormData({
-        first_name: response.data.first_name,
-        last_name: response.data.last_name,
-        email: response.data.email,
-        is_active: response.data.is_active,
-        role: response.data.role,
+        username: response.username || '',
+        first_name: response.first_name || '',
+        last_name: response.last_name || '',
+        email: response.email || '',
+        role: response.role || 'STUDENT',
+        phone_number: response.phone_number || '',
       });
     } catch (err) {
       setError('Failed to load user');
@@ -54,7 +56,7 @@ export const EditUser = () => {
     setError('');
 
     try {
-      await apiService.put(`/api/admin/users/${id}/`, formData);
+      await usersAPI.update(id, formData);
       navigate('/admin/users', { state: { message: 'User updated successfully' } });
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update user');
@@ -74,6 +76,18 @@ export const EditUser = () => {
 
       <form onSubmit={handleSubmit} className="user-form surface">
         {error && <div className="error-message">{error}</div>}
+
+        <div className="form-group">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
         <div className="form-row">
           <div className="form-group">
@@ -113,6 +127,17 @@ export const EditUser = () => {
           />
         </div>
 
+        <div className="form-group">
+          <label htmlFor="phone_number">Phone Number</label>
+          <input
+            id="phone_number"
+            type="text"
+            name="phone_number"
+            value={formData.phone_number}
+            onChange={handleChange}
+          />
+        </div>
+
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="role">Role</label>
@@ -128,18 +153,7 @@ export const EditUser = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="is_active">
-              <input
-                id="is_active"
-                type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleChange}
-              />
-              Active Account
-            </label>
-          </div>
+          <div className="form-group" />
         </div>
 
         <div className="form-actions">
