@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { projectTemplatesAPI } from '../../../services/api';
+import { projectTemplatesAPI, projectsAPI } from '../../../services/api';
 import { useToast } from '../../../components/ToastContainer';
 import Alert from '../../../components/Alert';
 import './ProjectForms.css';
@@ -18,7 +18,6 @@ export const CreateProject = () => {
     title: '',
     description: '',
     template_id: '',
-    supervisor_email: '',
     deadline: '',
   });
 
@@ -50,10 +49,6 @@ export const CreateProject = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
-    if (!formData.supervisor_email.trim()) newErrors.supervisor_email = 'Supervisor email is required';
-    if (formData.supervisor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.supervisor_email)) {
-      newErrors.supervisor_email = 'Please enter a valid email address';
-    }
     if (!formData.deadline) newErrors.deadline = 'Project deadline is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -66,11 +61,28 @@ export const CreateProject = () => {
     setLoading(true);
 
     try {
-      // TODO: Implement API call to create project
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        deadline: formData.deadline,
+      };
+
+      if (formData.template_id) {
+        payload.template_used = Number(formData.template_id);
+      }
+
+      await projectsAPI.create(payload);
       showToast('success', 'Project Created', 'Your project has been created successfully!');
       navigate('/student/projects');
     } catch (err) {
+      const serverErrors = err?.response?.data;
+      if (serverErrors && typeof serverErrors === 'object') {
+        const normalized = {};
+        Object.keys(serverErrors).forEach((key) => {
+          normalized[key] = Array.isArray(serverErrors[key]) ? serverErrors[key][0] : serverErrors[key];
+        });
+        setErrors((prev) => ({ ...prev, ...normalized }));
+      }
       showToast('error', 'Creation Failed', 'Could not create project. Please try again.');
       setErrors({ submit: 'Failed to create project' });
     } finally {
@@ -159,24 +171,9 @@ export const CreateProject = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="supervisor_email">
-              Supervisor Email <span className="required">*</span>
-            </label>
-            <input
-              type="email"
-              id="supervisor_email"
-              name="supervisor_email"
-              value={formData.supervisor_email}
-              onChange={handleChange}
-              className={`form-input ${errors.supervisor_email ? 'error' : ''}`}
-              placeholder="lecturer@university.edu"
-            />
-            {errors.supervisor_email && <div className="field-error">{errors.supervisor_email}</div>}
-            <div className="form-hint">
-              <i className="fa-regular fa-circle-info"></i>
-              The supervisor will be notified and must approve the project
-            </div>
+          <div className="form-hint">
+            <i className="fa-regular fa-circle-info"></i>
+            Supervisor can be assigned later by lecturers/admin if needed.
           </div>
         </div>
 
@@ -206,3 +203,5 @@ export const CreateProject = () => {
     </div>
   );
 };
+
+export default CreateProject;

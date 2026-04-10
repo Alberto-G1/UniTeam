@@ -114,6 +114,25 @@ export const projectsAPI = {
     const response = await api.get(`/projects/${id}/milestones/`);
     return response.data;
   },
+
+  getCandidateStudents: async (id, q = '') => {
+    const response = await api.get(`/projects/${id}/candidate_students/`, {
+      params: { q },
+    });
+    return response.data;
+  },
+
+  getPendingInvitations: async (id) => {
+    const response = await api.get(`/projects/${id}/pending_invitations/`);
+    return response.data;
+  },
+
+  inviteMember: async (id, receiverId) => {
+    const response = await api.post(`/projects/${id}/invite_member/`, {
+      receiver_id: receiverId,
+    });
+    return response.data;
+  },
 };
 
 // Milestones API

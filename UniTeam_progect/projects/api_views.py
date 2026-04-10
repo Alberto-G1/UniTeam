@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation,
     ProjectTemplate, MilestoneTemplate
@@ -14,6 +15,7 @@ from .serializers import (
     MilestoneTemplateSerializer
 )
 from users.models import CustomUser
+from users.serializers import UserSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -77,6 +79,109 @@ class ProjectViewSet(viewsets.ModelViewSet):
         milestones = project.milestones.all()
         serializer = MilestoneSerializer(milestones, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def pending_invitations(self, request, pk=None):
+        """Get pending invitations for a project (leaders/co-leaders only)."""
+        project = self.get_object()
+
+        requester_membership = TeamMembership.objects.filter(
+            team=project.team,
+            user=request.user
+        ).first()
+
+        if not requester_membership or requester_membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return Response(
+                {'error': 'Only leaders and co-leaders can view pending invitations'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        invitations = Invitation.objects.filter(
+            project=project,
+            status=Invitation.Status.PENDING
+        ).select_related('sender', 'receiver')
+
+        serializer = InvitationSerializer(invitations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def candidate_students(self, request, pk=None):
+        """Search students that can be invited to a project."""
+        project = self.get_object()
+
+        requester_membership = TeamMembership.objects.filter(
+            team=project.team,
+            user=request.user
+        ).first()
+
+        if not requester_membership or requester_membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return Response(
+                {'error': 'Only leaders and co-leaders can search candidates'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        q = (request.query_params.get('q') or '').strip()
+
+        team_user_ids = TeamMembership.objects.filter(team=project.team).values_list('user_id', flat=True)
+
+        invited_user_ids = Invitation.objects.filter(
+            project=project,
+            status=Invitation.Status.PENDING
+        ).values_list('receiver_id', flat=True)
+
+        students = CustomUser.objects.filter(role=CustomUser.Role.STUDENT).exclude(
+            id__in=list(team_user_ids) + list(invited_user_ids)
+        )
+
+        if q:
+            students = students.filter(
+                Q(username__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+                | Q(email__icontains=q)
+            )
+
+        serializer = UserSerializer(students[:50], many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def invite_member(self, request, pk=None):
+        """Invite a student to the project (leaders/co-leaders only)."""
+        project = self.get_object()
+
+        requester_membership = TeamMembership.objects.filter(
+            team=project.team,
+            user=request.user
+        ).first()
+
+        if not requester_membership or requester_membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return Response(
+                {'error': 'Only leaders and co-leaders can send invitations'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        receiver_id = request.data.get('receiver_id')
+        if not receiver_id:
+            return Response({'error': 'receiver_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        receiver = get_object_or_404(CustomUser, id=receiver_id, role=CustomUser.Role.STUDENT)
+
+        already_member = TeamMembership.objects.filter(team=project.team, user=receiver).exists()
+        if already_member:
+            return Response({'error': 'User is already a team member'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Invitation.objects.filter(project=project, receiver=receiver, status=Invitation.Status.PENDING).exists():
+            return Response({'error': 'A pending invitation already exists for this user'}, status=status.HTTP_400_BAD_REQUEST)
+
+        invitation = Invitation.objects.create(
+            project=project,
+            sender=request.user,
+            receiver=receiver,
+            status=Invitation.Status.PENDING,
+        )
+
+        serializer = InvitationSerializer(invitation)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class TeamMembershipViewSet(viewsets.ModelViewSet):

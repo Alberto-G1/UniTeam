@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/ManageTeam.css';
+import { useParams, Link } from 'react-router-dom';
+import { projectsAPI, teamMembershipsAPI } from '../../../services/api';
+import { useToast } from '../../../components/ToastContainer';
+import './ProjectForms.css';
 
 export const ManageTeam = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { showToast } = useToast();
   const [teamMembers, setTeamMembers] = useState([]);
-  const [pendingInvites, setPendingInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [role, setRole] = useState('MEMBER');
 
   useEffect(() => {
     loadTeamData();
@@ -21,12 +17,8 @@ export const ManageTeam = () => {
 
   const loadTeamData = async () => {
     try {
-      const [membersRes, invitesRes] = await Promise.all([
-        apiService.get(`/api/projects/${id}/team/`),
-        apiService.get(`/api/projects/${id}/invitations/pending/`),
-      ]);
-      setTeamMembers(membersRes.data);
-      setPendingInvites(invitesRes.data);
+      const team = await projectsAPI.getTeam(id);
+      setTeamMembers(team?.members || []);
     } catch (err) {
       setError('Failed to load team data');
     } finally {
@@ -34,26 +26,10 @@ export const ManageTeam = () => {
     }
   };
 
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    try {
-      await apiService.post(`/api/projects/${id}/invite/`, {
-        recipient_email: inviteEmail,
-        role,
-      });
-      setInviteEmail('');
-      setRole('MEMBER');
-      await loadTeamData();
-    } catch (err) {
-      setError('Failed to send invitation');
-    }
-  };
-
   const handleRoleChange = async (memberId, newRole) => {
     try {
-      await apiService.put(`/api/projects/${id}/team/${memberId}/`, {
-        role: newRole,
-      });
+      await teamMembershipsAPI.changeRole(memberId, newRole);
+      showToast('success', 'Role Updated', 'Team member role updated');
       await loadTeamData();
     } catch (err) {
       setError('Failed to update member role');
@@ -63,7 +39,8 @@ export const ManageTeam = () => {
   const handleRemoveMember = async (memberId) => {
     if (confirm('Are you sure you want to remove this member?')) {
       try {
-        await apiService.delete(`/api/projects/${id}/team/${memberId}/`);
+        await teamMembershipsAPI.delete(memberId);
+        showToast('success', 'Member Removed', 'Team member was removed');
         await loadTeamData();
       } catch (err) {
         setError('Failed to remove member');
@@ -77,9 +54,14 @@ export const ManageTeam = () => {
     <div className="manage-team-wrapper">
       <div className="team-header surface">
         <h1>Manage Team</h1>
-        <Link to={`/student/projects/${id}`} className="btn btn-secondary">
-          Back to Project
-        </Link>
+        <div className="header-actions">
+          <Link to={`/student/projects/${id}/invite-member`} className="btn btn-primary">
+            Invite Teammates
+          </Link>
+          <Link to={`/student/projects/${id}`} className="btn btn-secondary">
+            Back to Project
+          </Link>
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -117,45 +99,6 @@ export const ManageTeam = () => {
         </div>
       </div>
 
-      {/* Pending Invitations */}
-      {pendingInvites.length > 0 && (
-        <div className="invites-section surface">
-          <h2>Pending Invitations</h2>
-          <div className="invites-list">
-            {pendingInvites.map(inv => (
-              <div key={inv.id} className="invite-row">
-                <p>{inv.recipient_email}</p>
-                <span className="status">Pending</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Send Invitation */}
-      <div className="invite-section surface">
-        <h2>Invite New Member</h2>
-        <form onSubmit={handleInvite} className="invite-form">
-          <div className="form-group">
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Enter team member email"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="MEMBER">Member</option>
-              <option value="CO_LEADER">Co-Leader</option>
-            </select>
-          </div>
-          <button type="submit" className="btn btn-primary">
-            Send Invitation
-          </button>
-        </form>
-      </div>
     </div>
   );
 };
