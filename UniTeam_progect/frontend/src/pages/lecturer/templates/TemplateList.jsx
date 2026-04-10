@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Templates.css';
+import { projectTemplatesAPI } from '../../../services/api';
+import './Templates.css';
 
 export const TemplateList = () => {
   const [templates, setTemplates] = useState([]);
@@ -14,8 +14,9 @@ export const TemplateList = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await apiService.get('/api/projects/templates/');
-      setTemplates(response.data);
+      const response = await projectTemplatesAPI.list();
+      const list = response?.results || response || [];
+      setTemplates(list);
     } catch (err) {
       setError('Failed to load templates');
     } finally {
@@ -26,7 +27,7 @@ export const TemplateList = () => {
   const handleDelete = async (id) => {
     if (confirm('Are you sure you want to delete this template?')) {
       try {
-        await apiService.delete(`/api/projects/templates/${id}/`);
+        await projectTemplatesAPI.delete(id);
         setTemplates(t => t.filter(x => x.id !== id));
       } catch (err) {
         setError('Failed to delete template');
@@ -54,7 +55,7 @@ export const TemplateList = () => {
               <h3>{t.title}</h3>
               <p className="description">{t.description?.substring(0, 100)}...</p>
               <p className="milestone-count">
-                Milestones: {t.milestones?.length || 0}
+                Milestones: {t.milestone_templates?.length || 0}
               </p>
               <div className="template-actions">
                 <Link

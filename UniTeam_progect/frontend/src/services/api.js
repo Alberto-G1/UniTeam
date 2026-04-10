@@ -215,6 +215,38 @@ export const projectTemplatesAPI = {
     const response = await api.post('/project-templates/', templateData);
     return response.data;
   },
+
+  update: async (id, templateData) => {
+    const response = await api.put(`/project-templates/${id}/`, templateData);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/project-templates/${id}/`);
+    return response.data;
+  },
+};
+
+export const milestoneTemplatesAPI = {
+  list: async () => {
+    const response = await api.get('/milestone-templates/');
+    return response.data;
+  },
+
+  create: async (milestoneTemplateData) => {
+    const response = await api.post('/milestone-templates/', milestoneTemplateData);
+    return response.data;
+  },
+
+  update: async (id, milestoneTemplateData) => {
+    const response = await api.put(`/milestone-templates/${id}/`, milestoneTemplateData);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/milestone-templates/${id}/`);
+    return response.data;
+  },
 };
 
 // Users API (admin only)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/ManageTeam.css';
+import { projectsAPI } from '../../../services/api';
+import '../../student/projects/ProjectForms.css';
 
 export const ManageTeam = () => {
   const { id } = useParams();
@@ -15,8 +15,8 @@ export const ManageTeam = () => {
 
   const loadTeamData = async () => {
     try {
-      const response = await apiService.get(`/api/projects/${id}/team/`);
-      setTeamMembers(response.data);
+      const response = await projectsAPI.getTeam(id);
+      setTeamMembers(response?.members || []);
     } catch (err) {
       setError('Failed to load team data');
     } finally {

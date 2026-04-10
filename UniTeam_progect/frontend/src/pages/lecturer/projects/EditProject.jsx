@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { projectsAPI } from '../../../services/api';
+import '../../student/projects/ProjectForms.css';
 
 export const EditProject = () => {
   const { id } = useParams();
@@ -21,11 +21,11 @@ export const EditProject = () => {
 
   const loadProject = async () => {
     try {
-      const response = await apiService.get(`/api/projects/${id}/`);
-      setProject(response.data);
+      const response = await projectsAPI.get(id);
+      setProject(response);
       setFormData({
-        title: response.data.title,
-        description: response.data.description,
+        title: response.title,
+        description: response.description,
       });
     } catch (err) {
       setError('Failed to load project');
@@ -48,7 +48,7 @@ export const EditProject = () => {
     setError('');
 
     try {
-      await apiService.put(`/api/projects/${id}/`, formData);
+      await projectsAPI.update(id, formData);
       navigate(`/lecturer/projects/${id}`, { state: { message: 'Project updated' } });
     } catch (err) {
       setError('Failed to update project');

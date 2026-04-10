@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Templates.css';
+import { milestoneTemplatesAPI, projectTemplatesAPI } from '../../../services/api';
+import './Templates.css';
 
 export const TemplateDetails = () => {
   const { id } = useParams();
@@ -9,6 +9,7 @@ export const TemplateDetails = () => {
   const [template, setTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', order: 1 });
 
   useEffect(() => {
     loadTemplate();
@@ -16,8 +17,12 @@ export const TemplateDetails = () => {
 
   const loadTemplate = async () => {
     try {
-      const response = await apiService.get(`/api/projects/templates/${id}/`);
-      setTemplate(response.data);
+      const response = await projectTemplatesAPI.get(id);
+      setTemplate(response);
+      setNewMilestone((prev) => ({
+        ...prev,
+        order: (response?.milestone_templates?.length || 0) + 1,
+      }));
     } catch (err) {
       setError('Failed to load template');
     } finally {
@@ -28,11 +33,32 @@ export const TemplateDetails = () => {
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this template?')) {
       try {
-        await apiService.delete(`/api/projects/templates/${id}/`);
+        await projectTemplatesAPI.delete(id);
         navigate('/lecturer/templates');
       } catch (err) {
         setError('Failed to delete template');
       }
+    }
+  };
+
+  const handleAddMilestone = async (e) => {
+    e.preventDefault();
+    if (!newMilestone.title.trim()) {
+      setError('Milestone title is required');
+      return;
+    }
+
+    try {
+      await milestoneTemplatesAPI.create({
+        project_template: Number(id),
+        title: newMilestone.title,
+        description: newMilestone.description,
+        order: Number(newMilestone.order) || (template?.milestone_templates?.length || 0) + 1,
+      });
+      setNewMilestone({ title: '', description: '', order: (template?.milestone_templates?.length || 0) + 2 });
+      await loadTemplate();
+    } catch (err) {
+      setError('Failed to add milestone template');
     }
   };
 
@@ -66,11 +92,11 @@ export const TemplateDetails = () => {
 
       <div className="template-content surface">
         <h2>Milestone Templates</h2>
-        {template.milestones && template.milestones.length > 0 ? (
+        {template.milestone_templates && template.milestone_templates.length > 0 ? (
           <div className="milestones-list">
-            {template.milestones.map((m, i) => (
+            {template.milestone_templates.map((m, i) => (
               <div key={i} className="milestone-item">
-                <h3>{m.title}</h3>
+                <h3>{m.order}. {m.title}</h3>
                 <p>{m.description}</p>
               </div>
             ))}
@@ -78,6 +104,47 @@ export const TemplateDetails = () => {
         ) : (
           <p>No milestones in this template</p>
         )}
+      </div>
+
+      <div className="template-content surface">
+        <h2>Add Milestone</h2>
+        <form onSubmit={handleAddMilestone} className="template-form">
+          <div className="form-group">
+            <label htmlFor="milestone-title">Title *</label>
+            <input
+              id="milestone-title"
+              type="text"
+              value={newMilestone.title}
+              onChange={(e) => setNewMilestone((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder="Milestone title"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="milestone-description">Description</label>
+            <textarea
+              id="milestone-description"
+              value={newMilestone.description}
+              onChange={(e) => setNewMilestone((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Milestone description"
+              rows="3"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="milestone-order">Order</label>
+            <input
+              id="milestone-order"
+              type="number"
+              min="1"
+              value={newMilestone.order}
+              onChange={(e) => setNewMilestone((prev) => ({ ...prev, order: e.target.value }))}
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary">Add Milestone</button>
+        </form>
       </div>
 
       <div className="template-footer surface">

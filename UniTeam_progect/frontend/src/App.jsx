@@ -32,6 +32,11 @@ import StudentProfile from './pages/student/profile/StudentProfile';
 import StudentProfileEdit from './pages/student/profile/StudentProfileEdit';
 import LecturerProfile from './pages/lecturer/profile/LecturerProfile';
 import LecturerProfileEdit from './pages/lecturer/profile/LecturerProfileEdit';
+import LecturerProjects from './pages/lecturer/projects/MyProjects';
+import LecturerProjectDashboard from './pages/lecturer/projects/ProjectDashboard';
+import TemplateList from './pages/lecturer/templates/TemplateList';
+import TemplateForm from './pages/lecturer/templates/TemplateForm';
+import TemplateDetails from './pages/lecturer/templates/TemplateDetails';
 import AdminProfile from './pages/admin/profile/AdminProfile';
 import AdminProfileEdit from './pages/admin/profile/AdminProfileEdit';
 import NotFound from './pages/shared/NotFound';
@@ -119,10 +124,12 @@ function App() {
               }
             >
               <Route path="dashboard" element={<LecturerDashboard />} />
-              <Route path="projects" element={<NotFound feature="Supervised Projects" dashboardPath="/lecturer/dashboard" />} />
-              <Route path="projects/:id" element={<NotFound feature="Project Details" dashboardPath="/lecturer/projects" />} />
-              <Route path="templates" element={<NotFound feature="Project Templates" dashboardPath="/lecturer/dashboard" />} />
-              <Route path="templates/create" element={<NotFound feature="Create Template" dashboardPath="/lecturer/templates" />} />
+              <Route path="projects" element={<LecturerProjects />} />
+              <Route path="projects/:id" element={<LecturerProjectDashboard />} />
+              <Route path="templates" element={<TemplateList />} />
+              <Route path="templates/create" element={<TemplateForm />} />
+              <Route path="templates/:id" element={<TemplateDetails />} />
+              <Route path="templates/:id/edit" element={<TemplateForm />} />
               <Route path="profile" element={<LecturerProfile />} />
               <Route path="profile/edit" element={<LecturerProfileEdit />} />
             </Route>

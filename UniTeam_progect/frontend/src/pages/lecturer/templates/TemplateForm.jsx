@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Templates.css';
+import { milestoneTemplatesAPI, projectTemplatesAPI } from '../../../services/api';
+import './Templates.css';
 
 export const TemplateForm = () => {
   const { id } = useParams();
@@ -13,6 +13,7 @@ export const TemplateForm = () => {
   const [milestones, setMilestones] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
+    course_code: '',
     description: '',
   });
 
@@ -24,12 +25,13 @@ export const TemplateForm = () => {
 
   const loadTemplate = async () => {
     try {
-      const response = await apiService.get(`/api/projects/templates/${id}/`);
+      const response = await projectTemplatesAPI.get(id);
       setFormData({
-        title: response.data.title,
-        description: response.data.description,
+        title: response.title,
+        course_code: response.course_code,
+        description: response.description,
       });
-      setMilestones(response.data.milestones || []);
+      setMilestones(response.milestone_templates || []);
     } catch (err) {
       setError('Failed to load template');
     } finally {
@@ -66,14 +68,28 @@ export const TemplateForm = () => {
 
     try {
       const payload = {
-        ...formData,
-        milestones,
+        title: formData.title,
+        course_code: formData.course_code,
+        description: formData.description,
       };
 
       if (isEdit) {
-        await apiService.put(`/api/projects/templates/${id}/`, payload);
+        await projectTemplatesAPI.update(id, payload);
       } else {
-        await apiService.post(`/api/projects/templates/`, payload);
+        const created = await projectTemplatesAPI.create(payload);
+
+        if (milestones.length > 0) {
+          for (let i = 0; i < milestones.length; i += 1) {
+            const m = milestones[i];
+            if (!m.title?.trim()) continue;
+            await milestoneTemplatesAPI.create({
+              project_template: created.id,
+              title: m.title,
+              description: m.description || '',
+              order: m.order || i + 1,
+            });
+          }
+        }
       }
       navigate('/lecturer/templates');
     } catch (err) {
@@ -103,6 +119,19 @@ export const TemplateForm = () => {
             value={formData.title}
             onChange={handleChange}
             placeholder="Template title"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="course_code">Course Code *</label>
+          <input
+            id="course_code"
+            type="text"
+            name="course_code"
+            value={formData.course_code}
+            onChange={handleChange}
+            placeholder="e.g., SOFTENG 350"
             required
           />
         </div>
