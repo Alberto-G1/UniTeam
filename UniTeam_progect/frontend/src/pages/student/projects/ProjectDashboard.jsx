@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { milestonesAPI, projectsAPI } from '../../../services/api';
+import { useToast } from '../../../components/ToastContainer';
+import './ProjectForms.css';
 
 export const ProjectDashboard = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [project, setProject] = useState(null);
   const [milestones, setMilestones] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -20,14 +22,14 @@ export const ProjectDashboard = () => {
   const loadProjectData = async () => {
     try {
       const [projectRes, milestonesRes, teamRes] = await Promise.all([
-        apiService.get(`/api/projects/${id}/`),
-        apiService.get(`/api/projects/${id}/milestones/`),
-        apiService.get(`/api/projects/${id}/team/`),
+        projectsAPI.get(id),
+        projectsAPI.getMilestones(id),
+        projectsAPI.getTeam(id),
       ]);
 
-      setProject(projectRes.data);
-      setMilestones(milestonesRes.data);
-      setTeamMembers(teamRes.data);
+      setProject(projectRes);
+      setMilestones(milestonesRes || []);
+      setTeamMembers(teamRes?.members || []);
     } catch (err) {
       setError('Failed to load project data');
     } finally {
@@ -35,11 +37,27 @@ export const ProjectDashboard = () => {
     }
   };
 
+  const handleStatusUpdate = async (milestone, status) => {
+    try {
+      await milestonesAPI.update(milestone.id, {
+        project: Number(id),
+        title: milestone.title,
+        description: milestone.description,
+        due_date: milestone.due_date,
+        status,
+      });
+      setMilestones((prev) => prev.map((m) => (m.id === milestone.id ? { ...m, status } : m)));
+      showToast('success', 'Milestone Updated', 'Milestone status updated successfully');
+    } catch (err) {
+      showToast('error', 'Update Failed', 'Could not update milestone status');
+    }
+  };
+
   if (loading) return <div className="loading">Loading project...</div>;
   if (!project) return <div className="error">Project not found</div>;
 
-  const isLeader = project.team?.members?.some(
-    m => m.user_id === user?.id && (m.role === 'LEADER' || m.role === 'CO_LEADER')
+  const isLeader = teamMembers.some(
+    m => m.user?.id === user?.id && (m.role === 'LEADER' || m.role === 'CO_LEADER')
   );
 
   return (
@@ -56,6 +74,9 @@ export const ProjectDashboard = () => {
             </Link>
             <Link to={`/student/projects/${id}/manage-team`} className="btn btn-secondary">
               Manage Team
+            </Link>
+            <Link to={`/student/projects/${id}/invite-member`} className="btn btn-secondary">
+              Invite Teammates
             </Link>
           </div>
         )}
@@ -76,6 +97,19 @@ export const ProjectDashboard = () => {
                   <h3>{m.title}</h3>
                   <p className={`status ${m.status.toLowerCase()}`}>{m.status}</p>
                   <p className="due-date">Due: {new Date(m.due_date).toLocaleDateString()}</p>
+                  {!isLeader && (
+                    <div className="mt-2">
+                      <select
+                        value={m.status}
+                        onChange={(e) => handleStatusUpdate(m, e.target.value)}
+                      >
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="OVERDUE">Overdue</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

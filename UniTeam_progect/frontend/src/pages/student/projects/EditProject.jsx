@@ -27,9 +27,9 @@ export const EditProject = () => {
     try {
       const response = await projectsAPI.get(id);
       setFormData({
-        title: response.data.title,
-        description: response.data.description || '',
-        deadline: response.data.deadline || '',
+        title: response.title,
+        description: response.description || '',
+        deadline: response.deadline || '',
       });
     } catch (error) {
       console.error('Error loading project:', error);
@@ -175,3 +175,5 @@ export const EditProject = () => {
     </div>
   );
 };
+
+export default EditProject;

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { apiService } from '../../../services/apiService';
-import '../../../styles/Project.css';
+import { milestonesAPI, projectsAPI } from '../../../services/api';
+import { useToast } from '../../../components/ToastContainer';
+import './ProjectForms.css';
 
 export const MilestoneForm = () => {
   const { id, milestoneId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const isEdit = !!milestoneId;
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -27,13 +28,17 @@ export const MilestoneForm = () => {
 
   const loadMilestone = async () => {
     try {
-      const response = await apiService.get(`/api/projects/${id}/milestones/${milestoneId}/`);
-      setMilestone(response.data);
+      const allMilestones = await projectsAPI.getMilestones(id);
+      const current = (allMilestones || []).find((m) => String(m.id) === String(milestoneId));
+      if (!current) {
+        throw new Error('Milestone not found');
+      }
+      setMilestone(current);
       setFormData({
-        title: response.data.title,
-        description: response.data.description,
-        due_date: response.data.due_date,
-        status: response.data.status,
+        title: current.title,
+        description: current.description,
+        due_date: current.due_date,
+        status: current.status,
       });
     } catch (err) {
       setError('Failed to load milestone');
@@ -56,14 +61,23 @@ export const MilestoneForm = () => {
     setError('');
 
     try {
+      const payload = {
+        project: Number(id),
+        title: formData.title,
+        description: formData.description,
+        due_date: formData.due_date,
+        status: formData.status,
+      };
+
       if (isEdit) {
-        await apiService.put(`/api/projects/${id}/milestones/${milestoneId}/`, formData);
+        await milestonesAPI.update(milestoneId, payload);
       } else {
-        await apiService.post(`/api/projects/${id}/milestones/`, formData);
+        await milestonesAPI.create(payload);
       }
+      showToast('success', 'Saved', 'Milestone saved successfully');
       navigate(`/student/projects/${id}`, { state: { message: 'Milestone saved successfully' } });
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save milestone');
+      setError(err?.response?.data?.detail || 'Failed to save milestone');
     } finally {
       setSaving(false);
     }

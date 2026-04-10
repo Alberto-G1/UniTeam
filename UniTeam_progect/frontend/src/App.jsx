@@ -21,6 +21,12 @@ import { AdminDashboard } from './pages/admin/dashboard/AdminDashboard';
 // Other Pages
 import ManageUsers from './pages/admin/users/ManageUsers';
 import MyProjects from './pages/student/projects/MyProjects';
+import CreateProject from './pages/student/projects/CreateProject';
+import EditProject from './pages/student/projects/EditProject';
+import ProjectDashboard from './pages/student/projects/ProjectDashboard';
+import ManageTeam from './pages/student/projects/ManageTeam';
+import MilestoneForm from './pages/student/projects/MilestoneForm';
+import InviteMember from './pages/student/projects/InviteMember';
 import Invitations from './pages/student/invitations/Invitations';
 import StudentProfile from './pages/student/profile/StudentProfile';
 import StudentProfileEdit from './pages/student/profile/StudentProfileEdit';
@@ -91,8 +97,13 @@ function App() {
             >
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="projects" element={<MyProjects />} />
-              <Route path="projects/create" element={<NotFound feature="Create Project" dashboardPath="/student/dashboard" />} />
-              <Route path="projects/:id" element={<NotFound feature="Project Details" dashboardPath="/student/projects" />} />
+              <Route path="projects/create" element={<CreateProject />} />
+              <Route path="projects/:id" element={<ProjectDashboard />} />
+              <Route path="projects/:id/edit" element={<EditProject />} />
+              <Route path="projects/:id/manage-team" element={<ManageTeam />} />
+              <Route path="projects/:id/invite-member" element={<InviteMember />} />
+              <Route path="projects/:id/milestones/create" element={<MilestoneForm />} />
+              <Route path="projects/:id/milestones/:milestoneId/edit" element={<MilestoneForm />} />
               <Route path="invitations" element={<Invitations />} />
               <Route path="profile" element={<StudentProfile />} />
               <Route path="profile/edit" element={<StudentProfileEdit />} />
