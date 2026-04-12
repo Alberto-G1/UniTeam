@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { notificationsAPI } from '../../services/api';
 import { useToast } from '../../components/ToastContainer';
+import ConfirmModal from '../../components/ConfirmModal';
 import './Notifications.css';
 
 export default function Notifications() {
@@ -11,6 +12,28 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    action: null,
+  });
+
+  const openConfirm = ({ title, message, type = 'info', action }) => {
+    setConfirmState({ isOpen: true, title, message, type, action });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState({ isOpen: false, title: '', message: '', type: 'info', action: null });
+  };
+
+  const handleConfirm = async () => {
+    if (typeof confirmState.action === 'function') {
+      await confirmState.action();
+    }
+    closeConfirm();
+  };
 
   const loadNotifications = async () => {
     try {
@@ -130,7 +153,15 @@ export default function Notifications() {
                 )}
               </div>
               {!item.is_read && (
-                <button className="btn-mark-read" onClick={() => markRead(item.id)}>
+                <button
+                  className="btn-mark-read"
+                  onClick={() => openConfirm({
+                    title: 'Mark As Read',
+                    message: 'Mark this notification as read?',
+                    type: 'info',
+                    action: () => markRead(item.id),
+                  })}
+                >
                   Mark Read
                 </button>
               )}
@@ -152,7 +183,18 @@ export default function Notifications() {
           <h1>Notifications</h1>
           <p>{unreadCount} unread notification(s)</p>
         </div>
-        <button className="btn-mark-all" onClick={markAllRead} disabled={unreadCount === 0}>Mark All Read</button>
+        <button
+          className="btn-mark-all"
+          onClick={() => openConfirm({
+            title: 'Mark All As Read',
+            message: 'Mark all notifications as read?',
+            type: 'info',
+            action: markAllRead,
+          })}
+          disabled={unreadCount === 0}
+        >
+          Mark All Read
+        </button>
       </div>
 
       <div className="notifications-controls">
@@ -191,6 +233,17 @@ export default function Notifications() {
           {renderGroup('Earlier', grouped.earlier)}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={closeConfirm}
+        onConfirm={handleConfirm}
+        type={confirmState.type}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

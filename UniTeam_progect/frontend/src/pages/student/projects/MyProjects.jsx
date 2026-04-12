@@ -1,5 +1,5 @@
 // src/pages/student/projects/MyProjects.jsx - COMPLETELY REDESIGNED
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { projectsAPI } from '../../../services/api';
 import { useToast } from '../../../components/ToastContainer';
@@ -9,6 +9,7 @@ import './MyProjects.css';
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -17,6 +18,14 @@ export default function MyProjects() {
 
   useEffect(() => {
     fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   const fetchProjects = async () => {
@@ -52,18 +61,31 @@ export default function MyProjects() {
     }
   };
 
-  const filteredProjects = projects.filter(project => {
-    const lifecycleStatus = project.lifecycle_status || project.status || 'ACTIVE';
-    const matchesFilter = filter === 'all' || 
-      (filter === 'active' && ['DRAFT', 'ACTIVE'].includes(lifecycleStatus)) ||
-      (filter === 'completed' && ['SUBMITTED', 'ARCHIVED'].includes(lifecycleStatus));
-    
-    const matchesSearch = !searchQuery || 
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesFilter && matchesSearch;
-  });
+  const filteredProjects = useMemo(() => {
+    const matching = projects.filter(project => {
+      const lifecycleStatus = project.lifecycle_status || project.status || 'ACTIVE';
+      const matchesFilter = filter === 'all' ||
+        (filter === 'active' && ['DRAFT', 'ACTIVE'].includes(lifecycleStatus)) ||
+        (filter === 'submitted' && lifecycleStatus === 'SUBMITTED') ||
+        (filter === 'archived' && lifecycleStatus === 'ARCHIVED');
+      
+      const matchesSearch = !searchQuery || 
+        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesFilter && matchesSearch;
+    });
+
+    return [...matching].sort((a, b) => {
+      const aDeadline = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+      const bDeadline = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+      return aDeadline - bDeadline;
+    });
+  }, [projects, filter, searchQuery]);
+
+  const activeCount = projects.filter(p => ['DRAFT', 'ACTIVE'].includes(p.lifecycle_status || p.status || 'ACTIVE')).length;
+  const submittedCount = projects.filter(p => (p.lifecycle_status || p.status || 'ACTIVE') === 'SUBMITTED').length;
+  const archivedCount = projects.filter(p => (p.lifecycle_status || p.status || 'ACTIVE') === 'ARCHIVED').length;
 
   const getRoleBadgeClass = (role) => {
     switch (role) {
@@ -81,6 +103,20 @@ export default function MyProjects() {
       case 'ARCHIVED': return 'status-hold';
       default: return 'status-pending';
     }
+  };
+
+  const getDeadlineCountdown = (deadline) => {
+    if (!deadline) return 'No deadline set';
+
+    const deadlineTime = new Date(deadline).getTime();
+    const diff = deadlineTime - now;
+    const dayMs = 1000 * 60 * 60 * 24;
+
+    if (Number.isNaN(deadlineTime)) return 'Invalid deadline';
+    if (diff <= 0) return 'Deadline reached';
+
+    const daysRemaining = Math.ceil(diff / dayMs);
+    return `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining`;
   };
 
   if (loading) {
@@ -122,14 +158,21 @@ export default function MyProjects() {
             onClick={() => setFilter('active')}
           >
             Active
-            <span className="filter-count">{projects.filter(p => ['DRAFT', 'ACTIVE'].includes(p.lifecycle_status || p.status || 'ACTIVE')).length}</span>
+            <span className="filter-count">{activeCount}</span>
           </button>
           <button 
-            className={`filter-tab ${filter === 'completed' ? 'active' : ''}`}
-            onClick={() => setFilter('completed')}
+            className={`filter-tab ${filter === 'submitted' ? 'active' : ''}`}
+            onClick={() => setFilter('submitted')}
           >
-            Completed
-            <span className="filter-count">{projects.filter(p => ['SUBMITTED', 'ARCHIVED'].includes(p.lifecycle_status || p.status || 'ACTIVE')).length}</span>
+            Submitted
+            <span className="filter-count">{submittedCount}</span>
+          </button>
+          <button 
+            className={`filter-tab ${filter === 'archived' ? 'active' : ''}`}
+            onClick={() => setFilter('archived')}
+          >
+            Archived
+            <span className="filter-count">{archivedCount}</span>
           </button>
         </div>
 
@@ -168,17 +211,17 @@ export default function MyProjects() {
             <div key={project.id} className="project-card">
               <div className="project-card-header">
                 <div className="project-badges">
-                  {project.team_membership && (
-                    <span className={`role-badge ${getRoleBadgeClass(project.team_membership.role)}`}>
-                      {project.team_membership.role.replace('_', ' ')}
+                  {project.current_membership && (
+                    <span className={`role-badge ${getRoleBadgeClass(project.current_membership.role)}`}>
+                      {project.current_membership.role.replace('_', ' ')}
                     </span>
                   )}
                   <span className={`status-badge ${getStatusBadgeClass(project.lifecycle_status || project.status || 'ACTIVE')}`}>
                     {project.lifecycle_status || project.status || 'ACTIVE'}
                   </span>
                 </div>
-                {project.team_membership && 
-                 ['LEADER', 'CO_LEADER'].includes(project.team_membership.role) && (
+                {project.current_membership && 
+                 ['LEADER', 'CO_LEADER'].includes(project.current_membership.role) && (
                   <button 
                     className="project-delete-btn"
                     onClick={() => handleDeleteClick(project)}
@@ -199,7 +242,7 @@ export default function MyProjects() {
               <div className="project-meta-grid">
                 <div className="meta-item">
                   <i className="fa-regular fa-user"></i>
-                  <span>Supervisor: {project.supervisor?.first_name || 'Not assigned'}</span>
+                  <span>Supervisor: {project.supervisor_name || 'Not assigned'}</span>
                 </div>
                 <div className="meta-item">
                   <i className="fa-regular fa-users"></i>
@@ -207,7 +250,12 @@ export default function MyProjects() {
                 </div>
                 <div className="meta-item">
                   <i className="fa-regular fa-calendar"></i>
-                  <span>Due: {new Date(project.deadline).toLocaleDateString()}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span>Due: {new Date(project.deadline).toLocaleDateString()}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {getDeadlineCountdown(project.deadline)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -229,8 +277,8 @@ export default function MyProjects() {
                   <i className="fa-regular fa-eye"></i>
                   View Details
                 </Link>
-                {project.team_membership && 
-                 ['LEADER', 'CO_LEADER'].includes(project.team_membership.role) && (
+                {project.current_membership && 
+                 ['LEADER', 'CO_LEADER'].includes(project.current_membership.role) && (
                   <Link 
                     to={`/student/projects/${project.id}/edit`} 
                     className="btn-outline-sm"

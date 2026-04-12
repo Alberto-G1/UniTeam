@@ -17,8 +17,10 @@ export const CreateProject = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    course_code: '',
     template_id: '',
     deadline: '',
+    linked_lecturer_email: '',
   });
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export const CreateProject = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
+    if (!formData.course_code.trim()) newErrors.course_code = 'Course code is required';
     if (!formData.deadline) newErrors.deadline = 'Project deadline is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -64,7 +67,9 @@ export const CreateProject = () => {
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
+        course_code: formData.course_code.trim(),
         deadline: formData.deadline,
+        linked_lecturer_email: formData.linked_lecturer_email.trim(),
       };
 
       if (formData.template_id) {
@@ -136,6 +141,22 @@ export const CreateProject = () => {
             />
           </div>
 
+          <div className="form-group">
+            <label htmlFor="course_code">
+              Course Code <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="course_code"
+              name="course_code"
+              value={formData.course_code}
+              onChange={handleChange}
+              className={`form-input ${errors.course_code ? 'error' : ''}`}
+              placeholder="e.g. SOFTENG 350"
+            />
+            {errors.course_code && <div className="field-error">{errors.course_code}</div>}
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="template_id">Use Template (Optional)</label>
@@ -168,6 +189,23 @@ export const CreateProject = () => {
                 className={`form-input ${errors.deadline ? 'error' : ''}`}
               />
               {errors.deadline && <div className="field-error">{errors.deadline}</div>}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="linked_lecturer_email">Linked Lecturer Email (Optional)</label>
+            <input
+              type="email"
+              id="linked_lecturer_email"
+              name="linked_lecturer_email"
+              value={formData.linked_lecturer_email}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="lecturer@university.edu"
+            />
+            <div className="form-hint">
+              <i className="fa-regular fa-circle-info"></i>
+              If this matches an approved lecturer account, they will be linked automatically.
             </div>
           </div>
 

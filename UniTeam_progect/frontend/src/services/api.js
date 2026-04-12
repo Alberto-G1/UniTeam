@@ -134,6 +134,20 @@ export const projectsAPI = {
     return response.data;
   },
 
+  searchByCourseCode: async (courseCode) => {
+    const response = await api.get('/projects/search_by_course_code/', {
+      params: courseCode ? { course_code: courseCode } : {},
+    });
+    return response.data;
+  },
+
+  linkLecturer: async (id, courseCode = '') => {
+    const response = await api.post(`/projects/${id}/link_lecturer/`, {
+      course_code: courseCode,
+    });
+    return response.data;
+  },
+
   inviteMember: async (id, receiverId) => {
     const response = await api.post(`/projects/${id}/invite_member/`, {
       receiver_id: receiverId,
@@ -211,6 +225,11 @@ export const invitationsAPI = {
 
   resend: async (id) => {
     const response = await api.post(`/invitations/${id}/resend/`);
+    return response.data;
+  },
+
+  cancel: async (id) => {
+    const response = await api.post(`/invitations/${id}/cancel/`);
     return response.data;
   },
 

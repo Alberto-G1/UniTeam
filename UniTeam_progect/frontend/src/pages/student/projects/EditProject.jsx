@@ -16,6 +16,7 @@ export const EditProject = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    course_code: '',
     deadline: '',
   });
 
@@ -29,6 +30,7 @@ export const EditProject = () => {
       setFormData({
         title: response.title,
         description: response.description || '',
+        course_code: response.course_code || '',
         deadline: response.deadline || '',
       });
     } catch (error) {
@@ -53,6 +55,7 @@ export const EditProject = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
+    if (!formData.course_code.trim()) newErrors.course_code = 'Course code is required';
     if (!formData.deadline) newErrors.deadline = 'Project deadline is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,6 +134,22 @@ export const EditProject = () => {
               rows="6"
               placeholder="Describe your project goals and objectives..."
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="course_code">
+              Course Code <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="course_code"
+              name="course_code"
+              value={formData.course_code}
+              onChange={handleChange}
+              className={`form-input ${errors.course_code ? 'error' : ''}`}
+              placeholder="e.g. SOFTENG 350"
+            />
+            {errors.course_code && <div className="field-error">{errors.course_code}</div>}
           </div>
 
           <div className="form-group">

@@ -62,6 +62,9 @@ class Project(models.Model):
     def get_absolute_url(self):
         return reverse('project_dashboard', kwargs={'project_id': self.pk})
 
+    class Meta:
+        ordering = ['deadline', '-created_at']
+
 class Team(models.Model):
     # --- ADD CO_LEADER ROLE ---
     class Role(models.TextChoices):
@@ -120,6 +123,7 @@ class Invitation(models.Model):
         ACCEPTED = 'ACCEPTED', 'Accepted'
         DECLINED = 'DECLINED', 'Declined'
         EXPIRED = 'EXPIRED', 'Expired'
+        CANCELLED = 'CANCELLED', 'Cancelled'
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='invitations')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_invitations')
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_invitations')
@@ -143,6 +147,7 @@ class Notification(models.Model):
         INVITATION_ACCEPTED = 'INVITATION_ACCEPTED', 'Invitation Accepted'
         INVITATION_DECLINED = 'INVITATION_DECLINED', 'Invitation Declined'
         INVITATION_EXPIRED = 'INVITATION_EXPIRED', 'Invitation Expired'
+        INVITATION_CANCELLED = 'INVITATION_CANCELLED', 'Invitation Cancelled'
         MILESTONE = 'MILESTONE', 'Milestone'
         PROJECT = 'PROJECT', 'Project'
 

@@ -49,6 +49,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     status = serializers.CharField(source='lifecycle_status', read_only=True)
+    linked_lecturer_email = serializers.EmailField(write_only=True, required=False, allow_blank=True, allow_null=True)
     supervisor = UserSerializer(read_only=True)
     supervisor_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -57,16 +58,84 @@ class ProjectSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    supervisor_name = serializers.SerializerMethodField()
+    can_link_as_supervisor = serializers.SerializerMethodField()
+    current_membership = serializers.SerializerMethodField()
+    team_size = serializers.SerializerMethodField()
     team = TeamSerializer(read_only=True)
     milestones = MilestoneSerializer(many=True, read_only=True)
     template_used_title = serializers.CharField(source='template_used.title', read_only=True, allow_null=True)
+
+    def create(self, validated_data):
+        linked_email = (validated_data.pop('linked_lecturer_email', '') or '').strip()
+        project = Project.objects.create(**validated_data)
+
+        request = self.context.get('request')
+        current_user = getattr(request, 'user', None)
+
+        lecturer = project.supervisor
+        if lecturer is None and linked_email:
+            lecturer = CustomUser.objects.filter(
+                email__iexact=linked_email,
+                role=CustomUser.Role.LECTURER,
+                is_approved=True,
+            ).first()
+
+        if lecturer is None and current_user and current_user.role == CustomUser.Role.LECTURER and current_user.is_approved:
+            lecturer = current_user
+
+        if lecturer and lecturer.role == CustomUser.Role.LECTURER and lecturer.is_approved and project.supervisor_id != lecturer.id:
+            project.supervisor = lecturer
+            project.save(update_fields=['supervisor'])
+
+        return project
     
     class Meta:
         model = Project
         fields = ['id', 'title', 'description', 'course_code', 'deadline', 'lifecycle_status', 'status',
-                  'supervisor', 'supervisor_id', 'template_used', 'template_used_title',
-                  'created_at', 'updated_at', 'team', 'milestones']
+                  'linked_lecturer_email', 'supervisor', 'supervisor_id', 'supervisor_name',
+                  'can_link_as_supervisor', 'current_membership', 'team_size', 'template_used',
+                  'template_used_title', 'created_at', 'updated_at', 'team', 'milestones']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_supervisor_name(self, obj):
+        if not obj.supervisor:
+            return None
+        return obj.supervisor.get_full_name() or obj.supervisor.username
+
+    def get_can_link_as_supervisor(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or user.role != CustomUser.Role.LECTURER:
+            return False
+        return obj.supervisor_id in (None, user.id)
+
+    def get_current_membership(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user:
+            return None
+
+        try:
+            team = obj.team
+        except Team.DoesNotExist:
+            return None
+
+        membership = TeamMembership.objects.filter(team=team, user=user).first()
+        if not membership:
+            return None
+
+        return {
+            'id': membership.id,
+            'role': membership.role,
+        }
+
+    def get_team_size(self, obj):
+        try:
+            team = obj.team
+        except Team.DoesNotExist:
+            return 0
+        return team.members.count()
 
 
 class InvitationSerializer(serializers.ModelSerializer):

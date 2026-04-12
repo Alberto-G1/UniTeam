@@ -60,6 +60,19 @@ class ProjectPhase2APITests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 		return response.data
 
+	def _create_project_with_payload(self, payload):
+		self._authenticate(self.student_leader)
+		base_payload = {
+			'title': 'Phase 2 Project',
+			'description': 'Project description',
+			'course_code': 'SE350',
+			'deadline': str(date.today() + timedelta(days=30)),
+		}
+		base_payload.update(payload)
+		response = self.client.post('/api/projects/', base_payload, format='json')
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		return response.data
+
 	def _invite_member(self, project_id, receiver_id):
 		self._authenticate(self.student_leader)
 		response = self.client.post(f'/api/projects/{project_id}/invite_member/', {
@@ -104,6 +117,17 @@ class ProjectPhase2APITests(APITestCase):
 		declined = Invitation.objects.get(id=invitation['id'])
 		self.assertEqual(declined.status, Invitation.Status.DECLINED)
 
+	def test_invitation_cancel_flow(self):
+		project = self._create_project(title='Cancel Project')
+		invitation = self._invite_member(project['id'], self.student_other.id)
+
+		self._authenticate(self.student_leader)
+		response = self.client.post(f"/api/invitations/{invitation['id']}/cancel/")
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+		cancelled = Invitation.objects.get(id=invitation['id'])
+		self.assertEqual(cancelled.status, Invitation.Status.CANCELLED)
+
 	def test_expire_and_resend_invitation(self):
 		project = self._create_project(title='Expiry Project')
 		invitation_data = self._invite_member(project['id'], self.student_member.id)
@@ -123,6 +147,54 @@ class ProjectPhase2APITests(APITestCase):
 		invitation.refresh_from_db()
 		self.assertEqual(invitation.status, Invitation.Status.PENDING)
 		self.assertGreater(invitation.expires_at, timezone.now())
+
+	def test_project_creation_links_approved_lecturer_by_email(self):
+		project = self._create_project_with_payload({
+			'title': 'Linked Lecturer Project',
+			'linked_lecturer_email': self.lecturer.email,
+			'supervisor_id': None,
+		})
+		self.assertEqual(project['supervisor']['id'], self.lecturer.id)
+
+	def test_lecturer_course_code_search_and_link(self):
+		project = self._create_project_with_payload({
+			'title': 'Course Code Project',
+			'course_code': 'CS410',
+			'supervisor_id': None,
+		})
+
+		self._authenticate(self.lecturer)
+		search = self.client.get('/api/projects/search_by_course_code/', {'course_code': 'CS410'})
+		self.assertEqual(search.status_code, status.HTTP_200_OK)
+		search_results = search.data if isinstance(search.data, list) else search.data.get('results', [])
+		self.assertGreaterEqual(len(search_results), 1)
+
+		link = self.client.post(f"/api/projects/{project['id']}/link_lecturer/", {
+			'course_code': 'CS410',
+		}, format='json')
+		self.assertEqual(link.status_code, status.HTTP_200_OK)
+		self.assertEqual(link.data['supervisor']['id'], self.lecturer.id)
+
+	def test_projects_are_sorted_by_deadline(self):
+		self._create_project_with_payload({
+			'title': 'Later Project',
+			'course_code': 'SE999',
+			'deadline': str(date.today() + timedelta(days=30)),
+			'supervisor_id': self.lecturer.id,
+		})
+		self._create_project_with_payload({
+			'title': 'Sooner Project',
+			'course_code': 'SE998',
+			'deadline': str(date.today() + timedelta(days=5)),
+			'supervisor_id': self.lecturer.id,
+		})
+
+		self._authenticate(self.student_leader)
+		response = self.client.get('/api/projects/')
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		project_list = response.data.get('results', response.data)
+		self.assertGreaterEqual(len(project_list), 2)
+		self.assertEqual(project_list[0]['title'], 'Sooner Project')
 
 	def test_project_invitation_overview_for_leader(self):
 		project = self._create_project(title='Overview Project')
