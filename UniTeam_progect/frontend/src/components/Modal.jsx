@@ -28,7 +28,7 @@ const Modal = ({ isOpen, onClose, title, subtitle, children, onConfirm, confirmT
   };
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div className="modal-overlay open" onClick={handleOverlayClick}>
       <div className="modal">
         <div className="modal-header">
           <div>

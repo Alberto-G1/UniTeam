@@ -148,6 +148,13 @@ class Notification(models.Model):
         INVITATION_DECLINED = 'INVITATION_DECLINED', 'Invitation Declined'
         INVITATION_EXPIRED = 'INVITATION_EXPIRED', 'Invitation Expired'
         INVITATION_CANCELLED = 'INVITATION_CANCELLED', 'Invitation Cancelled'
+        TASK_ASSIGNED = 'TASK_ASSIGNED', 'Task Assigned'
+        TASK_REASSIGNED = 'TASK_REASSIGNED', 'Task Reassigned'
+        TASK_STATUS_CHANGED = 'TASK_STATUS_CHANGED', 'Task Status Changed'
+        TASK_BLOCKED = 'TASK_BLOCKED', 'Task Blocked'
+        TASK_DEADLINE_REMINDER = 'TASK_DEADLINE_REMINDER', 'Task Deadline Reminder'
+        TASK_OVERDUE = 'TASK_OVERDUE', 'Task Overdue'
+        TASK_COMMENTED = 'TASK_COMMENTED', 'Task Commented'
         MILESTONE = 'MILESTONE', 'Milestone'
         PROJECT = 'PROJECT', 'Project'
 
@@ -175,3 +182,160 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} for {self.recipient.username}: {self.title}"
+
+
+class Section(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='sections')
+    name = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.project.title})"
+
+
+class Task(models.Model):
+    class Priority(models.TextChoices):
+        URGENT = 'URGENT', 'Urgent'
+        HIGH = 'HIGH', 'High'
+        MEDIUM = 'MEDIUM', 'Medium'
+        LOW = 'LOW', 'Low'
+
+    class Status(models.TextChoices):
+        TODO = 'TODO', 'To-Do'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Under Review'
+        DONE = 'DONE', 'Done'
+        BLOCKED = 'BLOCKED', 'Blocked'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_tasks')
+    priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.MEDIUM)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.TODO)
+    progress_percentage = models.PositiveSmallIntegerField(default=0)
+    estimated_hours = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True)
+    deadline = models.DateTimeField()
+    tags = models.JSONField(default=list, blank=True)
+    is_cancelled = models.BooleanField(default=False)
+    cancellation_reason = models.TextField(blank=True)
+    blocked_reason = models.TextField(blank=True)
+    in_progress_at = models.DateTimeField(null=True, blank=True)
+    under_review_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['deadline', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_overdue(self):
+        return not self.is_cancelled and self.status != self.Status.DONE and timezone.now() > self.deadline
+
+
+class SubTask(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='subtasks')
+    description = models.CharField(max_length=255)
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Sub-task for {self.task.title}: {self.description}"
+
+
+class TaskComment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='task_comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def can_edit(self):
+        if not self.created_at:
+            return False
+        return timezone.now() <= self.created_at + timedelta(minutes=10)
+
+    def __str__(self):
+        return f"Comment by {self.author.username} on {self.task.title}"
+
+
+class TaskAttachment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='attachments')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='task_attachments')
+    file = models.FileField(upload_to='task_attachments/%Y/%m/')
+    file_name = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file_name
+
+
+class TaskActivityLog(models.Model):
+    class ActionType(models.TextChoices):
+        CREATED = 'CREATED', 'Created'
+        STATUS_CHANGED = 'STATUS_CHANGED', 'Status Changed'
+        REASSIGNED = 'REASSIGNED', 'Reassigned'
+        COMMENTED = 'COMMENTED', 'Commented'
+        ATTACHMENT_ADDED = 'ATTACHMENT_ADDED', 'Attachment Added'
+        DETAILS_UPDATED = 'DETAILS_UPDATED', 'Details Updated'
+        BLOCKED = 'BLOCKED', 'Blocked'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+        SUBTASK_ADDED = 'SUBTASK_ADDED', 'Sub-task Added'
+        SUBTASK_COMPLETED = 'SUBTASK_COMPLETED', 'Sub-task Completed'
+
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='activity_logs')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='task_activities')
+    action_type = models.CharField(max_length=40, choices=ActionType.choices)
+    old_value = models.TextField(blank=True)
+    new_value = models.TextField(blank=True)
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_action_type_display()} - {self.task.title}"
+
+
+class TaskNotification(models.Model):
+    class Type(models.TextChoices):
+        TASK_ASSIGNED = 'TASK_ASSIGNED', 'Task Assigned'
+        TASK_REASSIGNED = 'TASK_REASSIGNED', 'Task Reassigned'
+        TASK_STATUS_CHANGED = 'TASK_STATUS_CHANGED', 'Task Status Changed'
+        TASK_BLOCKED = 'TASK_BLOCKED', 'Task Blocked'
+        TASK_DEADLINE_REMINDER = 'TASK_DEADLINE_REMINDER', 'Task Deadline Reminder'
+        TASK_OVERDUE = 'TASK_OVERDUE', 'Task Overdue'
+
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='task_notifications')
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='task_notifications')
+    notification_type = models.CharField(max_length=40, choices=Type.choices)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_notification_type_display()} for {self.recipient.username}"

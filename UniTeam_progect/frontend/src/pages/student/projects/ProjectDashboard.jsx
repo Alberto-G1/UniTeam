@@ -356,6 +356,9 @@ export const ProjectDashboard = () => {
           </div>
         </div>
         <div className="header-actions">
+          <Link to={`/student/projects/${id}/tasks`} className="btn btn-primary">
+            Open Task Board
+          </Link>
           {isPrimaryLeader && (
             <Link to={`/student/projects/${id}/edit`} className="btn btn-primary">
               Edit Project Details
@@ -398,15 +401,15 @@ export const ProjectDashboard = () => {
           <div className="quick-stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
             <div className="quick-stat-card">
               <p className="quick-stat-label">Tasks</p>
-              <p className="quick-stat-value">0</p>
+              <p className="quick-stat-value">{project.task_count || 0}</p>
             </div>
             <div className="quick-stat-card">
-              <p className="quick-stat-label">Files</p>
-              <p className="quick-stat-value">0</p>
+              <p className="quick-stat-label">Task Progress</p>
+              <p className="quick-stat-value">{project.task_progress_percentage || 0}%</p>
             </div>
             <div className="quick-stat-card">
-              <p className="quick-stat-label">Messages</p>
-              <p className="quick-stat-value">0</p>
+              <p className="quick-stat-label">Milestones</p>
+              <p className="quick-stat-value">{milestones.length}</p>
             </div>
           </div>
         </div>

@@ -261,6 +261,110 @@ export const notificationsAPI = {
   },
 };
 
+export const taskAPI = {
+  getBoard: async (projectId) => {
+    const response = await api.get(`/projects/${projectId}/task_board/`);
+    return response.data;
+  },
+
+  listTasks: async (params = {}) => {
+    const response = await api.get('/tasks/', { params });
+    return response.data;
+  },
+
+  getTask: async (id) => {
+    const response = await api.get(`/tasks/${id}/`);
+    return response.data;
+  },
+
+  createTask: async (taskData) => {
+    const response = await api.post('/tasks/', taskData);
+    return response.data;
+  },
+
+  updateTask: async (id, taskData) => {
+    const response = await api.put(`/tasks/${id}/`, taskData);
+    return response.data;
+  },
+
+  setStatus: async (id, statusData) => {
+    const response = await api.post(`/tasks/${id}/set_status/`, statusData);
+    return response.data;
+  },
+
+  updateProgress: async (id, progressData) => {
+    const response = await api.post(`/tasks/${id}/update_progress/`, progressData);
+    return response.data;
+  },
+
+  reassign: async (id, reassignData) => {
+    const response = await api.post(`/tasks/${id}/reassign/`, reassignData);
+    return response.data;
+  },
+
+  cancel: async (id, cancelData = {}) => {
+    const response = await api.post(`/tasks/${id}/cancel/`, cancelData);
+    return response.data;
+  },
+
+  addSubtask: async (id, subtaskData) => {
+    const response = await api.post(`/tasks/${id}/add_subtask/`, subtaskData);
+    return response.data;
+  },
+
+  listSections: async (params = {}) => {
+    const response = await api.get('/sections/', { params });
+    return response.data;
+  },
+
+  createSection: async (sectionData) => {
+    const response = await api.post('/sections/', sectionData);
+    return response.data;
+  },
+
+  updateSection: async (id, sectionData) => {
+    const response = await api.put(`/sections/${id}/`, sectionData);
+    return response.data;
+  },
+
+  deleteSection: async (id) => {
+    const response = await api.delete(`/sections/${id}/`);
+    return response.data;
+  },
+
+  listComments: async (params = {}) => {
+    const response = await api.get('/task-comments/', { params });
+    return response.data;
+  },
+
+  createComment: async (commentData) => {
+    const response = await api.post('/task-comments/', commentData);
+    return response.data;
+  },
+
+  updateComment: async (id, commentData) => {
+    const response = await api.put(`/task-comments/${id}/`, commentData);
+    return response.data;
+  },
+
+  listAttachments: async (params = {}) => {
+    const response = await api.get('/task-attachments/', { params });
+    return response.data;
+  },
+
+  uploadAttachment: async (formData) => {
+    const response = await api.post('/task-attachments/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteAttachment: async (id) => {
+    const response = await api.delete(`/task-attachments/${id}/`);
+    return response.data;
+  },
+};
+
 // Team Memberships API
 export const teamMembershipsAPI = {
   list: async () => {
