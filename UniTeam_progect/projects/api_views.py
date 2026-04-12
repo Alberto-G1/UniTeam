@@ -1,6 +1,10 @@
+import re
+from decimal import Decimal
+
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
@@ -11,13 +15,15 @@ from django.conf import settings
 from datetime import timedelta
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation, Notification,
-    ProjectTemplate, MilestoneTemplate
+    ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment,
+    TaskComment, TaskActivityLog, TaskNotification
 )
 from .serializers import (
     ProjectSerializer, TeamSerializer, TeamMembershipSerializer,
     MilestoneSerializer, InvitationSerializer,
     ProjectTemplateSerializer, ProjectTemplateCreateSerializer, NotificationSerializer,
-    MilestoneTemplateSerializer
+    MilestoneTemplateSerializer, SectionSerializer, TaskSerializer, SubTaskSerializer,
+    TaskAttachmentSerializer, TaskCommentSerializer, TaskActivityLogSerializer, TaskNotificationSerializer
 )
 from users.models import CustomUser
 from users.serializers import UserSerializer
@@ -55,6 +61,90 @@ def maybe_send_email(subject, message, recipient_list):
         recipient_list=recipient_list,
         fail_silently=True,
     )
+
+
+def _project_members(project):
+    return TeamMembership.objects.filter(team=project.team).select_related('user')
+
+
+def _project_member_user_ids(project):
+    return list(_project_members(project).values_list('user_id', flat=True))
+
+
+def _project_membership(project, user):
+    return TeamMembership.objects.filter(team=project.team, user=user).first()
+
+
+def _member_is_leadership(project, user):
+    membership = _project_membership(project, user)
+    return bool(membership and membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER])
+
+
+def _task_title(task):
+    return f'{task.title} ({task.project.title})'
+
+
+def _log_task_activity(task, actor=None, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value='', new_value='', reason=''):
+    return TaskActivityLog.objects.create(
+        task=task,
+        actor=actor,
+        action_type=action_type,
+        old_value=str(old_value),
+        new_value=str(new_value),
+        reason=reason,
+    )
+
+
+def _notify_task(*, task, recipients, notification_type, title, message):
+    create_notification(
+        recipients=recipients,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        project=task.project,
+    )
+    for recipient in {user.id: user for user in recipients if user}.values():
+        TaskNotification.objects.create(
+            recipient=recipient,
+            task=task,
+            notification_type=notification_type,
+            message=message,
+        )
+
+
+def _task_progress_from_status(task):
+    if task.status == Task.Status.DONE:
+        return 100
+    if task.status == Task.Status.UNDER_REVIEW:
+        return max(task.progress_percentage or 80, 80)
+    if task.status == Task.Status.IN_PROGRESS:
+        return max(task.progress_percentage or 25, 25)
+    if task.status == Task.Status.BLOCKED:
+        return min(task.progress_percentage or 10, 10)
+    return task.progress_percentage or 0
+
+
+def _project_task_progress(project):
+    tasks = Task.objects.filter(project=project, is_cancelled=False)
+    total = tasks.count()
+    if total == 0:
+        return 0
+
+    weighted_total = Decimal('0')
+    for task in tasks:
+        if task.status == Task.Status.DONE:
+            weighted_total += Decimal('1')
+        elif task.status == Task.Status.IN_PROGRESS:
+            weighted_total += Decimal(str((task.progress_percentage or 0) / 100))
+        elif task.status == Task.Status.UNDER_REVIEW:
+            weighted_total += Decimal(str(max(task.progress_percentage or 75, 75) / 100))
+
+    return int(round((weighted_total / Decimal(str(total))) * Decimal('100')))
+
+
+def _general_section(project):
+    section, _ = Section.objects.get_or_create(project=project, name='General', defaults={'order': 0})
+    return section
 
 
 def expire_stale_invitations_for_queryset(queryset):
@@ -153,6 +243,52 @@ class ProjectViewSet(viewsets.ModelViewSet):
         milestones = project.milestones.all()
         serializer = MilestoneSerializer(milestones, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def task_board(self, request, pk=None):
+        """Return the project task board payload for the kanban/list views."""
+        project = self.get_object()
+        sections = project.sections.all().order_by('order', 'created_at')
+        tasks = project.tasks.select_related('section', 'assigned_to', 'created_by').prefetch_related('subtasks', 'comments', 'attachments', 'activity_logs')
+
+        if not sections.exists():
+            default_section = {
+                'id': None,
+                'project': project.id,
+                'name': 'General',
+                'order': 0,
+                'created_at': project.created_at,
+                'task_count': tasks.filter(section__isnull=True, is_cancelled=False).count(),
+            }
+            section_data = [default_section]
+        else:
+            section_data = SectionSerializer(sections, many=True).data
+
+        serializer = TaskSerializer(tasks, many=True, context={'request': request})
+        members = TeamSerializer(project.team).data.get('members', [])
+
+        workload = []
+        for membership in project.team.teammembership_set.select_related('user').all():
+            member_tasks = tasks.filter(assigned_to=membership.user, is_cancelled=False)
+            workload.append({
+                'membership_id': membership.id,
+                'user': UserSerializer(membership.user).data,
+                'role': membership.role,
+                'active_tasks': member_tasks.exclude(status=Task.Status.DONE).count(),
+                'due_this_week': member_tasks.filter(
+                    deadline__gte=timezone.now(),
+                    deadline__lte=timezone.now() + timedelta(days=7),
+                ).count(),
+            })
+
+        return Response({
+            'project': ProjectSerializer(project, context={'request': request}).data,
+            'sections': section_data,
+            'tasks': serializer.data,
+            'members': members,
+            'workload': workload,
+            'progress_percentage': _project_task_progress(project),
+        })
 
     @action(detail=False, methods=['get'])
     def search_by_course_code(self, request):
@@ -383,6 +519,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.lifecycle_status = Project.LifecycleStatus.ARCHIVED
         project.save(update_fields=['lifecycle_status', 'updated_at'])
 
+        Task.objects.filter(project=project, is_cancelled=False).update(
+            status=Task.Status.CANCELLED,
+            is_cancelled=True,
+            cancelled_at=timezone.now(),
+            cancellation_reason='Project archived',
+        )
+
         recipients = list(project.team.members.all())
         if project.supervisor:
             recipients.append(project.supervisor)
@@ -606,6 +749,367 @@ class MilestoneViewSet(viewsets.ModelViewSet):
                 project=milestone.project,
                 milestone=milestone,
             )
+
+
+class SectionViewSet(viewsets.ModelViewSet):
+    serializer_class = SectionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Section.objects.select_related('project', 'project__supervisor')
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data.get('project')
+        if not _member_is_leadership(project, self.request.user) and self.request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only leaders and co-leaders can create sections')
+        serializer.save()
+
+
+class TaskViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Task.objects.select_related('project', 'project__supervisor', 'section', 'assigned_to', 'created_by')\
+            .prefetch_related('subtasks', 'comments', 'attachments', 'activity_logs')
+        project_id = self.request.query_params.get('project')
+        section_id = self.request.query_params.get('section')
+        status_filter = self.request.query_params.get('status')
+        assignee_id = self.request.query_params.get('assigned_to')
+        tag = self.request.query_params.get('tag')
+        my_tasks = self.request.query_params.get('my_tasks')
+
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if assignee_id:
+            queryset = queryset.filter(assigned_to_id=assignee_id)
+        if tag:
+            queryset = queryset.filter(tags__contains=[tag])
+        if my_tasks == '1':
+            queryset = queryset.filter(assigned_to=self.request.user)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    def _assert_task_permission(self, task, allow_assigned=False):
+        if self.request.user.role == CustomUser.Role.ADMIN:
+            return
+        if _member_is_leadership(task.project, self.request.user):
+            return
+        if allow_assigned and task.assigned_to_id == self.request.user.id:
+            return
+        raise PermissionDenied('You do not have permission for this task action')
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data['project']
+        if not _member_is_leadership(project, self.request.user) and self.request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only leaders and co-leaders can create tasks')
+
+        task = serializer.save(
+            created_by=self.request.user,
+            status=Task.Status.TODO,
+            progress_percentage=0,
+            section=serializer.validated_data.get('section') or None,
+        )
+
+        if task.assigned_to:
+            message = f'You have been assigned a new task: "{task.title}" in {task.project.title}. Deadline: {timezone.localtime(task.deadline).date()}.'
+            _notify_task(
+                task=task,
+                recipients=[task.assigned_to],
+                notification_type=Notification.Type.TASK_ASSIGNED,
+                title='Task assigned',
+                message=message,
+            )
+
+        _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.CREATED, new_value=task.status)
+
+    def perform_update(self, serializer):
+        task = self.get_object()
+        self._assert_task_permission(task, allow_assigned=True)
+
+        old_status = task.status
+        old_assignee = task.assigned_to
+        old_progress = task.progress_percentage
+        old_section = task.section
+        old_priority = task.priority
+        old_deadline = task.deadline
+
+        task = serializer.save()
+
+        if old_assignee_id := getattr(old_assignee, 'id', None) != getattr(task.assigned_to, 'id', None):
+            pass
+
+        if old_assignee != task.assigned_to:
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.REASSIGNED, old_value=getattr(old_assignee, 'username', ''), new_value=getattr(task.assigned_to, 'username', ''))
+            recipients = [task.assigned_to, old_assignee]
+            _notify_task(
+                task=task,
+                recipients=recipients,
+                notification_type=Notification.Type.TASK_REASSIGNED,
+                title='Task reassigned',
+                message=f'Task "{task.title}" has been reassigned in {task.project.title}.',
+            )
+
+        if old_status != task.status:
+            if task.status == Task.Status.IN_PROGRESS and not task.in_progress_at:
+                task.in_progress_at = timezone.now()
+                task.save(update_fields=['in_progress_at'])
+            if task.status == Task.Status.UNDER_REVIEW and not task.under_review_at:
+                task.under_review_at = timezone.now()
+                task.save(update_fields=['under_review_at'])
+            if task.status == Task.Status.DONE and not task.completed_at:
+                task.completed_at = timezone.now()
+                task.save(update_fields=['completed_at'])
+            if task.status == Task.Status.BLOCKED and not task.blocked_reason:
+                task.blocked_reason = serializer.validated_data.get('blocked_reason', task.blocked_reason)
+                task.save(update_fields=['blocked_reason'])
+
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.STATUS_CHANGED, old_value=old_status, new_value=task.status)
+
+            notification_type = Notification.Type.TASK_STATUS_CHANGED
+            if task.status == Task.Status.BLOCKED:
+                notification_type = Notification.Type.TASK_BLOCKED
+            recipients = []
+            if task.assigned_to:
+                recipients.append(task.assigned_to)
+            recipients.extend(project_member.user for project_member in _project_members(task.project) if project_member.user_id != getattr(task.assigned_to, 'id', None))
+            _notify_task(
+                task=task,
+                recipients=recipients,
+                notification_type=notification_type,
+                title='Task updated',
+                message=f'Task "{task.title}" changed to {task.status}.',
+            )
+
+        if old_progress != task.progress_percentage:
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value=old_progress, new_value=task.progress_percentage)
+
+        if old_section != task.section:
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value=getattr(old_section, 'name', ''), new_value=getattr(task.section, 'name', 'General'))
+
+        if old_priority != task.priority:
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value=old_priority, new_value=task.priority)
+
+        if old_deadline != task.deadline:
+            _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value=old_deadline, new_value=task.deadline)
+
+    @action(detail=True, methods=['post'])
+    def set_status(self, request, pk=None):
+        task = self.get_object()
+        self._assert_task_permission(task, allow_assigned=True)
+        next_status = request.data.get('status')
+        blocked_reason = (request.data.get('blocked_reason') or '').strip()
+
+        if next_status not in dict(Task.Status.choices):
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if next_status == Task.Status.DONE and not _member_is_leadership(task.project, request.user):
+            return Response({'error': 'Only leaders can mark a task as done'}, status=status.HTTP_403_FORBIDDEN)
+
+        if next_status == Task.Status.BLOCKED and not blocked_reason:
+            return Response({'error': 'Blocked tasks require a reason'}, status=status.HTTP_400_BAD_REQUEST)
+
+        old_status = task.status
+        task.status = next_status
+        task.progress_percentage = _task_progress_from_status(task)
+        if next_status == Task.Status.IN_PROGRESS and not task.in_progress_at:
+            task.in_progress_at = timezone.now()
+        if next_status == Task.Status.UNDER_REVIEW and not task.under_review_at:
+            task.under_review_at = timezone.now()
+        if next_status == Task.Status.DONE and not task.completed_at:
+            task.completed_at = timezone.now()
+        if next_status == Task.Status.BLOCKED:
+            task.blocked_reason = blocked_reason
+        task.save(update_fields=['status', 'progress_percentage', 'in_progress_at', 'under_review_at', 'completed_at', 'blocked_reason', 'updated_at'])
+
+        _log_task_activity(task, actor=request.user, action_type=TaskActivityLog.ActionType.STATUS_CHANGED, old_value=old_status, new_value=next_status, reason=blocked_reason)
+
+        recipients = []
+        if task.assigned_to:
+            recipients.append(task.assigned_to)
+        if task.project.team:
+            recipients.extend(member.user for member in _project_members(task.project) if member.user_id != getattr(task.assigned_to, 'id', None))
+        _notify_task(
+            task=task,
+            recipients=recipients,
+            notification_type=Notification.Type.TASK_STATUS_CHANGED if next_status != Task.Status.BLOCKED else Notification.Type.TASK_BLOCKED,
+            title='Task status changed',
+            message=f'Task "{task.title}" is now {task.get_status_display()}.',
+        )
+
+        return Response(self.get_serializer(task).data)
+
+    @action(detail=True, methods=['post'])
+    def update_progress(self, request, pk=None):
+        task = self.get_object()
+        self._assert_task_permission(task, allow_assigned=True)
+        progress = request.data.get('progress_percentage')
+        try:
+            progress_value = max(0, min(100, int(progress)))
+        except (TypeError, ValueError):
+            return Response({'error': 'progress_percentage must be a number between 0 and 100'}, status=status.HTTP_400_BAD_REQUEST)
+
+        old_progress = task.progress_percentage
+        task.progress_percentage = progress_value
+        task.save(update_fields=['progress_percentage', 'updated_at'])
+        _log_task_activity(task, actor=request.user, action_type=TaskActivityLog.ActionType.DETAILS_UPDATED, old_value=old_progress, new_value=progress_value)
+        return Response(self.get_serializer(task).data)
+
+    @action(detail=True, methods=['post'])
+    def reassign(self, request, pk=None):
+        task = self.get_object()
+        if not _member_is_leadership(task.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            return Response({'error': 'Only leaders can reassign tasks'}, status=status.HTTP_403_FORBIDDEN)
+
+        new_assignee_id = request.data.get('assigned_to_id')
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'error': 'Reassignment reason is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_assignee = get_object_or_404(CustomUser, id=new_assignee_id)
+        if not TeamMembership.objects.filter(team=task.project.team, user=new_assignee).exists():
+            return Response({'error': 'Selected user is not a member of the project'}, status=status.HTTP_400_BAD_REQUEST)
+
+        old_assignee = task.assigned_to
+        task.assigned_to = new_assignee
+        if task.status == Task.Status.IN_PROGRESS:
+            task.status = Task.Status.TODO
+            task.progress_percentage = 0
+        task.save(update_fields=['assigned_to', 'status', 'progress_percentage', 'updated_at'])
+
+        _log_task_activity(task, actor=request.user, action_type=TaskActivityLog.ActionType.REASSIGNED, old_value=getattr(old_assignee, 'username', ''), new_value=new_assignee.username, reason=reason)
+        _notify_task(
+            task=task,
+            recipients=[old_assignee, new_assignee],
+            notification_type=Notification.Type.TASK_REASSIGNED,
+            title='Task reassigned',
+            message=f'Task "{task.title}" was reassigned in {task.project.title}.',
+        )
+        return Response(self.get_serializer(task).data)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        task = self.get_object()
+        if not _member_is_leadership(task.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            return Response({'error': 'Only the project owner can cancel a task'}, status=status.HTTP_403_FORBIDDEN)
+
+        if task.is_cancelled:
+            return Response({'error': 'Task is already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = (request.data.get('reason') or '').strip()
+        task.is_cancelled = True
+        task.status = Task.Status.CANCELLED
+        task.cancellation_reason = reason
+        task.cancelled_at = timezone.now()
+        task.save(update_fields=['is_cancelled', 'status', 'cancellation_reason', 'cancelled_at', 'updated_at'])
+        _log_task_activity(task, actor=request.user, action_type=TaskActivityLog.ActionType.CANCELLED, reason=reason)
+        return Response(self.get_serializer(task).data)
+
+    @action(detail=True, methods=['post'])
+    def add_subtask(self, request, pk=None):
+        task = self.get_object()
+        self._assert_task_permission(task, allow_assigned=True)
+        description = (request.data.get('description') or '').strip()
+        if not description:
+            return Response({'error': 'description is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        subtask = SubTask.objects.create(task=task, description=description)
+        _log_task_activity(task, actor=request.user, action_type=TaskActivityLog.ActionType.SUBTASK_ADDED, new_value=description)
+        return Response(SubTaskSerializer(subtask).data, status=status.HTTP_201_CREATED)
+
+
+class TaskCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskCommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = TaskComment.objects.select_related('task', 'task__project', 'author')
+        task_id = self.request.query_params.get('task')
+        if task_id:
+            queryset = queryset.filter(task_id=task_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        task = serializer.validated_data['task']
+        if not (_member_is_leadership(task.project, self.request.user) or TeamMembership.objects.filter(team=task.project.team, user=self.request.user).exists()):
+            raise PermissionDenied('You do not have permission to comment on this task')
+
+        comment = serializer.save(author=self.request.user)
+        _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.COMMENTED, new_value=comment.content)
+
+        mentioned_usernames = set(re.findall(r'@([A-Za-z0-9_]+)', comment.content or ''))
+        if mentioned_usernames:
+            mentioned_users = CustomUser.objects.filter(username__in=mentioned_usernames, id__in=_project_member_user_ids(task.project))
+            _notify_task(
+                task=task,
+                recipients=list(mentioned_users),
+                notification_type=Notification.Type.TASK_COMMENTED,
+                title='You were mentioned in a task comment',
+                message=f'You were mentioned in a comment on "{task.title}".',
+            )
+
+    def perform_update(self, serializer):
+        comment = self.get_object()
+        if comment.author_id != self.request.user.id:
+            raise PermissionDenied('Only the author can edit this comment')
+        if not comment.can_edit():
+            raise PermissionDenied('Comments can only be edited within 10 minutes')
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        return Response({'error': 'Comments cannot be deleted'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TaskAttachmentViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskAttachmentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        queryset = TaskAttachment.objects.select_related('task', 'task__project', 'uploaded_by')
+        task_id = self.request.query_params.get('task')
+        if task_id:
+            queryset = queryset.filter(task_id=task_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        task = serializer.validated_data['task']
+        if not (_member_is_leadership(task.project, self.request.user) or TeamMembership.objects.filter(team=task.project.team, user=self.request.user).exists()):
+            raise PermissionDenied('You do not have permission to attach files to this task')
+
+        uploaded_file = self.request.FILES.get('file')
+        if not uploaded_file:
+            raise PermissionDenied('A file is required')
+
+        attachment = serializer.save(
+            uploaded_by=self.request.user,
+            file_name=uploaded_file.name,
+            file_size=uploaded_file.size,
+        )
+        _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.ATTACHMENT_ADDED, new_value=attachment.file_name)
 
 
 class InvitationViewSet(viewsets.ModelViewSet):

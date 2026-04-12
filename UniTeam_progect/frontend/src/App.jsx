@@ -27,6 +27,9 @@ import ProjectDashboard from './pages/student/projects/ProjectDashboard';
 import ManageTeam from './pages/student/projects/ManageTeam';
 import MilestoneForm from './pages/student/projects/MilestoneForm';
 import InviteMember from './pages/student/projects/InviteMember';
+import MyTasks from './pages/student/tasks/MyTasks';
+import ProjectTasks from './pages/student/tasks/ProjectTasks';
+import TaskDetails from './pages/student/tasks/TaskDetails';
 import Invitations from './pages/student/invitations/Invitations';
 import StudentProfile from './pages/student/profile/StudentProfile';
 import StudentProfileEdit from './pages/student/profile/StudentProfileEdit';
@@ -107,11 +110,14 @@ function App() {
               <Route path="projects" element={<MyProjects />} />
               <Route path="projects/create" element={<CreateProject />} />
               <Route path="projects/:id" element={<ProjectDashboard />} />
+              <Route path="projects/:id/tasks" element={<ProjectTasks />} />
+              <Route path="projects/:id/tasks/:taskId" element={<TaskDetails />} />
               <Route path="projects/:id/edit" element={<EditProject />} />
               <Route path="projects/:id/manage-team" element={<ManageTeam />} />
               <Route path="projects/:id/invite-member" element={<InviteMember />} />
               <Route path="projects/:id/milestones/create" element={<MilestoneForm />} />
               <Route path="projects/:id/milestones/:milestoneId/edit" element={<MilestoneForm />} />
+              <Route path="tasks" element={<MyTasks />} />
               <Route path="invitations" element={<Invitations />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<StudentProfile />} />
@@ -130,6 +136,8 @@ function App() {
               <Route path="dashboard" element={<LecturerDashboard />} />
               <Route path="projects" element={<LecturerProjects />} />
               <Route path="projects/:id" element={<LecturerProjectDashboard />} />
+              <Route path="projects/:id/tasks" element={<ProjectTasks />} />
+              <Route path="projects/:id/tasks/:taskId" element={<TaskDetails />} />
               <Route path="templates" element={<TemplateList />} />
               <Route path="templates/create" element={<TemplateForm />} />
               <Route path="templates/:id" element={<TemplateDetails />} />
