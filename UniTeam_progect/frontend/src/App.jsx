@@ -41,6 +41,7 @@ import AdminProfile from './pages/admin/profile/AdminProfile';
 import AdminProfileEdit from './pages/admin/profile/AdminProfileEdit';
 import EditUser from './pages/admin/users/EditUser';
 import PendingLecturers from './pages/admin/dashboard/PendingLecturers';
+import Notifications from './pages/shared/Notifications';
 import NotFound from './pages/shared/NotFound';
 
 import './App.css';
@@ -112,6 +113,7 @@ function App() {
               <Route path="projects/:id/milestones/create" element={<MilestoneForm />} />
               <Route path="projects/:id/milestones/:milestoneId/edit" element={<MilestoneForm />} />
               <Route path="invitations" element={<Invitations />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<StudentProfile />} />
               <Route path="profile/edit" element={<StudentProfileEdit />} />
             </Route>
@@ -132,6 +134,7 @@ function App() {
               <Route path="templates/create" element={<TemplateForm />} />
               <Route path="templates/:id" element={<TemplateDetails />} />
               <Route path="templates/:id/edit" element={<TemplateForm />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<LecturerProfile />} />
               <Route path="profile/edit" element={<LecturerProfileEdit />} />
             </Route>
@@ -149,6 +152,7 @@ function App() {
               <Route path="users" element={<ManageUsers />} />
               <Route path="users/:id/edit" element={<EditUser />} />
               <Route path="lecturers/pending" element={<PendingLecturers />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="profile/edit" element={<AdminProfileEdit />} />
             </Route>

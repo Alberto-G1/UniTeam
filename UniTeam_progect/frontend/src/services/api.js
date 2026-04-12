@@ -127,10 +127,39 @@ export const projectsAPI = {
     return response.data;
   },
 
+  getInvitationsOverview: async (id, status = '') => {
+    const response = await api.get(`/projects/${id}/invitations_overview/`, {
+      params: status ? { status } : {},
+    });
+    return response.data;
+  },
+
   inviteMember: async (id, receiverId) => {
     const response = await api.post(`/projects/${id}/invite_member/`, {
       receiver_id: receiverId,
     });
+    return response.data;
+  },
+
+  submitProject: async (id) => {
+    const response = await api.post(`/projects/${id}/submit_project/`);
+    return response.data;
+  },
+
+  archiveProject: async (id) => {
+    const response = await api.post(`/projects/${id}/archive_project/`);
+    return response.data;
+  },
+
+  transferOwnership: async (id, newLeaderId) => {
+    const response = await api.post(`/projects/${id}/transfer_ownership/`, {
+      new_leader_id: newLeaderId,
+    });
+    return response.data;
+  },
+
+  leaveTeam: async (id) => {
+    const response = await api.post(`/projects/${id}/leave_team/`);
     return response.data;
   },
 };
@@ -177,6 +206,38 @@ export const invitationsAPI = {
 
   decline: async (id) => {
     const response = await api.post(`/invitations/${id}/decline/`);
+    return response.data;
+  },
+
+  resend: async (id) => {
+    const response = await api.post(`/invitations/${id}/resend/`);
+    return response.data;
+  },
+
+  expireStale: async () => {
+    const response = await api.post('/invitations/expire_stale/');
+    return response.data;
+  },
+};
+
+export const notificationsAPI = {
+  list: async () => {
+    const response = await api.get('/notifications/');
+    return response.data;
+  },
+
+  unreadCount: async () => {
+    const response = await api.get('/notifications/unread_count/');
+    return response.data;
+  },
+
+  markRead: async (id) => {
+    const response = await api.post(`/notifications/${id}/mark_read/`);
+    return response.data;
+  },
+
+  markAllRead: async () => {
+    const response = await api.post('/notifications/mark_all_read/');
     return response.data;
   },
 };

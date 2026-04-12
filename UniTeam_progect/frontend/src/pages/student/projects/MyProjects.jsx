@@ -53,9 +53,10 @@ export default function MyProjects() {
   };
 
   const filteredProjects = projects.filter(project => {
+    const lifecycleStatus = project.lifecycle_status || project.status || 'ACTIVE';
     const matchesFilter = filter === 'all' || 
-      (filter === 'active' && project.status !== 'COMPLETED') ||
-      (filter === 'completed' && project.status === 'COMPLETED');
+      (filter === 'active' && ['DRAFT', 'ACTIVE'].includes(lifecycleStatus)) ||
+      (filter === 'completed' && ['SUBMITTED', 'ARCHIVED'].includes(lifecycleStatus));
     
     const matchesSearch = !searchQuery || 
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,9 +75,10 @@ export default function MyProjects() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
+      case 'DRAFT': return 'status-pending';
       case 'ACTIVE': return 'status-active';
-      case 'COMPLETED': return 'status-completed';
-      case 'ON_HOLD': return 'status-hold';
+      case 'SUBMITTED': return 'status-completed';
+      case 'ARCHIVED': return 'status-hold';
       default: return 'status-pending';
     }
   };
@@ -120,14 +122,14 @@ export default function MyProjects() {
             onClick={() => setFilter('active')}
           >
             Active
-            <span className="filter-count">{projects.filter(p => p.status !== 'COMPLETED').length}</span>
+            <span className="filter-count">{projects.filter(p => ['DRAFT', 'ACTIVE'].includes(p.lifecycle_status || p.status || 'ACTIVE')).length}</span>
           </button>
           <button 
             className={`filter-tab ${filter === 'completed' ? 'active' : ''}`}
             onClick={() => setFilter('completed')}
           >
             Completed
-            <span className="filter-count">{projects.filter(p => p.status === 'COMPLETED').length}</span>
+            <span className="filter-count">{projects.filter(p => ['SUBMITTED', 'ARCHIVED'].includes(p.lifecycle_status || p.status || 'ACTIVE')).length}</span>
           </button>
         </div>
 
@@ -171,8 +173,8 @@ export default function MyProjects() {
                       {project.team_membership.role.replace('_', ' ')}
                     </span>
                   )}
-                  <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
-                    {project.status || 'ACTIVE'}
+                  <span className={`status-badge ${getStatusBadgeClass(project.lifecycle_status || project.status || 'ACTIVE')}`}>
+                    {project.lifecycle_status || project.status || 'ACTIVE'}
                   </span>
                 </div>
                 {project.team_membership && 

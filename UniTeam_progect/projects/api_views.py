@@ -4,18 +4,79 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.utils import timezone
+from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
+from datetime import timedelta
 from .models import (
-    Project, Team, TeamMembership, Milestone, Invitation,
+    Project, Team, TeamMembership, Milestone, Invitation, Notification,
     ProjectTemplate, MilestoneTemplate
 )
 from .serializers import (
     ProjectSerializer, TeamSerializer, TeamMembershipSerializer,
     MilestoneSerializer, InvitationSerializer,
-    ProjectTemplateSerializer, ProjectTemplateCreateSerializer,
+    ProjectTemplateSerializer, ProjectTemplateCreateSerializer, NotificationSerializer,
     MilestoneTemplateSerializer
 )
 from users.models import CustomUser
 from users.serializers import UserSerializer
+
+
+def create_notification(*, recipients, notification_type, title, message, project=None, invitation=None, milestone=None):
+    unique_recipients = {user.id: user for user in recipients if user}.values()
+    notifications = []
+    for recipient in unique_recipients:
+        notifications.append(
+            Notification(
+                recipient=recipient,
+                type=notification_type,
+                title=title,
+                message=message,
+                project=project,
+                invitation=invitation,
+                milestone=milestone,
+            )
+        )
+    Notification.objects.bulk_create(notifications)
+
+
+def maybe_send_email(subject, message, recipient_list):
+    if not getattr(settings, 'ENABLE_EMAIL_NOTIFICATIONS', False):
+        return
+
+    if not recipient_list:
+        return
+
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@uniteam.local'),
+        recipient_list=recipient_list,
+        fail_silently=True,
+    )
+
+
+def expire_stale_invitations_for_queryset(queryset):
+    now = timezone.now()
+    stale = queryset.filter(status=Invitation.Status.PENDING, expires_at__lte=now).select_related('project', 'sender', 'receiver')
+    expired_count = 0
+
+    for invitation in stale:
+        invitation.status = Invitation.Status.EXPIRED
+        invitation.save(update_fields=['status'])
+        expired_count += 1
+        recipients = [invitation.sender, invitation.receiver]
+        create_notification(
+            recipients=recipients,
+            notification_type=Notification.Type.INVITATION_EXPIRED,
+            title='Invitation expired',
+            message=f'Invitation for project "{invitation.project.title}" has expired.',
+            project=invitation.project,
+            invitation=invitation,
+        )
+
+    return expired_count
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -63,6 +124,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     description=mt.description,
                     due_date=project.deadline
                 )
+
+    def _requester_membership(self, project, user):
+        return TeamMembership.objects.filter(team=project.team, user=user).first()
+
+    def _assert_leader_or_coleader(self, project, user):
+        membership = self._requester_membership(project, user)
+        if not membership or membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return None
+        return membership
     
     @action(detail=True, methods=['get'])
     def team(self, request, pk=None):
@@ -101,6 +171,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
             status=Invitation.Status.PENDING
         ).select_related('sender', 'receiver')
 
+        serializer = InvitationSerializer(invitations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def invitations_overview(self, request, pk=None):
+        """Get invitations for a project, with optional status filtering (leaders/co-leaders only)."""
+        project = self.get_object()
+
+        requester_membership = TeamMembership.objects.filter(
+            team=project.team,
+            user=request.user
+        ).first()
+
+        if not requester_membership or requester_membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return Response(
+                {'error': 'Only leaders and co-leaders can view project invitations'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        status_filter = (request.query_params.get('status') or '').strip().upper()
+
+        invitations = Invitation.objects.filter(project=project).select_related('sender', 'receiver')
+        if status_filter and status_filter in dict(Invitation.Status.choices):
+            invitations = invitations.filter(status=status_filter)
+
+        invitations = invitations.order_by('-sent_at')
         serializer = InvitationSerializer(invitations, many=True)
         return Response(serializer.data)
 
@@ -178,10 +274,143 @@ class ProjectViewSet(viewsets.ModelViewSet):
             sender=request.user,
             receiver=receiver,
             status=Invitation.Status.PENDING,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        create_notification(
+            recipients=[receiver],
+            notification_type=Notification.Type.INVITATION,
+            title='New project invitation',
+            message=f'You have been invited to join "{project.title}".',
+            project=project,
+            invitation=invitation,
+        )
+        maybe_send_email(
+            subject=f'Invitation to join {project.title}',
+            message=f'You were invited to join the project "{project.title}". Please respond before {invitation.expires_at.date()}.',
+            recipient_list=[receiver.email] if receiver.email else [],
         )
 
         serializer = InvitationSerializer(invitation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def submit_project(self, request, pk=None):
+        project = self.get_object()
+        membership = self._assert_leader_or_coleader(project, request.user)
+        if not membership:
+            return Response({'error': 'Only leaders and co-leaders can submit a project'}, status=status.HTTP_403_FORBIDDEN)
+
+        if project.lifecycle_status != Project.LifecycleStatus.ACTIVE:
+            return Response({'error': 'Only active projects can be submitted'}, status=status.HTTP_400_BAD_REQUEST)
+
+        project.lifecycle_status = Project.LifecycleStatus.SUBMITTED
+        project.save(update_fields=['lifecycle_status', 'updated_at'])
+
+        recipients = list(project.team.members.all())
+        if project.supervisor:
+            recipients.append(project.supervisor)
+        create_notification(
+            recipients=recipients,
+            notification_type=Notification.Type.PROJECT,
+            title='Project submitted',
+            message=f'Project "{project.title}" has been submitted.',
+            project=project,
+        )
+        maybe_send_email(
+            subject=f'Project submitted: {project.title}',
+            message=f'The project "{project.title}" has been submitted.',
+            recipient_list=[u.email for u in recipients if u and u.email],
+        )
+
+        return Response({'message': 'Project submitted', 'lifecycle_status': project.lifecycle_status})
+
+    @action(detail=True, methods=['post'])
+    def archive_project(self, request, pk=None):
+        project = self.get_object()
+        membership = self._requester_membership(project, request.user)
+        allowed = request.user.role == CustomUser.Role.ADMIN or (project.supervisor_id == request.user.id)
+        if membership and membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            allowed = True
+
+        if not allowed:
+            return Response({'error': 'You do not have permission to archive this project'}, status=status.HTTP_403_FORBIDDEN)
+
+        if project.lifecycle_status not in [Project.LifecycleStatus.ACTIVE, Project.LifecycleStatus.SUBMITTED]:
+            return Response({'error': 'Only active or submitted projects can be archived'}, status=status.HTTP_400_BAD_REQUEST)
+
+        project.lifecycle_status = Project.LifecycleStatus.ARCHIVED
+        project.save(update_fields=['lifecycle_status', 'updated_at'])
+
+        recipients = list(project.team.members.all())
+        if project.supervisor:
+            recipients.append(project.supervisor)
+        create_notification(
+            recipients=recipients,
+            notification_type=Notification.Type.PROJECT,
+            title='Project archived',
+            message=f'Project "{project.title}" has been archived.',
+            project=project,
+        )
+
+        return Response({'message': 'Project archived', 'lifecycle_status': project.lifecycle_status})
+
+    @action(detail=True, methods=['post'])
+    def transfer_ownership(self, request, pk=None):
+        project = self.get_object()
+        requester_membership = self._requester_membership(project, request.user)
+        if not requester_membership or requester_membership.role != Team.Role.LEADER:
+            return Response({'error': 'Only a leader can transfer ownership'}, status=status.HTTP_403_FORBIDDEN)
+
+        new_leader_id = request.data.get('new_leader_id')
+        if not new_leader_id:
+            return Response({'error': 'new_leader_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_leader_membership = TeamMembership.objects.filter(team=project.team, user_id=new_leader_id).first()
+        if not new_leader_membership:
+            return Response({'error': 'Selected user is not a team member'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_leader_membership.user_id == request.user.id:
+            return Response({'error': 'Cannot transfer ownership to yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            requester_membership.role = Team.Role.CO_LEADER
+            requester_membership.save(update_fields=['role'])
+            new_leader_membership.role = Team.Role.LEADER
+            new_leader_membership.save(update_fields=['role'])
+
+        create_notification(
+            recipients=[request.user, new_leader_membership.user],
+            notification_type=Notification.Type.PROJECT,
+            title='Project ownership transferred',
+            message=f'Ownership for "{project.title}" was transferred to {new_leader_membership.user.get_full_name() or new_leader_membership.user.username}.',
+            project=project,
+        )
+
+        return Response({'message': 'Ownership transferred successfully'})
+
+    @action(detail=True, methods=['post'])
+    def leave_team(self, request, pk=None):
+        project = self.get_object()
+        membership = self._requester_membership(project, request.user)
+        if not membership:
+            return Response({'error': 'You are not a member of this team'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if membership.role == Team.Role.LEADER:
+            leaders_count = TeamMembership.objects.filter(team=project.team, role=Team.Role.LEADER).count()
+            if leaders_count <= 1:
+                return Response({'error': 'Leader cannot leave without transferring ownership first'}, status=status.HTTP_400_BAD_REQUEST)
+
+        membership.delete()
+        create_notification(
+            recipients=list(project.team.members.all()),
+            notification_type=Notification.Type.PROJECT,
+            title='Team member left',
+            message=f'{request.user.get_full_name() or request.user.username} left project "{project.title}".',
+            project=project,
+        )
+
+        return Response({'message': 'You have left the team'})
 
 
 class TeamMembershipViewSet(viewsets.ModelViewSet):
@@ -251,6 +480,36 @@ class TeamMembershipViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(membership)
         return Response(serializer.data)
 
+    def destroy(self, request, *args, **kwargs):
+        membership = self.get_object()
+        requester_membership = TeamMembership.objects.filter(team=membership.team, user=request.user).first()
+
+        requester_is_admin = request.user.role == CustomUser.Role.ADMIN
+        requester_is_target = membership.user_id == request.user.id
+        requester_is_leadership = requester_membership and requester_membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER]
+
+        if not (requester_is_admin or requester_is_target or requester_is_leadership):
+            return Response({'error': 'You do not have permission to remove this member'}, status=status.HTTP_403_FORBIDDEN)
+
+        if membership.role == Team.Role.LEADER:
+            leaders_count = TeamMembership.objects.filter(team=membership.team, role=Team.Role.LEADER).count()
+            if leaders_count <= 1:
+                return Response({'error': 'Cannot remove the last leader'}, status=status.HTTP_400_BAD_REQUEST)
+
+        member_name = membership.user.get_full_name() or membership.user.username
+        project = membership.team.project
+        membership.delete()
+
+        create_notification(
+            recipients=list(project.team.members.all()),
+            notification_type=Notification.Type.PROJECT,
+            title='Team updated',
+            message=f'{member_name} was removed from "{project.title}".',
+            project=project,
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class MilestoneViewSet(viewsets.ModelViewSet):
     """API endpoint for milestones"""
@@ -275,6 +534,38 @@ class MilestoneViewSet(viewsets.ModelViewSet):
         # Admins see all
         return Milestone.objects.all()
 
+    def perform_create(self, serializer):
+        milestone = serializer.save()
+        recipients = list(milestone.project.team.members.all())
+        if milestone.project.supervisor:
+            recipients.append(milestone.project.supervisor)
+        create_notification(
+            recipients=recipients,
+            notification_type=Notification.Type.MILESTONE,
+            title='New milestone created',
+            message=f'"{milestone.title}" was added to project "{milestone.project.title}".',
+            project=milestone.project,
+            milestone=milestone,
+        )
+
+    def perform_update(self, serializer):
+        previous = self.get_object()
+        previous_status = previous.status
+        milestone = serializer.save()
+
+        if previous_status != milestone.status:
+            recipients = list(milestone.project.team.members.all())
+            if milestone.project.supervisor:
+                recipients.append(milestone.project.supervisor)
+            create_notification(
+                recipients=recipients,
+                notification_type=Notification.Type.MILESTONE,
+                title='Milestone status updated',
+                message=f'Milestone "{milestone.title}" is now {milestone.get_status_display()}.',
+                project=milestone.project,
+                milestone=milestone,
+            )
+
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """API endpoint for invitations"""
@@ -283,6 +574,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        expire_stale_invitations_for_queryset(Invitation.objects.all())
         user = self.request.user
         
         # Students see invitations they received
@@ -299,7 +591,19 @@ class InvitationViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Create invitation with current user as sender"""
-        serializer.save(sender=self.request.user)
+        invitation = serializer.save(
+            sender=self.request.user,
+            expires_at=timezone.now() + timedelta(days=7),
+            status=Invitation.Status.PENDING,
+        )
+        create_notification(
+            recipients=[invitation.receiver],
+            notification_type=Notification.Type.INVITATION,
+            title='New project invitation',
+            message=f'You have been invited to join "{invitation.project.title}".',
+            project=invitation.project,
+            invitation=invitation,
+        )
     
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
@@ -317,6 +621,11 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 {'error': 'Invitation has already been processed'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if invitation.expires_at <= timezone.now():
+            invitation.status = Invitation.Status.EXPIRED
+            invitation.save(update_fields=['status'])
+            return Response({'error': 'Invitation has expired'}, status=status.HTTP_400_BAD_REQUEST)
         
         invitation.status = Invitation.Status.ACCEPTED
         invitation.save()
@@ -326,6 +635,15 @@ class InvitationViewSet(viewsets.ModelViewSet):
             user=request.user,
             team=invitation.project.team,
             defaults={'role': Team.Role.MEMBER}
+        )
+
+        create_notification(
+            recipients=[invitation.sender],
+            notification_type=Notification.Type.INVITATION_ACCEPTED,
+            title='Invitation accepted',
+            message=f'{request.user.get_full_name() or request.user.username} accepted invitation to "{invitation.project.title}".',
+            project=invitation.project,
+            invitation=invitation,
         )
         
         return Response({'message': 'Invitation accepted'})
@@ -346,11 +664,62 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 {'error': 'Invitation has already been processed'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if invitation.expires_at <= timezone.now():
+            invitation.status = Invitation.Status.EXPIRED
+            invitation.save(update_fields=['status'])
+            return Response({'error': 'Invitation has expired'}, status=status.HTTP_400_BAD_REQUEST)
         
         invitation.status = Invitation.Status.DECLINED
         invitation.save()
+
+        create_notification(
+            recipients=[invitation.sender],
+            notification_type=Notification.Type.INVITATION_DECLINED,
+            title='Invitation declined',
+            message=f'{request.user.get_full_name() or request.user.username} declined invitation to "{invitation.project.title}".',
+            project=invitation.project,
+            invitation=invitation,
+        )
         
         return Response({'message': 'Invitation declined'})
+
+    @action(detail=True, methods=['post'])
+    def resend(self, request, pk=None):
+        invitation = get_object_or_404(Invitation.objects.select_related('project', 'receiver', 'sender'), pk=pk)
+
+        requester_membership = TeamMembership.objects.filter(team=invitation.project.team, user=request.user).first()
+        has_team_permission = requester_membership and requester_membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER]
+        if invitation.sender_id != request.user.id and not has_team_permission and request.user.role != CustomUser.Role.ADMIN:
+            return Response({'error': 'You do not have permission to resend this invitation'}, status=status.HTTP_403_FORBIDDEN)
+
+        if invitation.status == Invitation.Status.ACCEPTED:
+            return Response({'error': 'Cannot resend an accepted invitation'}, status=status.HTTP_400_BAD_REQUEST)
+
+        invitation.status = Invitation.Status.PENDING
+        invitation.expires_at = timezone.now() + timedelta(days=7)
+        invitation.save(update_fields=['status', 'expires_at'])
+
+        create_notification(
+            recipients=[invitation.receiver],
+            notification_type=Notification.Type.INVITATION,
+            title='Invitation resent',
+            message=f'Your invitation to "{invitation.project.title}" was resent.',
+            project=invitation.project,
+            invitation=invitation,
+        )
+        maybe_send_email(
+            subject=f'Resent invitation for {invitation.project.title}',
+            message=f'Your invitation for "{invitation.project.title}" has been resent. It expires on {invitation.expires_at.date()}.',
+            recipient_list=[invitation.receiver.email] if invitation.receiver.email else [],
+        )
+
+        return Response({'message': 'Invitation resent', 'expires_at': invitation.expires_at})
+
+    @action(detail=False, methods=['post'])
+    def expire_stale(self, request):
+        expired_count = expire_stale_invitations_for_queryset(Invitation.objects.all())
+        return Response({'expired_count': expired_count})
 
 
 class ProjectTemplateViewSet(viewsets.ModelViewSet):
@@ -385,3 +754,30 @@ class MilestoneTemplateViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Everyone can see milestone templates
         return MilestoneTemplate.objects.all()
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint for in-app notifications"""
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user).select_related(
+            'project', 'invitation', 'milestone'
+        )
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        count = self.get_queryset().filter(read_at__isnull=True).count()
+        return Response({'unread_count': count})
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.mark_as_read()
+        return Response({'message': 'Notification marked as read'})
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        self.get_queryset().filter(read_at__isnull=True).update(read_at=timezone.now())
+        return Response({'message': 'All notifications marked as read'})

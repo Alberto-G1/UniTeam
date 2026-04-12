@@ -1,6 +1,12 @@
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
+
+
+def default_invitation_expiry():
+    return timezone.now() + timedelta(days=7)
 
 # --- NEW MODELS for Templates ---
 class ProjectTemplate(models.Model):
@@ -26,10 +32,21 @@ class MilestoneTemplate(models.Model):
 
 # --- EXISTING MODELS (with updates) ---
 class Project(models.Model):
+    class LifecycleStatus(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        ACTIVE = 'ACTIVE', 'Active'
+        SUBMITTED = 'SUBMITTED', 'Submitted'
+        ARCHIVED = 'ARCHIVED', 'Archived'
+
     title = models.CharField(max_length=200)
     description = models.TextField()
     course_code = models.CharField(max_length=20, blank=True)
     deadline = models.DateField()
+    lifecycle_status = models.CharField(
+        max_length=20,
+        choices=LifecycleStatus.choices,
+        default=LifecycleStatus.ACTIVE,
+    )
     supervisor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL, null=True, blank=True,
@@ -102,12 +119,54 @@ class Invitation(models.Model):
         PENDING = 'PENDING', 'Pending'
         ACCEPTED = 'ACCEPTED', 'Accepted'
         DECLINED = 'DECLINED', 'Declined'
+        EXPIRED = 'EXPIRED', 'Expired'
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='invitations')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_invitations')
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_invitations')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     sent_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=default_invitation_expiry)
+
+    @property
+    def is_expired(self):
+        return self.status == self.Status.EXPIRED or timezone.now() >= self.expires_at
+
     class Meta:
         unique_together = ('project', 'receiver')
     def __str__(self):
         return f"Invitation from {self.sender.username} to {self.receiver.username} for {self.project.title}"
+
+
+class Notification(models.Model):
+    class Type(models.TextChoices):
+        INVITATION = 'INVITATION', 'Invitation'
+        INVITATION_ACCEPTED = 'INVITATION_ACCEPTED', 'Invitation Accepted'
+        INVITATION_DECLINED = 'INVITATION_DECLINED', 'Invitation Declined'
+        INVITATION_EXPIRED = 'INVITATION_EXPIRED', 'Invitation Expired'
+        MILESTONE = 'MILESTONE', 'Milestone'
+        PROJECT = 'PROJECT', 'Project'
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    type = models.CharField(max_length=30, choices=Type.choices)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    invitation = models.ForeignKey(Invitation, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def mark_as_read(self):
+        if not self.read_at:
+            self.read_at = timezone.now()
+            self.save(update_fields=['read_at'])
+
+    def __str__(self):
+        return f"{self.get_type_display()} for {self.recipient.username}: {self.title}"
