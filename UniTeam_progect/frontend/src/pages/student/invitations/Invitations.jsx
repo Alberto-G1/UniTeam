@@ -20,7 +20,7 @@ export default function Invitations() {
     try {
       const response = await invitationsAPI.list();
       const invData = response.results || response;
-      setInvitations(invData.filter(inv => inv.status === 'PENDING'));
+      setInvitations(invData.filter(inv => ['PENDING', 'EXPIRED'].includes(inv.status)));
     } catch (error) {
       console.error('Error fetching invitations:', error);
       showToast('error', 'Error', 'Failed to load invitations');
@@ -78,9 +78,7 @@ export default function Invitations() {
       <div className="page-header">
         <div>
           <h1>Project Invitations</h1>
-          <p className="page-description">
-            You have {invitations.length} pending invitation(s)
-          </p>
+          <p className="page-description">You have {invitations.filter(i => i.status === 'PENDING').length} pending invitation(s)</p>
         </div>
       </div>
 
@@ -104,7 +102,7 @@ export default function Invitations() {
               <div className="invitation-content">
                 <div className="invitation-header">
                   <h3>{invitation.project?.title}</h3>
-                  <span className="invitation-badge">Pending</span>
+                  <span className="invitation-badge">{invitation.status}</span>
                 </div>
                 
                 <p className="invitation-message">
@@ -121,8 +119,14 @@ export default function Invitations() {
                 <div className="invitation-meta">
                   <div className="meta-item">
                     <i className="fa-regular fa-calendar"></i>
-                    <span>Sent: {new Date(invitation.created_at).toLocaleDateString()}</span>
+                    <span>Sent: {new Date(invitation.sent_at).toLocaleDateString()}</span>
                   </div>
+                  {invitation.expires_at && (
+                    <div className="meta-item">
+                      <i className="fa-regular fa-hourglass"></i>
+                      <span>Expires: {new Date(invitation.expires_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
                   {invitation.project?.deadline && (
                     <div className="meta-item">
                       <i className="fa-regular fa-clock"></i>
@@ -133,16 +137,18 @@ export default function Invitations() {
               </div>
               
               <div className="invitation-actions">
-                <button 
+                <button
                   className="btn-accept"
                   onClick={() => handleAcceptClick(invitation)}
+                  disabled={invitation.status !== 'PENDING'}
                 >
                   <i className="fa-solid fa-check"></i>
                   Accept
                 </button>
-                <button 
+                <button
                   className="btn-decline"
                   onClick={() => handleDecline(invitation)}
+                  disabled={invitation.status !== 'PENDING'}
                 >
                   <i className="fa-solid fa-times"></i>
                   Decline

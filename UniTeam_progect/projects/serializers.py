@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Project, Team, TeamMembership, Milestone, Invitation,
+    Project, Team, TeamMembership, Milestone, Invitation, Notification,
     ProjectTemplate, MilestoneTemplate
 )
 from users.serializers import UserSerializer
@@ -48,6 +48,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(source='lifecycle_status', read_only=True)
     supervisor = UserSerializer(read_only=True)
     supervisor_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -62,7 +63,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['id', 'title', 'description', 'course_code', 'deadline',
+        fields = ['id', 'title', 'description', 'course_code', 'deadline', 'lifecycle_status', 'status',
                   'supervisor', 'supervisor_id', 'template_used', 'template_used_title',
                   'created_at', 'updated_at', 'team', 'milestones']
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -71,6 +72,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     receiver = UserSerializer(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
     receiver_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=CustomUser.objects.filter(role='STUDENT'),
@@ -86,8 +88,26 @@ class InvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         fields = ['id', 'project', 'project_id', 'sender', 'receiver', 
-                  'receiver_id', 'status', 'sent_at']
+                  'receiver_id', 'status', 'sent_at', 'expires_at', 'is_expired']
         read_only_fields = ['id', 'sender', 'sent_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source='project.title', read_only=True)
+    invitation_id = serializers.IntegerField(source='invitation.id', read_only=True)
+    milestone_title = serializers.CharField(source='milestone.title', read_only=True)
+    is_read = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'type', 'title', 'message', 'project', 'project_title',
+            'invitation_id', 'milestone_title', 'created_at', 'read_at', 'is_read'
+        ]
+        read_only_fields = fields
+
+    def get_is_read(self, obj):
+        return obj.read_at is not None
 
 
 class MilestoneTemplateSerializer(serializers.ModelSerializer):

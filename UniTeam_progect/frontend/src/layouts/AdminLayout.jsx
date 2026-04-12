@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
+import { notificationsAPI } from '../services/api';
 import './AdminLayout.css';
 
 export const AdminLayout = () => {
@@ -13,12 +14,26 @@ export const AdminLayout = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState('light');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const data = await notificationsAPI.unreadCount();
+        setUnreadNotifications(data?.unread_count || 0);
+      } catch (error) {
+        setUnreadNotifications(0);
+      }
+    };
+
+    loadUnreadCount();
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -163,9 +178,9 @@ export const AdminLayout = () => {
               <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
             </button>
             
-            <button className="icon-btn notification-btn">
+            <button className="icon-btn notification-btn" onClick={() => navigate('/admin/notifications')}>
               <i className="fa-solid fa-bell"></i>
-              <span className="notification-dot"></span>
+              {unreadNotifications > 0 && <span className="notification-dot"></span>}
             </button>
 
             <div className="user-dropdown">

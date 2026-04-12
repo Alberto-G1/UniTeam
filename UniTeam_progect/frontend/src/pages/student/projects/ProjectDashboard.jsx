@@ -14,6 +14,7 @@ export const ProjectDashboard = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     loadProjectData();
@@ -53,19 +54,86 @@ export const ProjectDashboard = () => {
     }
   };
 
+  const handleSubmitProject = async () => {
+    setActionLoading(true);
+    try {
+      const data = await projectsAPI.submitProject(id);
+      setProject((prev) => ({ ...prev, lifecycle_status: data.lifecycle_status }));
+      showToast('success', 'Project Submitted', 'Project has been submitted successfully');
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Could not submit project';
+      showToast('error', 'Submit Failed', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleArchiveProject = async () => {
+    setActionLoading(true);
+    try {
+      const data = await projectsAPI.archiveProject(id);
+      setProject((prev) => ({ ...prev, lifecycle_status: data.lifecycle_status }));
+      showToast('success', 'Project Archived', 'Project has been archived');
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Could not archive project';
+      showToast('error', 'Archive Failed', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    const candidates = teamMembers.filter((m) => m.user?.id !== user?.id);
+    if (candidates.length === 0) {
+      showToast('info', 'No Candidates', 'Add another member before transferring ownership');
+      return;
+    }
+
+    const nextLeader = candidates[0];
+    setActionLoading(true);
+    try {
+      await projectsAPI.transferOwnership(id, nextLeader.user.id);
+      showToast('success', 'Ownership Transferred', `Ownership transferred to ${nextLeader.user.first_name || nextLeader.user.username}`);
+      loadProjectData();
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Could not transfer ownership';
+      showToast('error', 'Transfer Failed', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeaveTeam = async () => {
+    setActionLoading(true);
+    try {
+      await projectsAPI.leaveTeam(id);
+      showToast('success', 'Left Team', 'You have left this project team');
+      window.location.href = '/student/projects';
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Could not leave team';
+      showToast('error', 'Leave Failed', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) return <div className="loading">Loading project...</div>;
   if (!project) return <div className="error">Project not found</div>;
 
   const isLeader = teamMembers.some(
     m => m.user?.id === user?.id && (m.role === 'LEADER' || m.role === 'CO_LEADER')
   );
+  const isPrimaryLeader = teamMembers.some(
+    m => m.user?.id === user?.id && m.role === 'LEADER'
+  );
+  const lifecycleStatus = project.lifecycle_status || project.status || 'ACTIVE';
 
   return (
     <div className="project-dashboard-wrapper">
       <div className="project-header surface">
         <div className="header-content">
           <h1>{project.title}</h1>
-          <p className="project-status">Status: {project.status}</p>
+          <p className="project-status">Status: {lifecycleStatus}</p>
         </div>
         {isLeader && (
           <div className="header-actions">
@@ -78,6 +146,24 @@ export const ProjectDashboard = () => {
             <Link to={`/student/projects/${id}/invite-member`} className="btn btn-secondary">
               Invite Teammates
             </Link>
+            {lifecycleStatus === 'ACTIVE' && (
+              <button className="btn btn-primary" onClick={handleSubmitProject} disabled={actionLoading}>
+                Submit Project
+              </button>
+            )}
+            {['ACTIVE', 'SUBMITTED'].includes(lifecycleStatus) && (
+              <button className="btn btn-secondary" onClick={handleArchiveProject} disabled={actionLoading}>
+                Archive Project
+              </button>
+            )}
+            {isPrimaryLeader && (
+              <button className="btn btn-secondary" onClick={handleTransferOwnership} disabled={actionLoading}>
+                Transfer Ownership
+              </button>
+            )}
+            <button className="btn btn-secondary" onClick={handleLeaveTeam} disabled={actionLoading}>
+              Leave Team
+            </button>
           </div>
         )}
       </div>
