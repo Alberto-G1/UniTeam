@@ -185,6 +185,213 @@
   transform: translateY(-2px);
 }
 
+/* Project Dashboard */
+.project-dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.project-title-block h1 {
+  margin-bottom: 0.35rem;
+}
+
+.project-course-code {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--green-accent);
+}
+
+.project-subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.project-status-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.project-content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.quick-stats-grid {
+  display: grid;
+}
+
+.project-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.section-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.section-helper {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.quick-stat-card {
+  background: linear-gradient(180deg, var(--bg-input), var(--bg-card));
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.quick-stat-label {
+  margin: 0 0 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.quick-stat-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.member-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1rem;
+  background: var(--bg-input);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.member-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--green-tint);
+  color: var(--green-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-details h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.member-details .email {
+  margin: 0.25rem 0 0;
+}
+
+.member-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.member-actions-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.project-dashboard-wrapper .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.member-actions-inline .btn,
+.member-actions-inline .btn-primary,
+.member-actions-inline .btn-secondary,
+.member-actions-inline .btn-danger {
+  padding: 0.6rem 0.9rem;
+  font-size: 0.78rem;
+}
+
+.status-badge.status-pending,
+.status-badge.status-active {
+  background: var(--green-tint);
+  color: var(--green-accent);
+}
+
+.status-badge.status-accepted {
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+
+.status-badge.status-declined,
+.status-badge.status-cancelled,
+.status-badge.status-expired {
+  background: var(--red-tint);
+  color: var(--red);
+}
+
+.status-badge.status-submitted {
+  background: var(--gold-tint);
+  color: var(--gold);
+}
+
+.status-badge.status-archived {
+  background: var(--border-subtle);
+  color: var(--text-muted);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .form-header {
@@ -208,5 +415,13 @@
   
   .form-card {
     padding: 1.5rem;
+  }
+
+  .project-header {
+    flex-direction: column;
+  }
+
+  .quick-stats-grid {
+    grid-template-columns: 1fr !important;
   }
 }

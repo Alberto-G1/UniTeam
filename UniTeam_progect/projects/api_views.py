@@ -92,18 +92,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if user.role == CustomUser.Role.STUDENT:
             user_teams = user.teammembership_set.all()
             project_ids = [tm.team.project.id for tm in user_teams]
-            return Project.objects.filter(id__in=project_ids)
+            return Project.objects.filter(id__in=project_ids).order_by('deadline', '-created_at')
         
         # Lecturers see projects they supervise
         elif user.role == CustomUser.Role.LECTURER:
-            return Project.objects.filter(supervisor=user)
+            return Project.objects.filter(supervisor=user).order_by('deadline', '-created_at')
         
         # Admins see all
-        return Project.objects.all()
+        return Project.objects.all().order_by('deadline', '-created_at')
     
     def perform_create(self, serializer):
         """Create project and assign creator as leader"""
         project = serializer.save()
+
+        if project.supervisor is None and self.request.user.role == CustomUser.Role.LECTURER and self.request.user.is_approved:
+            project.supervisor = self.request.user
+            project.save(update_fields=['supervisor'])
         
         # Create team
         team = Team.objects.create(project=project)
@@ -148,6 +152,43 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         milestones = project.milestones.all()
         serializer = MilestoneSerializer(milestones, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def search_by_course_code(self, request):
+        """Allow lecturers to find projects by course code and monitor them."""
+        if request.user.role != CustomUser.Role.LECTURER:
+            return Response({'error': 'Only lecturers can search by course code'}, status=status.HTTP_403_FORBIDDEN)
+
+        course_code = (request.query_params.get('course_code') or '').strip()
+        if not course_code:
+            return Response([])
+
+        projects = Project.objects.filter(course_code__iexact=course_code).select_related('supervisor').order_by('deadline', '-created_at')
+        serializer = ProjectSerializer(projects, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def link_lecturer(self, request, pk=None):
+        """Attach the current lecturer to a project when the course code matches."""
+        if request.user.role != CustomUser.Role.LECTURER:
+            return Response({'error': 'Only lecturers can link to projects'}, status=status.HTTP_403_FORBIDDEN)
+
+        project = get_object_or_404(Project.objects.select_related('supervisor'), pk=pk)
+        if not project.course_code:
+            return Response({'error': 'Project does not have a course code'}, status=status.HTTP_400_BAD_REQUEST)
+
+        requested_code = (request.data.get('course_code') or '').strip()
+        if requested_code and requested_code.lower() != project.course_code.lower():
+            return Response({'error': 'Course code does not match this project'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if project.supervisor_id and project.supervisor_id != request.user.id:
+            return Response({'error': 'This project is already linked to another lecturer'}, status=status.HTTP_409_CONFLICT)
+
+        project.supervisor = request.user
+        project.save(update_fields=['supervisor'])
+
+        serializer = ProjectSerializer(project, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
@@ -715,6 +756,32 @@ class InvitationViewSet(viewsets.ModelViewSet):
         )
 
         return Response({'message': 'Invitation resent', 'expires_at': invitation.expires_at})
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        invitation = get_object_or_404(Invitation.objects.select_related('project', 'receiver', 'sender'), pk=pk)
+
+        requester_membership = TeamMembership.objects.filter(team=invitation.project.team, user=request.user).first()
+        has_team_permission = requester_membership and requester_membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER]
+        if invitation.sender_id != request.user.id and not has_team_permission and request.user.role != CustomUser.Role.ADMIN:
+            return Response({'error': 'You do not have permission to cancel this invitation'}, status=status.HTTP_403_FORBIDDEN)
+
+        if invitation.status == Invitation.Status.ACCEPTED:
+            return Response({'error': 'Cannot cancel an accepted invitation'}, status=status.HTTP_400_BAD_REQUEST)
+
+        invitation.status = Invitation.Status.CANCELLED
+        invitation.save(update_fields=['status'])
+
+        create_notification(
+            recipients=[invitation.receiver],
+            notification_type=Notification.Type.INVITATION_CANCELLED,
+            title='Invitation cancelled',
+            message=f'Invitation to "{invitation.project.title}" was cancelled.',
+            project=invitation.project,
+            invitation=invitation,
+        )
+
+        return Response({'message': 'Invitation cancelled'})
 
     @action(detail=False, methods=['post'])
     def expire_stale(self, request):

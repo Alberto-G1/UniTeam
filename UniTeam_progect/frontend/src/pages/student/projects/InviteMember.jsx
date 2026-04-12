@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { invitationsAPI, projectsAPI } from '../../../services/api';
 import { useToast } from '../../../components/ToastContainer';
+import ConfirmModal from '../../../components/ConfirmModal';
 import './ProjectForms.css';
 
 export const InviteMember = () => {
@@ -11,9 +12,32 @@ export const InviteMember = () => {
   const [loading, setLoading] = useState(true);
   const [invitingId, setInvitingId] = useState(null);
   const [resendingId, setResendingId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
   const [invitationFilter, setInvitationFilter] = useState('ALL');
   const [students, setStudents] = useState([]);
   const [projectInvitations, setProjectInvitations] = useState([]);
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    action: null,
+  });
+
+  const openConfirm = ({ title, message, type = 'info', action }) => {
+    setConfirmState({ isOpen: true, title, message, type, action });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState({ isOpen: false, title: '', message: '', type: 'info', action: null });
+  };
+
+  const handleConfirm = async () => {
+    if (typeof confirmState.action === 'function') {
+      await confirmState.action();
+    }
+    closeConfirm();
+  };
 
   const loadCandidates = async (search = '') => {
     setLoading(true);
@@ -84,6 +108,20 @@ export const InviteMember = () => {
     }
   };
 
+  const handleCancel = async (invitationId) => {
+    setCancellingId(invitationId);
+    try {
+      await invitationsAPI.cancel(invitationId);
+      showToast('success', 'Invitation Cancelled', 'Invitation has been cancelled');
+      await loadProjectInvitations(invitationFilter);
+    } catch (error) {
+      const msg = error?.response?.data?.error || 'Failed to cancel invitation';
+      showToast('error', 'Cancel Failed', msg);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const applyInvitationFilter = async (status) => {
     setInvitationFilter(status);
     await loadProjectInvitations(status);
@@ -136,7 +174,12 @@ export const InviteMember = () => {
                   <button
                     type="button"
                     className="btn-primary"
-                    onClick={() => handleInvite(student.id)}
+                    onClick={() => openConfirm({
+                      title: 'Send Invitation',
+                      message: `Send invitation to ${student.first_name || student.username}?`,
+                      type: 'info',
+                      action: () => handleInvite(student.id),
+                    })}
                     disabled={invitingId === student.id}
                   >
                     {invitingId === student.id ? 'Sending...' : 'Send Invite'}
@@ -150,7 +193,7 @@ export const InviteMember = () => {
         <div className="form-card">
           <h3>Invitation Lifecycle</h3>
           <div className="form-row" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
-            {['ALL', 'PENDING', 'EXPIRED', 'DECLINED', 'ACCEPTED'].map((status) => (
+            {['ALL', 'PENDING', 'EXPIRED', 'DECLINED', 'ACCEPTED', 'CANCELLED'].map((status) => (
               <button
                 key={status}
                 type="button"
@@ -168,6 +211,7 @@ export const InviteMember = () => {
             <div className="space-y-3">
               {projectInvitations.map((inv) => {
                 const canResend = inv.status !== 'ACCEPTED';
+                const canCancel = inv.status === 'PENDING';
                 return (
                   <div key={inv.id} className="form-row" style={{ alignItems: 'center' }}>
                     <div>
@@ -182,11 +226,31 @@ export const InviteMember = () => {
                     <button
                       type="button"
                       className="btn-primary"
-                      onClick={() => handleResend(inv.id)}
+                      onClick={() => openConfirm({
+                        title: 'Resend Invitation',
+                        message: `Resend invitation to ${inv.receiver?.first_name || inv.receiver?.username}?`,
+                        type: 'warning',
+                        action: () => handleResend(inv.id),
+                      })}
                       disabled={!canResend || resendingId === inv.id}
                     >
                       {resendingId === inv.id ? 'Resending...' : 'Resend'}
                     </button>
+                    {canCancel && (
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => openConfirm({
+                          title: 'Cancel Invitation',
+                          message: `Cancel invitation to ${inv.receiver?.first_name || inv.receiver?.username}?`,
+                          type: 'danger',
+                          action: () => handleCancel(inv.id),
+                        })}
+                        disabled={cancellingId === inv.id}
+                      >
+                        {cancellingId === inv.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -194,6 +258,17 @@ export const InviteMember = () => {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={closeConfirm}
+        onConfirm={handleConfirm}
+        type={confirmState.type}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
     </div>
   );
 };
