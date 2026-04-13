@@ -1,3 +1,5 @@
+import os
+import mimetypes
 import re
 from decimal import Decimal
 
@@ -6,8 +8,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 from django.db import transaction
 from django.core.mail import send_mail
@@ -16,21 +19,33 @@ from datetime import timedelta
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation, Notification,
     ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment,
-    TaskComment, TaskActivityLog, TaskNotification
+    TaskComment, TaskActivityLog, TaskNotification, FileFolder, ProjectFile, ProjectFileVersion,
+    ProjectFileActivityLog, ProjectTrash
 )
 from .serializers import (
     ProjectSerializer, TeamSerializer, TeamMembershipSerializer,
     MilestoneSerializer, InvitationSerializer,
     ProjectTemplateSerializer, ProjectTemplateCreateSerializer, NotificationSerializer,
     MilestoneTemplateSerializer, SectionSerializer, TaskSerializer, SubTaskSerializer,
-    TaskAttachmentSerializer, TaskCommentSerializer, TaskActivityLogSerializer, TaskNotificationSerializer
+    TaskAttachmentSerializer, TaskCommentSerializer, TaskActivityLogSerializer, TaskNotificationSerializer,
+    FileFolderSerializer, ProjectFileSerializer, ProjectFileVersionSerializer, ProjectFileActivityLogSerializer,
+    ProjectTrashSerializer
 )
 from users.models import CustomUser
 from users.serializers import UserSerializer
 
 
 def create_notification(*, recipients, notification_type, title, message, project=None, invitation=None, milestone=None):
-    unique_recipients = {user.id: user for user in recipients if user}.values()
+    normalized_recipients = []
+    for recipient in recipients:
+        if not recipient:
+            continue
+        if isinstance(recipient, int):
+            recipient = CustomUser.objects.filter(id=recipient).first()
+        if recipient:
+            normalized_recipients.append(recipient)
+
+    unique_recipients = {user.id: user for user in normalized_recipients}.values()
     notifications = []
     for recipient in unique_recipients:
         notifications.append(
@@ -145,6 +160,50 @@ def _project_task_progress(project):
 def _general_section(project):
     section, _ = Section.objects.get_or_create(project=project, name='General', defaults={'order': 0})
     return section
+
+
+def _general_folder(project):
+    folder, _ = FileFolder.objects.get_or_create(project=project, name='General', defaults={'order': 0})
+    return folder
+
+
+ALLOWED_FILE_EXTENSIONS = {
+    '.pdf', '.doc', '.docx', '.txt', '.odt', '.xlsx', '.xls', '.csv', '.pptx', '.ppt', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.zip'
+}
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+PROJECT_STORAGE_QUOTA_BYTES = 500 * 1024 * 1024
+
+
+def _normalise_file_name(file_name):
+    base_name = os.path.basename(file_name)
+    root, ext = os.path.splitext(base_name)
+    safe_root = re.sub(r'[^A-Za-z0-9._-]+', '_', root).strip('_') or 'file'
+    safe_ext = ext.lower()
+    return f'{safe_root}{safe_ext}'
+
+
+def _extract_file_extension(file_name):
+    return os.path.splitext(file_name)[1].lower()
+
+
+def _validate_project_file_upload(uploaded_file):
+    if not uploaded_file:
+        raise PermissionDenied('A file is required')
+
+    if uploaded_file.size > MAX_FILE_SIZE_BYTES:
+        raise PermissionDenied('Files must be 50MB or smaller')
+
+    file_extension = _extract_file_extension(uploaded_file.name)
+    if file_extension not in ALLOWED_FILE_EXTENSIONS:
+        allowed = ', '.join(sorted(ALLOWED_FILE_EXTENSIONS))
+        raise PermissionDenied(f'Unsupported file type. Allowed types: {allowed}')
+
+    mime_type, _ = mimetypes.guess_type(uploaded_file.name)
+    return file_extension, mime_type or uploaded_file.content_type or 'application/octet-stream'
+
+
+def _project_file_storage_usage(project):
+    return project.project_files.filter(is_deleted=False).aggregate(total=Sum('file_size')).get('total') or 0
 
 
 def expire_stale_invitations_for_queryset(queryset):
@@ -1110,6 +1169,468 @@ class TaskAttachmentViewSet(viewsets.ModelViewSet):
             file_size=uploaded_file.size,
         )
         _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.ATTACHMENT_ADDED, new_value=attachment.file_name)
+
+
+class FileFolderViewSet(viewsets.ModelViewSet):
+    serializer_class = FileFolderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = FileFolder.objects.select_related('project', 'created_by')
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data['project']
+        if not _member_is_leadership(project, self.request.user) and self.request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only leaders and co-leaders can create folders')
+        serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        folder = self.get_object()
+        if folder.name.lower() == 'general':
+            return Response({'error': 'The General folder cannot be deleted'}, status=status.HTTP_400_BAD_REQUEST)
+        if not _member_is_leadership(folder.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only leaders and co-leaders can delete folders')
+
+        general_folder = _general_folder(folder.project)
+        folder.project_files.update(folder=general_folder)
+        folder.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectFileViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectFileSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        queryset = ProjectFile.objects.select_related(
+            'project', 'folder', 'uploaded_by', 'linked_task', 'current_version_file', 'version_lock_by'
+        ).prefetch_related('versions', 'activity_logs')
+        project_id = self.request.query_params.get('project')
+        folder_id = self.request.query_params.get('folder')
+        tag = self.request.query_params.get('tag')
+        uploaded_by = self.request.query_params.get('uploaded_by')
+        search_term = self.request.query_params.get('q')
+        include_deleted = self.request.query_params.get('include_deleted') == '1'
+
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if folder_id:
+            queryset = queryset.filter(folder_id=folder_id)
+        if tag:
+            queryset = queryset.filter(tag=tag)
+        if uploaded_by:
+            queryset = queryset.filter(uploaded_by_id=uploaded_by)
+        if search_term:
+            queryset = queryset.filter(
+                Q(display_name__icontains=search_term)
+                | Q(description__icontains=search_term)
+                | Q(stored_file_name__icontains=search_term)
+                | Q(folder__name__icontains=search_term)
+                | Q(uploaded_by__first_name__icontains=search_term)
+                | Q(uploaded_by__last_name__icontains=search_term)
+                | Q(uploaded_by__username__icontains=search_term)
+            )
+
+        if not include_deleted:
+            queryset = queryset.filter(is_deleted=False)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    def _can_edit_file(self, file_obj):
+        if self.request.user.role == CustomUser.Role.ADMIN:
+            return True
+        membership = _project_membership(file_obj.project, self.request.user)
+        if not membership:
+            return False
+        if membership.role in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+            return True
+        return file_obj.uploaded_by_id == self.request.user.id
+
+    def _owner_members(self, project):
+        return list(_project_members(project).select_related('user'))
+
+    def _project_owner(self, project):
+        return _project_members(project).filter(role=Team.Role.LEADER).select_related('user').first()
+
+    def _ensure_upload_permission(self, project):
+        if self.request.user.role == CustomUser.Role.ADMIN:
+            return
+        if not TeamMembership.objects.filter(team=project.team, user=self.request.user).exists():
+            raise PermissionDenied('You do not have permission to upload files to this project')
+
+    def _create_activity(self, file_obj, action_type, metadata=None):
+        ProjectFileActivityLog.objects.create(
+            project=file_obj.project,
+            file=file_obj,
+            actor=self.request.user,
+            action_type=action_type,
+            metadata=metadata or {},
+        )
+
+    def _project_total_usage(self, project):
+        current_usage = _project_file_storage_usage(project)
+        return current_usage
+
+    def _quota_warning_recipients(self, project):
+        owner = self._project_owner(project)
+        recipients = [owner.user] if owner else []
+        if project.supervisor:
+            recipients.append(project.supervisor)
+        return recipients
+
+    def _maybe_warn_quota(self, project, before_usage, after_usage):
+        quota = PROJECT_STORAGE_QUOTA_BYTES
+        thresholds = [0.8, 0.95]
+        for threshold in thresholds:
+            crossed = before_usage < quota * threshold <= after_usage
+            if crossed:
+                label = f'{int(threshold * 100)}%'
+                create_notification(
+                    recipients=self._quota_warning_recipients(project),
+                    notification_type=Notification.Type.FILE_QUOTA_WARNING,
+                    title='Project storage quota warning',
+                    message=f'Project "{project.title}" has reached {label} of its storage quota.',
+                    project=project,
+                )
+
+    def _lock_version_upload(self, file_obj):
+        if file_obj.version_lock_expires_at and file_obj.version_lock_expires_at > timezone.now() and file_obj.version_lock_by_id not in (None, self.request.user.id):
+            locked_by = file_obj.version_lock_by.get_full_name() or file_obj.version_lock_by.username
+            raise PermissionDenied(f'{locked_by} is currently uploading a new version of this file. Please wait a few minutes and try again.')
+        file_obj.version_lock_by = self.request.user
+        file_obj.version_lock_expires_at = timezone.now() + timedelta(minutes=10)
+        file_obj.save(update_fields=['version_lock_by', 'version_lock_expires_at'])
+
+    def _release_version_lock(self, file_obj):
+        file_obj.version_lock_by = None
+        file_obj.version_lock_expires_at = None
+        file_obj.save(update_fields=['version_lock_by', 'version_lock_expires_at'])
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data['project']
+        self._ensure_upload_permission(project)
+
+        uploaded_file = self.request.FILES.get('file')
+        file_extension, mime_type = _validate_project_file_upload(uploaded_file)
+
+        folder = serializer.validated_data.get('folder') or _general_folder(project)
+        display_name = (self.request.data.get('display_name') or uploaded_file.name).strip()
+        tag = self.request.data.get('tag') or ProjectFile.Tag.DRAFT
+        description = (self.request.data.get('description') or '').strip()
+        version_note = (self.request.data.get('version_note') or description or 'Initial upload').strip()
+        linked_task = serializer.validated_data.get('linked_task')
+
+        before_usage = _project_file_storage_usage(project)
+
+        with transaction.atomic():
+            project_file = serializer.save(
+                folder=folder,
+                display_name=display_name,
+                stored_file_name=_normalise_file_name(uploaded_file.name),
+                file_extension=file_extension,
+                file_size=uploaded_file.size,
+                mime_type=mime_type,
+                tag=tag,
+                description=description,
+                uploaded_by=self.request.user,
+                current_version_number=1,
+                current_version_note=version_note,
+                linked_task=linked_task,
+            )
+            version = ProjectFileVersion.objects.create(
+                parent_file=project_file,
+                version_number=1,
+                stored_file=uploaded_file,
+                file_size=uploaded_file.size,
+                uploader=self.request.user,
+                version_note=version_note,
+                tag_at_time=tag,
+            )
+            project_file.current_version_file = version
+            project_file.save(update_fields=['current_version_file'])
+
+        after_usage = self._project_total_usage(project)
+        self._create_activity(project_file, ProjectFileActivityLog.ActionType.UPLOADED, {
+            'folder': folder.name,
+            'version': 1,
+            'tag': tag,
+        })
+        create_notification(
+            recipients=_project_members(project).values_list('user', flat=True),
+            notification_type=Notification.Type.FILE_UPLOADED,
+            title='New file uploaded',
+            message=f'{self.request.user.get_full_name() or self.request.user.username} uploaded "{project_file.display_name}" to {folder.name} in {project.title}.',
+            project=project,
+        )
+        if tag == ProjectFile.Tag.FINAL:
+            recipients = [project.supervisor] if project.supervisor else []
+            owner = self._project_owner(project)
+            if owner:
+                recipients.append(owner.user)
+            create_notification(
+                recipients=recipients,
+                notification_type=Notification.Type.FILE_UPLOADED,
+                title='Final file uploaded',
+                message=f'Final file "{project_file.display_name}" was uploaded to {project.title}.',
+                project=project,
+            )
+            maybe_send_email(
+                subject=f'Final file uploaded for {project.title}',
+                message=f'Final file "{project_file.display_name}" was uploaded in project {project.title}.',
+                recipient_list=[u.email for u in recipients if u and u.email],
+            )
+        self._maybe_warn_quota(project, before_usage, after_usage)
+
+    @action(detail=True, methods=['post'])
+    def upload_version(self, request, pk=None):
+        file_obj = self.get_object()
+        if not self._can_edit_file(file_obj):
+            raise PermissionDenied('You do not have permission to upload a new version for this file')
+
+        uploaded_file = request.FILES.get('file')
+        file_extension, mime_type = _validate_project_file_upload(uploaded_file)
+        if file_extension != file_obj.file_extension:
+            # Keep it lenient but consistent with the original file type
+            file_extension = file_obj.file_extension or file_extension
+
+        if request.user.role == CustomUser.Role.STUDENT and file_obj.uploaded_by_id != request.user.id and not _member_is_leadership(file_obj.project, request.user):
+            raise PermissionDenied('Members can only upload new versions for files they originally uploaded')
+
+        version_note = (request.data.get('version_note') or '').strip()
+        if not version_note:
+            return Response({'error': 'version_note is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_tag = request.data.get('tag') or file_obj.tag
+        new_display_name = (request.data.get('display_name') or file_obj.display_name).strip()
+        self._lock_version_upload(file_obj)
+        before_usage = _project_file_storage_usage(file_obj.project)
+
+        try:
+            with transaction.atomic():
+                next_version_number = file_obj.current_version_number + 1
+                version = ProjectFileVersion.objects.create(
+                    parent_file=file_obj,
+                    version_number=next_version_number,
+                    stored_file=uploaded_file,
+                    file_size=uploaded_file.size,
+                    uploader=self.request.user,
+                    version_note=version_note,
+                    tag_at_time=new_tag,
+                )
+                file_obj.current_version_number = next_version_number
+                file_obj.current_version_file = version
+                file_obj.file_size = uploaded_file.size
+                file_obj.mime_type = mime_type
+                file_obj.file_extension = file_extension
+                file_obj.tag = new_tag
+                file_obj.display_name = new_display_name
+                file_obj.current_version_note = version_note
+                file_obj.stored_file_name = _normalise_file_name(uploaded_file.name)
+                file_obj.save(update_fields=['current_version_number', 'current_version_file', 'file_size', 'mime_type', 'file_extension', 'tag', 'display_name', 'current_version_note', 'stored_file_name'])
+
+            after_usage = self._project_total_usage(file_obj.project)
+            self._create_activity(file_obj, ProjectFileActivityLog.ActionType.VERSION_CREATED, {
+                'version': file_obj.current_version_number,
+                'version_note': version_note,
+                'tag': new_tag,
+            })
+            create_notification(
+                recipients=_project_members(file_obj.project).values_list('user', flat=True),
+                notification_type=Notification.Type.FILE_VERSION_CREATED,
+                title='New file version uploaded',
+                message=f'{self.request.user.get_full_name() or self.request.user.username} uploaded a new version of "{file_obj.display_name}" in {file_obj.project.title}. {version_note}',
+                project=file_obj.project,
+            )
+            self._maybe_warn_quota(file_obj.project, before_usage, after_usage)
+            if new_tag == ProjectFile.Tag.FINAL:
+                recipients = [file_obj.project.supervisor] if file_obj.project.supervisor else []
+                owner = self._project_owner(file_obj.project)
+                if owner:
+                    recipients.append(owner.user)
+                create_notification(
+                    recipients=recipients,
+                    notification_type=Notification.Type.FILE_UPLOADED,
+                    title='Final version uploaded',
+                    message=f'Final version of "{file_obj.display_name}" was uploaded to {file_obj.project.title}.',
+                    project=file_obj.project,
+                )
+            return Response(self.get_serializer(file_obj).data)
+        finally:
+            self._release_version_lock(file_obj)
+
+    @action(detail=True, methods=['post'])
+    def start_version_lock(self, request, pk=None):
+        file_obj = self.get_object()
+        if not self._can_edit_file(file_obj):
+            raise PermissionDenied('You do not have permission to update this file')
+        self._lock_version_upload(file_obj)
+        return Response({'message': 'Version upload lock enabled', 'expires_at': file_obj.version_lock_expires_at})
+
+    @action(detail=True, methods=['post'])
+    def move_folder(self, request, pk=None):
+        file_obj = self.get_object()
+        if not self._can_edit_file(file_obj):
+            raise PermissionDenied('You do not have permission to move this file')
+        if request.user.role == CustomUser.Role.STUDENT and file_obj.uploaded_by_id != request.user.id and not _member_is_leadership(file_obj.project, request.user):
+            raise PermissionDenied('Members can only move files they originally uploaded')
+        folder_id = request.data.get('folder_id')
+        folder = get_object_or_404(FileFolder, id=folder_id, project=file_obj.project) if folder_id else _general_folder(file_obj.project)
+        previous_folder = file_obj.folder
+        file_obj.folder = folder
+        file_obj.save(update_fields=['folder'])
+        self._create_activity(file_obj, ProjectFileActivityLog.ActionType.MOVED, {
+            'from': previous_folder.name if previous_folder else 'General',
+            'to': folder.name,
+        })
+        return Response(self.get_serializer(file_obj).data)
+
+    @action(detail=True, methods=['post'])
+    def rename(self, request, pk=None):
+        file_obj = self.get_object()
+        if not self._can_edit_file(file_obj):
+            raise PermissionDenied('You do not have permission to rename this file')
+        if request.user.role == CustomUser.Role.STUDENT and file_obj.uploaded_by_id != request.user.id and not _member_is_leadership(file_obj.project, request.user):
+            raise PermissionDenied('Members can only rename files they originally uploaded')
+        new_name = (request.data.get('display_name') or '').strip()
+        if not new_name:
+            return Response({'error': 'display_name is required'}, status=status.HTTP_400_BAD_REQUEST)
+        old_name = file_obj.display_name
+        file_obj.display_name = new_name
+        file_obj.save(update_fields=['display_name'])
+        self._create_activity(file_obj, ProjectFileActivityLog.ActionType.RENAMED, {'old': old_name, 'new': new_name})
+        return Response(self.get_serializer(file_obj).data)
+
+    def destroy(self, request, *args, **kwargs):
+        file_obj = self.get_object()
+        if not _member_is_leadership(file_obj.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only leaders and co-leaders can delete files')
+        file_obj.is_deleted = True
+        file_obj.deletion_timestamp = timezone.now()
+        file_obj.save(update_fields=['is_deleted', 'deletion_timestamp'])
+        ProjectTrash.objects.update_or_create(
+            original_file=file_obj,
+            defaults={
+                'project': file_obj.project,
+                'deleted_by': request.user,
+                'deletion_timestamp': timezone.now(),
+                'scheduled_purge_date': timezone.now() + timedelta(days=14),
+            },
+        )
+        self._create_activity(file_obj, ProjectFileActivityLog.ActionType.DELETED, {'deleted_by': request.user.id})
+        create_notification(
+            recipients=_project_members(file_obj.project).values_list('user', flat=True),
+            notification_type=Notification.Type.FILE_DELETED,
+            title='File deleted',
+            message=f'{request.user.get_full_name() or request.user.username} deleted "{file_obj.display_name}" from {file_obj.project.title}.',
+            project=file_obj.project,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectFileVersionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProjectFileVersionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ProjectFileVersion.objects.select_related('parent_file', 'uploader', 'parent_file__project')
+        file_id = self.request.query_params.get('file')
+        if file_id:
+            queryset = queryset.filter(parent_file_id=file_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(parent_file__project__supervisor=user)
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(parent_file__project_id__in=member_project_ids)
+
+
+class ProjectFileActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProjectFileActivityLogSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ProjectFileActivityLog.objects.select_related('project', 'file', 'actor')
+        project_id = self.request.query_params.get('project')
+        file_id = self.request.query_params.get('file')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if file_id:
+            queryset = queryset.filter(file_id=file_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+
+class ProjectTrashViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectTrashSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ProjectTrash.objects.select_related('project', 'original_file', 'deleted_by', 'original_file__uploaded_by')
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        trash_entry = self.get_object()
+        file_obj = trash_entry.original_file
+        if not _member_is_leadership(file_obj.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            raise PermissionDenied('Only project leaders can restore files')
+        file_obj.is_deleted = False
+        file_obj.deletion_timestamp = None
+        file_obj.save(update_fields=['is_deleted', 'deletion_timestamp'])
+        trash_entry.delete()
+        ProjectFileActivityLog.objects.create(
+            project=file_obj.project,
+            file=file_obj,
+            actor=request.user,
+            action_type=ProjectFileActivityLog.ActionType.RESTORED,
+            metadata={'restored_by': request.user.id},
+        )
+        create_notification(
+            recipients=_project_members(file_obj.project).values_list('user', flat=True),
+            notification_type=Notification.Type.FILE_RESTORED,
+            title='File restored',
+            message=f'{request.user.get_full_name() or request.user.username} restored "{file_obj.display_name}" in {file_obj.project.title}.',
+            project=file_obj.project,
+        )
+        return Response({'message': 'File restored'})
 
 
 class InvitationViewSet(viewsets.ModelViewSet):

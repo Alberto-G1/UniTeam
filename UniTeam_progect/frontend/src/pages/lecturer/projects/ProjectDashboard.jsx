@@ -44,6 +44,7 @@ export const ProjectDashboard = () => {
           <p className="project-status">Status: {project.status}</p>
         </div>
         <div className="header-actions">
+          <Link to={`/lecturer/files?project=${id}`} className="btn btn-secondary">Open File Library</Link>
           <span className="btn btn-secondary">Supervisor View</span>
         </div>
       </div>

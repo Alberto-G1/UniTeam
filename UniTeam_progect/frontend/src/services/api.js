@@ -365,6 +365,92 @@ export const taskAPI = {
   },
 };
 
+export const projectFilesAPI = {
+  listFolders: async (params = {}) => {
+    const response = await api.get('/file-folders/', { params });
+    return response.data;
+  },
+
+  createFolder: async (folderData) => {
+    const response = await api.post('/file-folders/', folderData);
+    return response.data;
+  },
+
+  updateFolder: async (id, folderData) => {
+    const response = await api.put(`/file-folders/${id}/`, folderData);
+    return response.data;
+  },
+
+  deleteFolder: async (id) => {
+    const response = await api.delete(`/file-folders/${id}/`);
+    return response.data;
+  },
+
+  listFiles: async (params = {}) => {
+    const response = await api.get('/project-files/', { params });
+    return response.data;
+  },
+
+  getFile: async (id) => {
+    const response = await api.get(`/project-files/${id}/`);
+    return response.data;
+  },
+
+  createFile: async (formData) => {
+    const response = await api.post('/project-files/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  uploadVersion: async (id, formData) => {
+    const response = await api.post(`/project-files/${id}/upload_version/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  startVersionLock: async (id) => {
+    const response = await api.post(`/project-files/${id}/start_version_lock/`);
+    return response.data;
+  },
+
+  moveFolder: async (id, folderId) => {
+    const response = await api.post(`/project-files/${id}/move_folder/`, { folder_id: folderId });
+    return response.data;
+  },
+
+  rename: async (id, displayName) => {
+    const response = await api.post(`/project-files/${id}/rename/`, { display_name: displayName });
+    return response.data;
+  },
+
+  deleteFile: async (id) => {
+    const response = await api.delete(`/project-files/${id}/`);
+    return response.data;
+  },
+
+  listVersions: async (params = {}) => {
+    const response = await api.get('/project-file-versions/', { params });
+    return response.data;
+  },
+
+  listActivity: async (params = {}) => {
+    const response = await api.get('/project-file-activity/', { params });
+    return response.data;
+  },
+
+  listTrash: async (params = {}) => {
+    const response = await api.get('/project-trash/', { params });
+    return response.data;
+  },
+
+  restoreTrash: async (id) => {
+    const response = await api.post(`/project-trash/${id}/restore/`);
+    return response.data;
+  },
+};
+
 // Team Memberships API
 export const teamMembershipsAPI = {
   list: async () => {
