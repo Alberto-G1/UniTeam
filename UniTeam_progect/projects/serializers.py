@@ -334,6 +334,13 @@ class ProjectFileSerializer(serializers.ModelSerializer):
         url = version.stored_file.url
         return request.build_absolute_uri(url) if request else url
 
+    def validate(self, attrs):
+        project = attrs.get('project') or getattr(self.instance, 'project', None)
+        linked_task = attrs.get('linked_task') or getattr(self.instance, 'linked_task', None)
+        if linked_task and project and linked_task.project_id != project.id:
+            raise serializers.ValidationError({'linked_task_id': 'Linked task must belong to the selected project.'})
+        return attrs
+
 
 class TaskSerializer(serializers.ModelSerializer):
     project = ProjectSerializer(read_only=True)

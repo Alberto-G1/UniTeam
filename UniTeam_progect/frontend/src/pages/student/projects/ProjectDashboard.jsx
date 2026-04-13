@@ -15,6 +15,8 @@ export const ProjectDashboard = () => {
   const [milestones, setMilestones] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [projectInvitations, setProjectInvitations] = useState([]);
+  const [recentFiles, setRecentFiles] = useState([]);
+  const [submissionChecklist, setSubmissionChecklist] = useState(null);
   const [invitationFilter, setInvitationFilter] = useState('ALL');
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,13 @@ export const ProjectDashboard = () => {
       const members = teamRes?.members || [];
       setTeamMembers(members);
 
+      const [recentFilesRes, checklistRes] = await Promise.all([
+        projectsAPI.getRecentFiles(id),
+        projectsAPI.getSubmissionChecklist(id),
+      ]);
+      setRecentFiles(Array.isArray(recentFilesRes) ? recentFilesRes : []);
+      setSubmissionChecklist(checklistRes || null);
+
       const requesterMembership = members.find((member) => member.user?.id === user?.id);
       if (requesterMembership && ['LEADER', 'CO_LEADER'].includes(requesterMembership.role)) {
         await loadInvitations();
@@ -154,9 +163,13 @@ export const ProjectDashboard = () => {
     try {
       const data = await projectsAPI.submitProject(id);
       setProject((prev) => ({ ...prev, lifecycle_status: data.lifecycle_status }));
+      setSubmissionChecklist(data.submission_checklist || null);
       showToast('success', 'Project Submitted', 'Project has been submitted successfully');
     } catch (err) {
       const msg = err?.response?.data?.error || 'Could not submit project';
+      if (err?.response?.data?.submission_checklist) {
+        setSubmissionChecklist(err.response.data.submission_checklist);
+      }
       showToast('error', 'Submit Failed', msg);
     } finally {
       setActionLoading(false);
@@ -415,6 +428,38 @@ export const ProjectDashboard = () => {
               <p className="quick-stat-value">{milestones.length}</p>
             </div>
           </div>
+        </div>
+
+        <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
+          <h2>Submission Checklist</h2>
+          <p style={{ marginBottom: '0.6rem' }}>
+            {submissionChecklist?.final_file_label || 'At least one file tagged as Final must exist in File Library.'}
+          </p>
+          <span className={`status-badge ${submissionChecklist?.final_file_uploaded ? 'status-completed' : 'status-pending'}`}>
+            {submissionChecklist?.final_file_uploaded ? 'Final file requirement met' : 'Final file requirement pending'}
+          </span>
+        </div>
+
+        <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
+          <div className="section-heading-row">
+            <h2>Recent Files</h2>
+            <Link to={`/student/files?project=${id}`} className="btn btn-secondary">Open Library</Link>
+          </div>
+          {recentFiles.length > 0 ? (
+            <div className="team-grid">
+              {recentFiles.map((file) => (
+                <div key={file.id} className="member-card">
+                  <div className="member-details">
+                    <h3>{file.display_name}</h3>
+                    <p className="email">{file.tag} · v{file.current_version_number} · {file.folder?.name || 'General'}</p>
+                    <p className="email">{file.uploaded_by?.username || 'Unknown'} · {file.current_version_file?.upload_timestamp ? new Date(file.current_version_file.upload_timestamp).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No recent file activity yet.</p>
+          )}
         </div>
 
         <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>

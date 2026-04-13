@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AILES — Internship Management</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   DESIGN TOKENS — Triadic: Teal · Amber · Indigo
+══════════════════════════════════════════ */
+:root {
+  /* Teal/Green (primary brand) */
+  --t900: #0D3D2E; --t800: #155E44; --t700: #1A7A57; --t600: #22916A;
+  --t500: #2DAF83; --t400: #45C99A; --t300: #74DBBA; --t200: #A8EDDB;
+  --t100: #D4F7EE; --t50: #EDFBF7;
+
+  /* Amber/Orange (accent) */
+  --a900: #7A3000; --a800: #AA4500; --a700: #C05500; --a600: #D96B0E;
+  --a500: #F08C30; --a400: #F5A855; --a300: #FAC27D; --a100: #FEF0DC; --a50: #FFF8EF;
+
+  /* Indigo/Blue (secondary) */
+  --i900: #1A1F5E; --i800: #252C82; --i700: #2F3DAA; --i600: #3D51C8;
+  --i500: #5569E0; --i400: #7389EA; --i300: #9BACE F; --i200: #C0CCF5;
+  --i100: #E0E5FB; --i50: #F0F3FF;
+
+  /* Semantic */
+  --success: var(--t500); --warning: var(--a500); --danger: #E84545; --danger-l: #FDEAEA;
+  --violet: #7C3AED; --violet-l: #EDE9FE;
+
+  /* Surfaces — Light */
+  --bg: #F0F2F8;
+  --surface: #FFFFFF;
+  --surface2: #F6F7FC;
+  --surface3: #ECEEF7;
+  --border: rgba(55,65,120,0.08);
+  --border2: rgba(55,65,120,0.15);
+  --glass: rgba(255,255,255,0.7);
+
+  /* Text */
+  --tx1: #0D1020; --tx2: #3D4466; --tx3: #8A90B4;
+
+  /* Sidebar */
+  --sb-w: 264px;
+  --sb-bg: #27573a;
+  --sb-surface: rgba(255,255,255,0.04);
+  --sb-border: rgba(255,255,255,0.07);
+  --sb-tx: rgba(243, 236, 236, 0.45);
+  --sb-tx-act: #FFFFFF;
+  --sb-hover: #316c60;
+
+  /* Topbar */
+  --tb-h: 64px;
+
+  /* Radii */
+  --r: 10px; --rl: 14px; --rxl: 20px;
+
+  /* Shadows */
+  --sh: 0 1px 3px rgba(13,16,32,.05), 0 4px 18px rgba(13,16,32,.06);
+  --shl: 0 8px 30px rgba(13,16,32,.10);
+  --shxl: 0 20px 60px rgba(13,16,32,.16);
+
+  /* Typography */
+  --font: 'DM Sans', sans-serif;
+  --serif: 'Fraunces', serif;
+
+  /* Motion */
+  --ease: cubic-bezier(.4,0,.2,1);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --bounce: cubic-bezier(.2,1.3,.4,1);
+}
+
+[data-theme="dark"] {
+  --bg: #0C0F1E;
+  --surface: #141829;
+  --surface2: #1A1F33;
+  --surface3: #1F2540;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --glass: rgba(20,24,41,0.8);
+
+  --tx1: #EEF0FF; --tx2: #8A90B4; --tx3: #4D5480;
+
+  --sb-bg: #080B18;
+  --t50: rgba(45,175,131,0.08); --t100: rgba(45,175,131,0.14);
+  --a50: rgba(240,140,48,0.08); --a100: rgba(240,140,48,0.14);
+  --i50: rgba(85,105,224,0.08); --i100: rgba(85,105,224,0.14);
+  --danger-l: rgba(232,69,69,0.12);
+  --violet-l: rgba(124,58,237,0.12);
+
+  --sh: 0 1px 3px rgba(0,0,0,.25), 0 4px 18px rgba(0,0,0,.2);
+  --shl: 0 8px 30px rgba(0,0,0,.35);
+  --shxl: 0 20px 60px rgba(0,0,0,.5);
+}
+
+/* ══ RESET & BASE ══ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--tx1); overflow-x: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+button { cursor: pointer; font-family: var(--font); border: none; background: none; }
+a { text-decoration: none; color: inherit; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ══ LAYOUT ══ */
+.shell { display: flex; min-height: 100vh; }
+
+/* ════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════ */
+.sidebar {
+  width: var(--sb-w);
+  background: var(--sb-bg);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
+  border-right: 1px solid var(--sb-border);
+  transition: transform .3s var(--ease);
+  overflow: hidden;
+}
+
+/* Subtle mesh background */
+.sidebar::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 200px 200px at 20% 10%, rgba(45,175,131,0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 180px 180px at 80% 70%, rgba(85,105,224,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 150px 150px at 50% 40%, rgba(240,140,48,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.sidebar > * { position: relative; z-index: 1; }
+
+/* Logo */
+.sb-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--sb-border);
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.sb-logom {
+  width: 38px; height: 38px;
+  background: linear-gradient(145deg, var(--t600), var(--t400));
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(45,175,131,0.35);
+  flex-shrink: 0;
+}
+.sb-logom svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sb-brand { line-height: 1; }
+.sb-brand-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+.sb-brand-sub { font-size: 9.5px; color: rgba(255,255,255,0.28); letter-spacing: 1.4px; text-transform: uppercase; margin-top: 2.5px; }
+
+/* Role pill */
+.sb-role {
+  margin: 12px 14px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; gap: 9px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.sb-role:hover { background: rgba(255,255,255,0.09); }
+.sb-role-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background .3s; }
+.sb-role-info { flex: 1; min-width: 0; }
+.sb-role-name { font-size: 11.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-role-sub { font-size: 10px; color: rgba(255,255,255,0.30); margin-top: 1px; }
+.sb-role-arr { color: rgba(255,255,255,0.25); font-size: 12px; flex-shrink: 0; }
+
+/* Navigation */
+.sb-nav { flex: 1; overflow-y: auto; padding: 6px 10px 8px; scrollbar-width: none; }
+.sb-nav::-webkit-scrollbar { display: none; }
+
+.sb-section { margin-bottom: 2px; }
+.sb-sec-lbl {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.8px; text-transform: uppercase;
+  color: rgba(255,255,255,0.18);
+  padding: 12px 10px 4px;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  color: var(--sb-tx);
+  font-size: 12.5px; font-weight: 400;
+  transition: all .18s var(--ease);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.sb-item::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--sb-hover);
+  opacity: 0;
+  transition: opacity .18s;
+  border-radius: 9px;
+}
+.sb-item:hover::before { opacity: 1; }
+.sb-item:hover { color: rgba(255,255,255,0.85); transform: translateX(2px); }
+
+.sb-item.act {
+  color: var(--sb-tx-act);
+  font-weight: 500;
+}
+.sb-item.act::before {
+  background: rgba(45,175,131,0.14);
+  opacity: 1;
+}
+.sb-item.act::after {
+  content: '';
+  position: absolute; left: 0; top: 20%; height: 60%;
+  width: 3px; background: var(--t400);
+  border-radius: 0 3px 3px 0;
+}
+
+.sb-icon {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.05);
+  flex-shrink: 0;
+  transition: background .18s;
+}
+.sb-item.act .sb-icon { background: rgba(45,175,131,0.2); }
+.sb-icon svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.sb-item-lbl { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sb-badge {
+  font-size: 9.5px; font-weight: 700;
+  padding: 1.5px 6.5px; border-radius: 99px;
+  flex-shrink: 0; min-width: 18px; text-align: center;
+  line-height: 1.6;
+}
+.sb-badge.t { background: var(--t600); color: #fff; }
+.sb-badge.a { background: var(--a600); color: #fff; }
+.sb-badge.i { background: var(--i600); color: #fff; }
+.sb-badge.r { background: var(--danger); color: #fff; }
+
+/* Sidebar footer */
+.sb-footer {
+  padding: 10px 10px;
+  border-top: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+.sb-user {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .18s;
+}
+.sb-user:hover { background: var(--sb-hover); }
+.sb-av {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+.sb-av-dot {
+  position: absolute; bottom: -1px; right: -1px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #22C55E;
+  border: 2px solid var(--sb-bg);
+}
+.sb-user-name { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+.sb-cog { color: rgba(255,255,255,0.25); padding: 4px; border-radius: 6px; margin-left: auto; transition: all .15s; flex-shrink: 0; }
+.sb-cog:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sb-cog svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+
+/* ════════════════════════════════════
+   TOPBAR
+════════════════════════════════════ */
+.main { margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+.topbar {
+  height: var(--tb-h);
+  background: var(--glass);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px 0 28px; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.tb-page-info { flex: 1; min-width: 0; }
+.tb-breadcrumb {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10.5px; color: var(--tx3); margin-bottom: 1px;
+}
+.tb-breadcrumb svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-title { font-size: 15px; font-weight: 600; color: var(--tx1); letter-spacing: -0.3px; }
+
+/* Search */
+.tb-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 14px;
+  width: 220px;
+  transition: all .22s;
+}
+.tb-search:focus-within {
+  width: 260px;
+  border-color: var(--t400);
+  box-shadow: 0 0 0 3px rgba(45,175,131,0.12);
+  background: var(--surface);
+}
+.tb-search svg { width: 13px; height: 13px; stroke: var(--tx3); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.tb-search input { background: none; border: none; outline: none; font-size: 12.5px; color: var(--tx1); font-family: var(--font); width: 100%; }
+.tb-search input::placeholder { color: var(--tx3); }
+
+/* Icon buttons */
+.tb-actions { display: flex; align-items: center; gap: 6px; }
+.tb-icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--tx2); position: relative;
+  transition: all .18s;
+}
+.tb-icon-btn:hover { background: var(--t50); border-color: var(--t200); color: var(--t700); }
+.tb-icon-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-notif-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); border: 1.5px solid var(--surface); }
+
+/* New log button */
+.tb-cta {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--t700), var(--t500));
+  color: #fff;
+  border-radius: 10px;
+  font-size: 12.5px; font-weight: 600;
+  transition: all .2s var(--ease);
+  box-shadow: 0 2px 10px rgba(22,122,87,0.28);
+  white-space: nowrap;
+}
+.tb-cta:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(22,122,87,0.38); }
+.tb-cta svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* User trigger */
+.tb-user-trigger {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer; user-select: none;
+  transition: all .2s; position: relative;
+}
+.tb-user-trigger:hover { border-color: var(--border2); background: var(--surface); }
+.tb-uav {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+  flex-shrink: 0; position: relative;
+}
+.tb-uav-dot { position: absolute; bottom: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: #22C55E; border: 2px solid var(--surface); }
+.tb-uname { font-size: 12px; font-weight: 600; color: var(--tx1); line-height: 1.2; white-space: nowrap; }
+.tb-urole { font-size: 10.5px; color: var(--tx3); line-height: 1.2; }
+.tb-chev { color: var(--tx3); transition: transform .2s; }
+.tb-chev svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.tb-user-trigger.open .tb-chev { transform: rotate(180deg); }
+
+/* ════════════════════════════════════
+   USER DROPDOWN
+════════════════════════════════════ */
+.user-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 268px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--rxl);
+  box-shadow: var(--shxl);
+  opacity: 0; visibility: hidden;
+  transform: translateY(-8px) scale(.96);
+  transition: all .22s var(--ease);
+  z-index: 500; overflow: hidden;
+}
+.user-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+.ud-head {
+  padding: 16px 16px 14px;
+  background: linear-gradient(145deg, var(--t50), var(--i50));
+  border-bottom: 1px solid var(--border);
+}
+.ud-av-wrap { position: relative; width: 50px; margin-bottom: 10px; }
+.ud-av {
+  width: 50px; height: 50px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+}
+.ud-av-ring { position: absolute; inset: -3px; border-radius: 17px; border: 2px solid var(--t400); opacity: .4; }
+.ud-av-online { position: absolute; bottom: 1px; right: 1px; width: 12px; height: 12px; border-radius: 50%; background: #22C55E; border: 2px solid var(--surface); }
+.ud-name { font-size: 14px; font-weight: 700; color: var(--tx1); margin-bottom: 2px; }
+.ud-email { font-size: 11px; color: var(--tx3); margin-bottom: 8px; }
+.ud-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.ud-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2.5px 8px; border-radius: 99px;
+  font-size: 10px; font-weight: 600;
+}
+
+.ud-body { padding: 6px; }
+.ud-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 9px; border-radius: 9px;
+  font-size: 12.5px; color: var(--tx2);
+  cursor: pointer; transition: all .14s;
+}
+.ud-item:hover { background: var(--surface2); color: var(--tx1); }
+.ud-iico {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); flex-shrink: 0;
+  transition: background .14s;
+}
+.ud-item:hover .ud-iico { background: var(--t50); }
+.ud-iico svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ud-lbl { flex: 1; }
+.ud-arr { font-size: 12px; color: var(--tx3); }
+.ud-sep { height: 1px; background: var(--border); margin: 3px 6px; }
+.ud-so { color: var(--danger) !important; }
+.ud-so:hover { background: var(--danger-l) !important; }
+.ud-so .ud-iico { background: var(--danger-l) !important; }
+
+.ud-foot {
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  padding: 8px 10px;
+}
+.ud-theme-row { display: flex; align-items: center; justify-content: space-between; }
+.ud-theme-lbl { font-size: 11.5px; color: var(--tx3); }
+.ud-theme-sw { display: flex; gap: 2px; background: var(--border); border-radius: 8px; padding: 2px; }
+.ud-theme-opt {
+  padding: 3px 10px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 500; color: var(--tx3);
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 3px;
+}
+.ud-theme-opt svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ud-theme-opt.act { background: var(--surface); color: var(--tx1); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+/* ════════════════════════════════════
+   CONTENT AREA
+════════════════════════════════════ */
+.content { flex: 1; padding: 24px 28px; }
+
+.view { display: none; }
+.view.act { display: block; animation: fadeUp .35s var(--ease) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Role switcher tabs */
+.role-tabs {
+  display: flex; gap: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 4px;
+  margin-bottom: 22px;
+  width: fit-content;
+  box-shadow: var(--sh);
+}
+.role-tab {
+  padding: 7px 18px;
+  border-radius: 10px;
+  font-size: 12px; font-weight: 500;
+  color: var(--tx2);
+  cursor: pointer; transition: all .2s var(--ease);
+}
+.role-tab.act { background: var(--t700); color: #fff; box-shadow: 0 2px 8px rgba(22,122,87,0.25); }
+.role-tab:not(.act):hover { background: var(--surface2); color: var(--tx1); }
+
+/* ═══ GREETING BANNER ═══ */
+.greeting {
+  border-radius: var(--rxl);
+  padding: 28px 32px;
+  margin-bottom: 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  position: relative; overflow: hidden;
+}
+.greeting-txt { position: relative; z-index: 1; }
+.greeting-eyebrow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  margin-bottom: 6px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22C55E;
+  display: inline-block;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+.greeting-title {
+  font-family: var(--serif);
+  font-size: clamp(20px, 2.5vw, 27px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+.greeting-sub { font-size: 13px; max-width: 440px; line-height: 1.55; }
+
+.greeting-stats { display: flex; gap: 24px; margin-top: 18px; flex-wrap: wrap; }
+.gs-item { }
+.gs-num { font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.gs-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; opacity: .6; }
+
+.greeting-art { flex-shrink: 0; position: relative; z-index: 1; }
+.greeting-art svg { width: 80px; height: 80px; }
+
+/* Admin greeting */
+.greeting-admin {
+  background: linear-gradient(135deg, #0F1635 0%, #1A2D5A 50%, #162840 100%);
+  color: #fff;
+}
+.greeting-admin::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 280px 180px at 80% 50%, rgba(45,175,131,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 200px 200px at 20% 80%, rgba(85,105,224,0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Workplace greeting */
+.greeting-workplace {
+  background: linear-gradient(135deg, #1A1050 0%, #2C1A6E 50%, #1A2A5E 100%);
+  color: #fff;
+}
+.greeting-workplace::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 280px 200px at 90% 40%, rgba(85,105,224,0.2) 0%, transparent 60%),
+    radial-gradient(ellipse 200px 180px at 10% 80%, rgba(45,175,131,0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Academic greeting */
+.greeting-academic {
+  background: linear-gradient(135deg, #2A0A5E 0%, #1A1050 50%, #0F1635 100%);
+  color: #fff;
+}
+.greeting-academic::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 260px 180px at 85% 45%, rgba(124,58,237,0.2) 0%, transparent 60%),
+    radial-gradient(ellipse 220px 200px at 15% 70%, rgba(240,140,48,0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Student greeting */
+.greeting-student {
+  background: linear-gradient(135deg, #0A2B1A 0%, #0F3522 50%, #0A2520 100%);
+  color: #fff;
+}
+.greeting-student::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 280px 200px at 85% 40%, rgba(45,175,131,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 200px 180px at 15% 80%, rgba(240,140,48,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ═══ METRIC CARDS ═══ */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-bottom: 22px; }
+
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 18px 18px 16px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh);
+  cursor: default;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.metric:hover { transform: translateY(-3px); box-shadow: var(--shl); }
+.metric::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--rl) var(--rl) 0 0;
+}
+.metric::after {
+  content: '';
+  position: absolute; bottom: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  opacity: .06;
+  transition: opacity .25s;
+}
+.metric:hover::after { opacity: .1; }
+
+.m-teal::before { background: linear-gradient(90deg, var(--t700), var(--t400)); }
+.m-teal::after { background: var(--t500); }
+.m-amber::before { background: linear-gradient(90deg, var(--a700), var(--a400)); }
+.m-amber::after { background: var(--a500); }
+.m-indigo::before { background: linear-gradient(90deg, var(--i700), var(--i400)); }
+.m-indigo::after { background: var(--i500); }
+.m-danger::before { background: linear-gradient(90deg, #C0392B, #EF4444); }
+.m-danger::after { background: #EF4444; }
+.m-violet::before { background: linear-gradient(90deg, var(--violet), #A855F7); }
+.m-violet::after { background: var(--violet); }
+
+.m-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.m-icon svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.m-teal .m-icon { background: var(--t100); color: var(--t700); }
+.m-amber .m-icon { background: var(--a100); color: var(--a700); }
+.m-indigo .m-icon { background: var(--i100); color: var(--i700); }
+.m-danger .m-icon { background: var(--danger-l); color: var(--danger); }
+.m-violet .m-icon { background: var(--violet-l); color: var(--violet); }
+
+.m-label { font-size: 10.5px; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
+.m-value { font-size: 28px; font-weight: 700; color: var(--tx1); letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.m-delta { font-size: 11.5px; margin-top: 6px; display: flex; align-items: center; gap: 3px; }
+.m-delta svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.delta-up { color: var(--t600); }
+.delta-dn { color: var(--danger); }
+.delta-nt { color: var(--tx3); }
+
+/* ═══ CARD ═══ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--tx1); }
+.card-sub { font-size: 11.5px; color: var(--tx3); margin-top: 1px; }
+.card-link { font-size: 12px; color: var(--t600); font-weight: 500; cursor: pointer; transition: color .14s; white-space: nowrap; }
+.card-link:hover { color: var(--t800); }
+.card-body { padding: 14px 18px; }
+.card-body-flush { }
+
+/* ═══ GRID LAYOUTS ═══ */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.g3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.g4 { display: grid; grid-template-columns: 3fr 1fr; gap: 14px; margin-bottom: 14px; }
+.g31 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+/* ═══ TABLE ═══ */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size: 9.5px; font-weight: 700; color: var(--tx3);
+  text-transform: uppercase; letter-spacing: .8px;
+  padding: 8px 14px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2); white-space: nowrap;
+}
+.data-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--tx1); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background .12s; }
+.data-table tbody tr:hover td { background: var(--surface2); }
+.td-mono { font-family: 'Courier New', monospace; font-size: 11.5px; color: var(--tx2); }
+.td-bold { font-weight: 600; }
+
+/* ═══ STATUS BADGES ═══ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 99px;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.bdg-t { background: var(--t100); color: var(--t800); } .bdg-t::before { background: var(--t600); }
+.bdg-a { background: var(--a100); color: var(--a800); } .bdg-a::before { background: var(--a600); }
+.bdg-i { background: var(--i100); color: var(--i700); } .bdg-i::before { background: var(--i600); }
+.bdg-r { background: var(--danger-l); color: var(--danger); } .bdg-r::before { background: var(--danger); }
+.bdg-v { background: var(--violet-l); color: var(--violet); } .bdg-v::before { background: var(--violet); }
+
+/* ═══ PROGRESS BARS ═══ */
+.prog-row { margin-bottom: 12px; }
+.prog-row:last-child { margin-bottom: 0; }
+.prog-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.prog-label { font-size: 12px; font-weight: 500; color: var(--tx2); }
+.prog-val { font-size: 12px; font-weight: 700; color: var(--tx1); font-variant-numeric: tabular-nums; }
+.prog-track { background: var(--surface2); border-radius: 99px; height: 7px; overflow: hidden; border: 1px solid var(--border); }
+.prog-fill { height: 100%; border-radius: 99px; transition: width 1s var(--ease); }
+
+/* ═══ PERSON ROW ═══ */
+.person-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.person-row:last-child { border-bottom: none; }
+.person-av { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.person-name { font-size: 12.5px; font-weight: 600; color: var(--tx1); }
+.person-sub { font-size: 11px; color: var(--tx3); margin-top: 1px; }
+.person-score { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ═══ NOTIFICATION ROW ═══ */
+.notif { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.notif:last-child { border-bottom: none; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.notif-text { font-size: 12.5px; color: var(--tx1); line-height: 1.45; }
+.notif-time { font-size: 10.5px; color: var(--tx3); margin-top: 2px; }
+
+/* ═══ STAR RATING ═══ */
+.star-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.star-row:last-child { border-bottom: none; }
+.star-label { flex: 1; font-size: 12.5px; color: var(--tx1); }
+.stars { display: flex; gap: 2px; }
+.star { font-size: 15px; cursor: pointer; transition: transform .1s var(--spring); color: var(--a400); }
+.star.empty { color: var(--border2); }
+.star:hover { transform: scale(1.25); }
+.star-val { font-size: 11.5px; color: var(--tx3); min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ═══ TIMELINE ═══ */
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ''; position: absolute; left: 5px; top: 5px; bottom: 5px; width: 1.5px; background: var(--border2); border-radius: 1px; }
+.tl-item { position: relative; margin-bottom: 14px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-dot { position: absolute; left: -20px; top: 4px; width: 11px; height: 11px; border-radius: 50%; border: 2.5px solid var(--surface); box-shadow: 0 0 0 1.5px var(--border2); flex-shrink: 0; }
+.tl-text { font-size: 12px; color: var(--tx2); line-height: 1.5; }
+.tl-text strong { color: var(--tx1); font-weight: 600; }
+.tl-time { font-size: 10.5px; color: var(--tx3); margin-top: 1px; }
+
+/* ═══ BUTTONS ═══ */
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500; transition: all .17s; font-family: var(--font); }
+.btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn-primary { background: var(--t700); color: #fff; box-shadow: 0 2px 8px rgba(22,122,87,0.2); } .btn-primary:hover { background: var(--t800); transform: translateY(-1px); }
+.btn-amber { background: var(--a600); color: #fff; } .btn-amber:hover { opacity:.9; transform:translateY(-1px); }
+.btn-indigo { background: var(--i600); color: #fff; } .btn-indigo:hover { opacity:.9; transform:translateY(-1px); }
+.btn-outline { background: transparent; color: var(--tx2); border: 1px solid var(--border2); } .btn-outline:hover { background: var(--surface2); color: var(--tx1); }
+.btn-sm { padding: 4px 10px; font-size: 11.5px; }
+.btn-danger { background: var(--danger-l); color: var(--danger); } .btn-danger:hover { background: var(--danger); color: #fff; }
+
+/* ═══ WEEK TIMELINE PILLS ═══ */
+.week-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+.week-pill {
+  aspect-ratio: 1; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s var(--spring);
+}
+.week-pill:hover { transform: scale(1.1); }
+.wp-done { background: var(--t100); color: var(--t800); }
+.wp-late { background: var(--a100); color: var(--a800); }
+.wp-miss { background: var(--danger-l); color: var(--danger); }
+.wp-curr { background: var(--t700); color: #fff; box-shadow: 0 2px 8px rgba(22,122,87,0.35); }
+.wp-todo { background: var(--surface2); color: var(--tx3); }
+
+/* ═══ STAGGERED ANIMATIONS ═══ */
+.stagger > * { opacity: 0; animation: fadeUp .4s var(--ease) both; }
+.stagger > *:nth-child(1) { animation-delay: .05s; }
+.stagger > *:nth-child(2) { animation-delay: .10s; }
+.stagger > *:nth-child(3) { animation-delay: .15s; }
+.stagger > *:nth-child(4) { animation-delay: .20s; }
+.stagger > *:nth-child(5) { animation-delay: .25s; }
+.stagger > *:nth-child(6) { animation-delay: .30s; }
+
+/* ═══ SCORE RING ═══ */
+.score-ring-wrap { display: flex; align-items: center; justify-content: center; padding: 16px 0; }
+.score-ring { position: relative; width: 110px; height: 110px; }
+.score-ring svg { width: 110px; height: 110px; transform: rotate(-90deg); }
+.score-ring-bg { fill: none; stroke: var(--surface2); stroke-width: 8; }
+.score-ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.2s var(--ease); }
+.score-ring-label {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.score-ring-num { font-size: 24px; font-weight: 700; color: var(--tx1); font-variant-numeric: tabular-nums; line-height: 1; }
+.score-ring-sub { font-size: 9.5px; color: var(--tx3); text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+
+/* ═══ ACTIVITY CHART (CSS bar chart) ═══ */
+.mini-chart { display: flex; align-items: flex-end; gap: 4px; height: 60px; }
+.mc-bar { flex: 1; border-radius: 4px 4px 0 0; transition: opacity .2s; min-height: 4px; }
+.mc-bar:hover { opacity: .75; }
+
+/* ═══ HIGHLIGHT CHIP ═══ */
+.info-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 99px;
+  font-size: 11.5px; font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--tx2);
+}
+.info-chip svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══ MOBILE MENU ═══ */
+.mobile-toggle {
+  display: none;
+  position: fixed; bottom: 20px; right: 20px; z-index: 300;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--t700);
+  box-shadow: 0 4px 16px rgba(22,122,87,0.38);
+  align-items: center; justify-content: center;
+}
+.mobile-toggle svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ══════════════════
+   RESPONSIVE
+══════════════════ */
+@media (max-width: 1200px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 960px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .mobile-toggle { display: flex; }
+  .g2, .g3, .g4, .g31 { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .tb-search { width: 140px; }
+}
+@media (max-width: 600px) {
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .greeting { flex-direction: column; align-items: flex-start; }
+  .greeting-art { display: none; }
+  .role-tabs { flex-wrap: wrap; }
+  .role-tab { font-size: 11px; padding: 6px 12px; }
+  .content { padding: 16px 16px; }
+  .topbar { padding: 0 16px; }
+  .tb-uname, .tb-urole { display: none; }
+  .tb-cta span { display: none; }
+}
+
+/* ══ OVERLAY ══ */
+#overlay { position: fixed; inset: 0; z-index: 400; display: none; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logom">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="sb-brand">
+      <div class="sb-brand-name">AILES</div>
+      <div class="sb-brand-sub">Internship System · v2.4</div>
+    </div>
+  </div>
+
+  <div class="sb-role" onclick="cycleRole()">
+    <div class="sb-role-dot" id="sb-dot"></div>
+    <div class="sb-role-info">
+      <div class="sb-role-name" id="sb-role-name">System Administrator</div>
+      <div class="sb-role-sub">Click to switch role</div>
+    </div>
+    <div class="sb-role-arr">⇅</div>
+  </div>
+
+  <nav class="sb-nav" id="sb-nav"></nav>
+
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av"><span id="sb-av-txt">AD</span><div class="sb-av-dot"></div></div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-user-name" id="sb-uname">Admin User</div>
+        <div class="sb-user-role" id="sb-urole">Administrator</div>
+      </div>
+      <button class="sb-cog">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════
+     MAIN
+══════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-page-info">
+      <div class="tb-breadcrumb">
+        <span>AILES</span>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        <span id="tb-crumb">Dashboard</span>
+      </div>
+      <div class="tb-title" id="tb-title">Overview</div>
+    </div>
+
+    <div class="tb-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search interns, logs…">
+    </div>
+
+    <div class="tb-actions">
+      <button class="tb-icon-btn" title="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div class="tb-notif-dot"></div>
+      </button>
+      <button class="tb-icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+        <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <button class="tb-cta">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>New Log</span>
+      </button>
+
+      <!-- User Dropdown -->
+      <div class="tb-user-trigger" id="user-trigger" onclick="toggleDropdown()">
+        <div class="tb-uav" id="tb-uav"><span id="tb-av-txt">AD</span><div class="tb-uav-dot"></div></div>
+        <div>
+          <div class="tb-uname" id="tb-uname">Admin User</div>
+          <div class="tb-urole" id="tb-urole">Administrator</div>
+        </div>
+        <div class="tb-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="ud-head">
+            <div class="ud-av-wrap">
+              <div class="ud-av" id="ud-av"><span id="ud-av-txt">AD</span></div>
+              <div class="ud-av-ring"></div>
+              <div class="ud-av-online"></div>
+            </div>
+            <div class="ud-name" id="ud-name">Admin User</div>
+            <div class="ud-email" id="ud-email">admin@ailes.edu</div>
+            <div class="ud-chips">
+              <span class="ud-chip bdg-t" id="ud-chip">Administrator</span>
+              <span class="ud-chip bdg-i" style="display:none" id="ud-chip2">Online</span>
+            </div>
+          </div>
+          <div class="ud-body">
+            <div class="ud-item">
+              <div class="ud-iico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <span class="ud-lbl">My Profile</span><span class="ud-arr">›</span>
+            </div>
+            <div class="ud-item">
+              <div class="ud-iico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+              <span class="ud-lbl">Account Settings</span><span class="ud-arr">›</span>
+            </div>
+            <div class="ud-item">
+              <div class="ud-iico"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+              <span class="ud-lbl">Notifications</span>
+              <span class="badge bdg-r" style="font-size:9.5px;padding:1px 6px">5</span>
+            </div>
+          </div>
+          <div class="ud-sep"></div>
+          <div class="ud-body" style="padding-top:4px;padding-bottom:4px">
+            <div class="ud-item ud-so">
+              <div class="ud-iico"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+              <span class="ud-lbl">Sign Out</span>
+            </div>
+          </div>
+          <div class="ud-foot">
+            <div class="ud-theme-row">
+              <span class="ud-theme-lbl">Appearance</span>
+              <div class="ud-theme-sw">
+                <div class="ud-theme-opt act" id="ud-light" onclick="setTheme('light',event)">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg> Light
+                </div>
+                <div class="ud-theme-opt" id="ud-dark" onclick="setTheme('dark',event)">
+                  <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="role-tabs">
+      <div class="role-tab act" onclick="switchRole('admin',this)">Admin</div>
+      <div class="role-tab" onclick="switchRole('workplace',this)">Workplace Supervisor</div>
+      <div class="role-tab" onclick="switchRole('academic',this)">Academic Supervisor</div>
+      <div class="role-tab" onclick="switchRole('student',this)">Student</div>
+    </div>
+
+    <!-- ══════════════════════
+         ADMIN DASHBOARD
+    ══════════════════════ -->
+    <div class="view act" id="view-admin">
+
+      <div class="greeting greeting-admin">
+        <div class="greeting-txt">
+          <div class="greeting-eyebrow">
+            <span class="live-dot"></span>
+            <span style="color:var(--t300)">Live · Spring 2025 Cohort</span>
+          </div>
+          <div class="greeting-title" style="color:#fff">Good morning, Administrator</div>
+          <div class="greeting-sub" style="color:rgba(255,255,255,0.5)">Live overview of all 48 interns across 6 departments this semester.</div>
+          <div class="greeting-stats">
+            <div class="gs-item"><div class="gs-num" style="color:#fff">48</div><div class="gs-lbl" style="color:rgba(255,255,255,0.45)">Interns</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--t300)">312</div><div class="gs-lbl" style="color:rgba(255,255,255,0.45)">Logs</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--a300)">83.4</div><div class="gs-lbl" style="color:rgba(255,255,255,0.45)">Avg Score</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:#fff">9</div><div class="gs-lbl" style="color:rgba(255,255,255,0.45)">Pending</div></div>
+          </div>
+        </div>
+        <div class="greeting-art">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" stroke="rgba(45,175,131,0.4)" stroke-width="1"/>
+            <circle cx="40" cy="40" r="26" stroke="rgba(85,105,224,0.3)" stroke-width="1"/>
+            <circle cx="40" cy="40" r="16" fill="rgba(45,175,131,0.15)"/>
+            <path d="M40 4v72M4 40h72" stroke="rgba(45,175,131,0.2)" stroke-width="1"/>
+            <path d="M40 4A36 36 0 0176 40" stroke="rgba(45,175,131,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="40" cy="4" r="4" fill="rgba(45,175,131,0.8)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="metrics stagger">
+        <div class="metric m-teal">
+          <div class="m-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div class="m-label">Total Interns</div>
+          <div class="m-value">48</div>
+          <div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>+6 from last cohort</div>
+        </div>
+        <div class="metric m-amber">
+          <div class="m-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+          <div class="m-label">Logs Submitted</div>
+          <div class="m-value">312</div>
+          <div class="m-delta delta-nt">of 384 expected</div>
+        </div>
+        <div class="metric m-indigo">
+          <div class="m-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="m-label">Avg. Score</div>
+          <div class="m-value">83.4</div>
+          <div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>↑ 2.1 pts vs last term</div>
+        </div>
+        <div class="metric m-danger">
+          <div class="m-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div class="m-label">Pending Reviews</div>
+          <div class="m-value">9</div>
+          <div class="m-delta delta-dn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Across 5 supervisors</div>
+        </div>
+      </div>
+
+      <div class="g3">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Recent Log Submissions</div><div class="card-sub">Latest activity · all departments</div></div>
+            <span class="card-link">View all →</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Intern</th><th>Department</th><th>Week</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><span class="td-bold">Amara Osei</span></td><td style="color:var(--tx3);font-size:11.5px">Finance</td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">2h ago</td><td><span class="badge bdg-a">Pending</span></td><td><button class="btn btn-outline btn-sm">Review</button></td></tr>
+              <tr><td><span class="td-bold">Kofi Mensah</span></td><td style="color:var(--tx3);font-size:11.5px">Engineering</td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">5h ago</td><td><span class="badge bdg-t">Approved</span></td><td><button class="btn btn-outline btn-sm">View</button></td></tr>
+              <tr><td><span class="td-bold">Fatima Al-Amin</span></td><td style="color:var(--tx3);font-size:11.5px">Legal</td><td><span class="td-mono">W10</span></td><td style="color:var(--tx3);font-size:11px">1d ago</td><td><span class="badge bdg-r">Revision</span></td><td><button class="btn btn-outline btn-sm">View</button></td></tr>
+              <tr><td><span class="td-bold">David Nkosi</span></td><td style="color:var(--tx3);font-size:11.5px">Marketing</td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">1d ago</td><td><span class="badge bdg-t">Approved</span></td><td><button class="btn btn-outline btn-sm">View</button></td></tr>
+              <tr><td><span class="td-bold">Ines Duarte</span></td><td style="color:var(--tx3);font-size:11.5px">Design</td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">2d ago</td><td><span class="badge bdg-i">Submitted</span></td><td><button class="btn btn-amber btn-sm">Review</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Notifications</div><span class="card-link">All →</span></div>
+          <div class="card-body">
+            <div class="notif"><div class="notif-dot" style="background:var(--a500)"></div><div><div class="notif-text"><strong>3 logs</strong> awaiting review this week</div><div class="notif-time">Today, 09:14</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--danger)"></div><div><div class="notif-text">Fatima's W10 log returned for revision</div><div class="notif-time">Yesterday, 16:30</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--t500)"></div><div><div class="notif-text">Mid-term deadline: <strong>5 days left</strong></div><div class="notif-time">Yesterday, 10:00</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--i500)"></div><div><div class="notif-text">New intern added: <strong>Samuel Eze</strong> (Eng)</div><div class="notif-time">Mon, 08:45</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Submission Rate by Department</div></div>
+          <div class="card-body">
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Engineering</span><span class="prog-val">96%</span></div><div class="prog-track"><div class="prog-fill" style="width:96%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Finance</span><span class="prog-val">90%</span></div><div class="prog-track"><div class="prog-fill" style="width:90%;background:linear-gradient(90deg,var(--i700),var(--i400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Marketing</span><span class="prog-val">84%</span></div><div class="prog-track"><div class="prog-fill" style="width:84%;background:linear-gradient(90deg,var(--a700),var(--a400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Design</span><span class="prog-val">78%</span></div><div class="prog-track"><div class="prog-fill" style="width:78%;background:linear-gradient(90deg,var(--violet),#A855F7)"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Legal</span><span class="prog-val">70%</span></div><div class="prog-track"><div class="prog-fill" style="width:70%;background:linear-gradient(90deg,var(--danger),#F87171)"></div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Top Interns</div><span class="card-link">All 48 →</span></div>
+          <div class="card-body">
+            <div class="person-row"><div class="person-av" style="background:var(--a600)">KM</div><div style="flex:1"><div class="person-name">Kofi Mensah</div><div class="person-sub">Engineering · W11</div></div><span class="badge bdg-t" style="margin-right:8px">11/11</span><div class="person-score" style="color:var(--t700)">94</div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--i600)">AO</div><div style="flex:1"><div class="person-name">Amara Osei</div><div class="person-sub">Finance · W11</div></div><span class="badge bdg-a" style="margin-right:8px">10/11</span><div class="person-score" style="color:var(--a700)">89</div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--t600)">DN</div><div style="flex:1"><div class="person-name">David Nkosi</div><div class="person-sub">Marketing · W11</div></div><span class="badge bdg-t" style="margin-right:8px">11/11</span><div class="person-score" style="color:var(--t700)">87</div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--violet)">ID</div><div style="flex:1"><div class="person-name">Ines Duarte</div><div class="person-sub">Design · W11</div></div><span class="badge bdg-i" style="margin-right:8px">10/11</span><div class="person-score" style="color:var(--i700)">82</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Weekly Submission Activity</div><div class="card-sub">Past 8 weeks</div></div>
+          <div class="card-body">
+            <div class="mini-chart">
+              <div class="mc-bar" style="height:55%;background:linear-gradient(180deg,var(--t400),var(--t200))"></div>
+              <div class="mc-bar" style="height:70%;background:linear-gradient(180deg,var(--t400),var(--t200))"></div>
+              <div class="mc-bar" style="height:60%;background:linear-gradient(180deg,var(--t400),var(--t200))"></div>
+              <div class="mc-bar" style="height:80%;background:linear-gradient(180deg,var(--t500),var(--t300))"></div>
+              <div class="mc-bar" style="height:65%;background:linear-gradient(180deg,var(--t400),var(--t200))"></div>
+              <div class="mc-bar" style="height:90%;background:linear-gradient(180deg,var(--a500),var(--a300))"></div>
+              <div class="mc-bar" style="height:78%;background:linear-gradient(180deg,var(--t400),var(--t200))"></div>
+              <div class="mc-bar" style="height:95%;background:linear-gradient(180deg,var(--i500),var(--i300))"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px">
+              <span style="font-size:10px;color:var(--tx3)">W4</span>
+              <span style="font-size:10px;color:var(--tx3)">W5</span>
+              <span style="font-size:10px;color:var(--tx3)">W6</span>
+              <span style="font-size:10px;color:var(--tx3)">W7</span>
+              <span style="font-size:10px;color:var(--tx3)">W8</span>
+              <span style="font-size:10px;color:var(--tx3)">W9</span>
+              <span style="font-size:10px;color:var(--tx3)">W10</span>
+              <span style="font-size:10px;color:var(--tx3)">W11</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Department Overview</div></div>
+          <div class="card-body" style="padding:0">
+            <table class="data-table">
+              <thead><tr><th>Dept</th><th>Interns</th><th>Avg</th><th>Rate</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">Engineering</td><td>10</td><td style="color:var(--t700);font-weight:700">91.2</td><td><span class="badge bdg-t">96%</span></td></tr>
+                <tr><td class="td-bold">Finance</td><td>9</td><td style="color:var(--t600);font-weight:700">87.4</td><td><span class="badge bdg-t">90%</span></td></tr>
+                <tr><td class="td-bold">Marketing</td><td>8</td><td style="color:var(--a700);font-weight:700">82.1</td><td><span class="badge bdg-a">84%</span></td></tr>
+                <tr><td class="td-bold">Design</td><td>7</td><td style="color:var(--i700);font-weight:700">79.5</td><td><span class="badge bdg-i">78%</span></td></tr>
+                <tr><td class="td-bold">Legal</td><td>6</td><td style="color:var(--danger);font-weight:700">71.3</td><td><span class="badge bdg-r">70%</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         WORKPLACE SUPERVISOR DASHBOARD
+    ══════════════════════════════ -->
+    <div class="view" id="view-workplace">
+
+      <div class="greeting greeting-workplace">
+        <div class="greeting-txt">
+          <div class="greeting-eyebrow">
+            <span class="live-dot"></span>
+            <span style="color:rgba(155,172,239,0.9)">Workplace Supervisor · Engineering</span>
+          </div>
+          <div class="greeting-title" style="color:#fff">Welcome back, Dr. Owusu</div>
+          <div class="greeting-sub" style="color:rgba(255,255,255,0.48)">You have 3 pending log reviews and 1 intern flagged for follow-up.</div>
+          <div class="greeting-stats">
+            <div class="gs-item"><div class="gs-num" style="color:#fff">8</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">My Interns</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--a300)">3</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Pending</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--t300)">91.2</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Dept Avg</div></div>
+          </div>
+        </div>
+        <div class="greeting-art">
+          <svg viewBox="0 0 80 80" fill="none">
+            <rect x="12" y="20" width="56" height="44" rx="6" stroke="rgba(155,172,239,0.5)" stroke-width="1"/>
+            <path d="M22 36h36M22 46h28M22 56h18" stroke="rgba(155,172,239,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="59" cy="22" r="11" fill="rgba(85,105,224,0.3)"/>
+            <path d="M54 22l3.5 3.5L62 18" stroke="rgba(155,172,239,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="metrics stagger">
+        <div class="metric m-teal"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="m-label">My Interns</div><div class="m-value">8</div><div class="m-delta delta-nt">Engineering dept</div></div>
+        <div class="metric m-amber"><div class="m-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="m-label">Pending Reviews</div><div class="m-value">3</div><div class="m-delta delta-dn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Due this week</div></div>
+        <div class="metric m-indigo"><div class="m-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="m-label">Team Avg Score</div><div class="m-value">91.2</div><div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>Top dept this term</div></div>
+        <div class="metric m-danger"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="m-label">At-Risk Interns</div><div class="m-value">1</div><div class="m-delta delta-dn">Needs attention</div></div>
+      </div>
+
+      <div class="g3">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Pending Evaluations</div><span class="card-link">View queue →</span></div>
+          <table class="data-table">
+            <thead><tr><th>Intern</th><th>Week</th><th>Submitted</th><th>Score Preview</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><span class="td-bold">Kofi Mensah</span></td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">2h ago</td><td><span class="badge bdg-t">Est. 93+</span></td><td><button class="btn btn-primary btn-sm">Evaluate</button></td></tr>
+              <tr><td><span class="td-bold">Ama Boateng</span></td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">5h ago</td><td><span class="badge bdg-t">Est. 87+</span></td><td><button class="btn btn-primary btn-sm">Evaluate</button></td></tr>
+              <tr><td><span class="td-bold">Samuel Eze</span></td><td><span class="td-mono">W11</span></td><td style="color:var(--tx3);font-size:11px">1d ago</td><td><span class="badge bdg-r">Est. 65+</span></td><td><button class="btn btn-amber btn-sm">Evaluate</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick Eval — Kofi Mensah</div></div>
+          <div class="card-body">
+            <div class="star-row"><span class="star-label">Technical Quality</span><div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star empty">★</span></div><span class="star-val">4/5</span></div>
+            <div class="star-row"><span class="star-label">Communication</span><div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><span class="star-val">5/5</span></div>
+            <div class="star-row"><span class="star-label">Initiative</span><div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star empty">★</span><span class="star empty">★</span></div><span class="star-val">3/5</span></div>
+            <div class="star-row"><span class="star-label">Punctuality</span><div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star empty">★</span></div><span class="star-val">4/5</span></div>
+            <div style="display:flex;gap:7px;margin-top:14px">
+              <button class="btn btn-primary" style="flex:1">Approve</button>
+              <button class="btn btn-outline">Send Back</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">My Interns — Performance</div><span class="card-link">Full table →</span></div>
+          <div class="card-body">
+            <div class="person-row"><div class="person-av" style="background:var(--a600)">KM</div><div style="flex:1"><div class="person-name">Kofi Mensah</div><div class="person-sub">W11 · 11/11 logs</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge bdg-t">On track</span><div class="person-score" style="color:var(--t700)">94</div></div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--t600)">AB</div><div style="flex:1"><div class="person-name">Ama Boateng</div><div class="person-sub">W11 · 10/11 logs</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge bdg-t">On track</span><div class="person-score" style="color:var(--t600)">88</div></div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--i600)">EK</div><div style="flex:1"><div class="person-name">Elorm Kpodo</div><div class="person-sub">W11 · 11/11 logs</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge bdg-i">Good</span><div class="person-score" style="color:var(--i700)">85</div></div></div>
+            <div class="person-row"><div class="person-av" style="background:var(--danger)">SE</div><div style="flex:1"><div class="person-name">Samuel Eze</div><div class="person-sub">W11 · 8/11 ⚠</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge bdg-r">At Risk</span><div class="person-score" style="color:var(--danger)">68</div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Activity Timeline</div></div>
+          <div class="card-body">
+            <div class="timeline">
+              <div class="tl-item"><div class="tl-dot" style="background:var(--t500)"></div><div class="tl-text"><strong>Kofi Mensah</strong> submitted W11 log</div><div class="tl-time">Today, 08:32</div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--a500)"></div><div class="tl-text">You added feedback to <strong>Ama Boateng</strong>'s W10</div><div class="tl-time">Yesterday, 14:20</div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--danger)"></div><div class="tl-text"><strong>Samuel Eze</strong> missed W9 deadline</div><div class="tl-time">Mon, 23:59</div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--t500)"></div><div class="tl-text">Approved <strong>Elorm Kpodo</strong>'s W10 log</div><div class="tl-time">Mon, 11:05</div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--i500)"></div><div class="tl-text">Department meeting rescheduled</div><div class="tl-time">Sun, 09:00</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intern score breakdown -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><div class="card-title">Score Breakdown by Competency</div><div class="card-sub">Engineering team average, Week 11</div></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Technical Quality</span><span class="prog-val">88%</span></div><div class="prog-track"><div class="prog-fill" style="width:88%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Communication</span><span class="prog-val">92%</span></div><div class="prog-track"><div class="prog-fill" style="width:92%;background:linear-gradient(90deg,var(--i700),var(--i400))"></div></div></div>
+            </div>
+            <div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Initiative</span><span class="prog-val">79%</span></div><div class="prog-track"><div class="prog-fill" style="width:79%;background:linear-gradient(90deg,var(--a700),var(--a400))"></div></div></div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Punctuality</span><span class="prog-val">95%</span></div><div class="prog-track"><div class="prog-fill" style="width:95%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         ACADEMIC SUPERVISOR DASHBOARD
+    ══════════════════════════════ -->
+    <div class="view" id="view-academic">
+
+      <div class="greeting greeting-academic">
+        <div class="greeting-txt">
+          <div class="greeting-eyebrow">
+            <span class="live-dot"></span>
+            <span style="color:rgba(196,174,255,0.9)">Academic Supervisor · Computer Science</span>
+          </div>
+          <div class="greeting-title" style="color:#fff">Good morning, Prof. Mensah</div>
+          <div class="greeting-sub" style="color:rgba(255,255,255,0.48)">Monitoring 12 CS students across 4 placement organisations this term.</div>
+          <div class="greeting-stats">
+            <div class="gs-item"><div class="gs-num" style="color:#fff">12</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Students</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:rgba(196,174,255,0.9)">4</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Orgs</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--a300)">86.7</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Dept Avg</div></div>
+          </div>
+        </div>
+        <div class="greeting-art">
+          <svg viewBox="0 0 80 80" fill="none">
+            <path d="M40 10l30 15v20l-30 15L10 45V25z" stroke="rgba(196,174,255,0.5)" stroke-width="1" fill="rgba(124,58,237,0.08)"/>
+            <path d="M40 10v50M10 25l30 15 30-15" stroke="rgba(196,174,255,0.3)" stroke-width="1"/>
+            <circle cx="40" cy="10" r="4" fill="rgba(196,174,255,0.8)"/>
+            <circle cx="10" cy="25" r="3" fill="rgba(196,174,255,0.5)"/>
+            <circle cx="70" cy="25" r="3" fill="rgba(196,174,255,0.5)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="metrics stagger">
+        <div class="metric m-teal"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="m-label">Students Supervised</div><div class="m-value">12</div><div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>+2 from last term</div></div>
+        <div class="metric m-violet"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><div class="m-label">Reports Due</div><div class="m-value">2</div><div class="m-delta delta-dn">This week</div></div>
+        <div class="metric m-amber"><div class="m-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="m-label">Site Visits Due</div><div class="m-value">3</div><div class="m-delta delta-nt">Next 2 weeks</div></div>
+        <div class="metric m-indigo"><div class="m-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="m-label">Cohort Avg</div><div class="m-value">86.7</div><div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>Above university avg</div></div>
+      </div>
+
+      <div class="g3">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Student Progress Overview</div><span class="card-link">Export report →</span></div>
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Organisation</th><th>Logs</th><th>Avg Score</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><span class="td-bold">Kofi Mensah</span></td><td style="color:var(--tx3);font-size:11px">TechCorp Ltd</td><td><span class="td-mono">11/11</span></td><td style="color:var(--t700);font-weight:700">94</td><td><span class="badge bdg-t">Excellent</span></td></tr>
+              <tr><td><span class="td-bold">Ama Boateng</span></td><td style="color:var(--tx3);font-size:11px">DataSystems</td><td><span class="td-mono">10/11</span></td><td style="color:var(--t600);font-weight:700">88</td><td><span class="badge bdg-t">Good</span></td></tr>
+              <tr><td><span class="td-bold">Elorm Kpodo</span></td><td style="color:var(--tx3);font-size:11px">TechCorp Ltd</td><td><span class="td-mono">11/11</span></td><td style="color:var(--t600);font-weight:700">85</td><td><span class="badge bdg-t">Good</span></td></tr>
+              <tr><td><span class="td-bold">Samuel Eze</span></td><td style="color:var(--tx3);font-size:11px">StartupX</td><td><span class="td-mono">8/11</span></td><td style="color:var(--danger);font-weight:700">68</td><td><span class="badge bdg-r">At Risk</span></td></tr>
+              <tr><td><span class="td-bold">Grace Owusu</span></td><td style="color:var(--tx3);font-size:11px">GovMinistry</td><td><span class="td-mono">10/11</span></td><td style="color:var(--a700);font-weight:700">75</td><td><span class="badge bdg-a">Monitor</span></td></tr>
+              <tr><td><span class="td-bold">Abena Frimpong</span></td><td style="color:var(--tx3);font-size:11px">TechCorp Ltd</td><td><span class="td-mono">11/11</span></td><td style="color:var(--i700);font-weight:700">81</td><td><span class="badge bdg-i">Good</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Upcoming Actions</div></div>
+          <div class="card-body">
+            <div class="notif"><div class="notif-dot" style="background:var(--danger)"></div><div><div class="notif-text"><strong>Samuel Eze</strong> — intervention needed</div><div class="notif-time">Overdue · 3 weeks</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--a500)"></div><div><div class="notif-text">Site visit: <strong>TechCorp Ltd</strong></div><div class="notif-time">Due Mar 20, 2025</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--i500)"></div><div><div class="notif-text">Mid-term report submission</div><div class="notif-time">Due Mar 25, 2025</div></div></div>
+            <div class="notif"><div class="notif-dot" style="background:var(--violet)"></div><div><div class="notif-text">Departmental meeting</div><div class="notif-time">Mar 28 at 10:00 AM</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Score Distribution</div><div class="card-sub">12 students · Spring 2025</div></div>
+          <div class="card-body">
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Excellent (90–100)</span><span class="prog-val">1 student</span></div><div class="prog-track"><div class="prog-fill" style="width:8%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Good (80–89)</span><span class="prog-val">4 students</span></div><div class="prog-track"><div class="prog-fill" style="width:33%;background:linear-gradient(90deg,var(--i700),var(--i400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">Average (70–79)</span><span class="prog-val">4 students</span></div><div class="prog-track"><div class="prog-fill" style="width:33%;background:linear-gradient(90deg,var(--a700),var(--a400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">At Risk (&lt;70)</span><span class="prog-val">3 students</span></div><div class="prog-track"><div class="prog-fill" style="width:25%;background:linear-gradient(90deg,var(--danger),#F87171)"></div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Organisation Performance</div></div>
+          <div class="card-body">
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">TechCorp Ltd</span><span class="prog-val">91.2</span></div><div class="prog-track"><div class="prog-fill" style="width:91%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">DataSystems</span><span class="prog-val">88.0</span></div><div class="prog-track"><div class="prog-fill" style="width:88%;background:linear-gradient(90deg,var(--i700),var(--i400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">GovMinistry</span><span class="prog-val">75.0</span></div><div class="prog-track"><div class="prog-fill" style="width:75%;background:linear-gradient(90deg,var(--a700),var(--a400))"></div></div></div>
+            <div class="prog-row"><div class="prog-header"><span class="prog-label">StartupX</span><span class="prog-val">68.0</span></div><div class="prog-track"><div class="prog-fill" style="width:68%;background:linear-gradient(90deg,var(--danger),#F87171)"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════
+         STUDENT DASHBOARD
+    ══════════════════════ -->
+    <div class="view" id="view-student">
+
+      <div class="greeting greeting-student">
+        <div class="greeting-txt">
+          <div class="greeting-eyebrow">
+            <span class="live-dot"></span>
+            <span style="color:rgba(100,220,180,0.9)">Week 11 of 16 · Engineering · TechCorp Ltd</span>
+          </div>
+          <div class="greeting-title" style="color:#fff">Keep it up, Kofi! 🎯</div>
+          <div class="greeting-sub" style="color:rgba(255,255,255,0.48)">You're in the top 5% of your cohort. Your W11 log is due this Friday.</div>
+          <div class="greeting-stats">
+            <div class="gs-item"><div class="gs-num" style="color:var(--t300)">94</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">My Score</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:#fff">11/11</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Logs Done</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:var(--a300)">68%</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Progress</div></div>
+            <div class="gs-item"><div class="gs-num" style="color:#fff">9</div><div class="gs-lbl" style="color:rgba(255,255,255,0.4)">Wk Streak</div></div>
+          </div>
+        </div>
+        <div class="greeting-art">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="32" stroke="rgba(45,175,131,0.3)" stroke-width="1"/>
+            <path d="M40 8A32 32 0 0172 40" stroke="rgba(45,175,131,0.8)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="40" cy="8" r="5" fill="rgba(45,175,131,0.9)"/>
+            <circle cx="40" cy="40" r="8" fill="rgba(45,175,131,0.2)"/>
+            <circle cx="40" cy="40" r="3" fill="rgba(45,175,131,0.6)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="metrics stagger">
+        <div class="metric m-teal"><div class="m-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="m-label">Overall Score</div><div class="m-value">94</div><div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>#1 in Engineering</div></div>
+        <div class="metric m-indigo"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="m-label">Logs Submitted</div><div class="m-value">11/16</div><div class="m-delta delta-nt">5 remaining</div></div>
+        <div class="metric m-amber"><div class="m-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="m-label">Next Due</div><div class="m-value">Fri</div><div class="m-delta delta-nt">W11 log · 3 days</div></div>
+        <div class="metric m-teal"><div class="m-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="m-label">Streak</div><div class="m-value">9 wks</div><div class="m-delta delta-up"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>No missed deadlines</div></div>
+      </div>
+
+      <div class="g3">
+        <div>
+          <!-- Timeline card -->
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-header">
+              <div><div class="card-title">Internship Timeline</div><div class="card-sub">Week 11 of 16 · 68% complete</div></div>
+              <button class="btn btn-primary btn-sm">+ Submit W11</button>
+            </div>
+            <div class="card-body">
+              <div class="week-grid" style="margin-bottom:12px">
+                <div class="week-pill wp-done">W1</div><div class="week-pill wp-done">W2</div><div class="week-pill wp-done">W3</div><div class="week-pill wp-done">W4</div>
+                <div class="week-pill wp-done">W5</div><div class="week-pill wp-done">W6</div><div class="week-pill wp-late">W7</div><div class="week-pill wp-done">W8</div>
+                <div class="week-pill wp-done">W9</div><div class="week-pill wp-done">W10</div><div class="week-pill wp-curr">W11</div><div class="week-pill wp-todo">W12</div>
+                <div class="week-pill wp-todo">W13</div><div class="week-pill wp-todo">W14</div><div class="week-pill wp-todo">W15</div><div class="week-pill wp-todo">W16</div>
+              </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap">
+                <span style="font-size:10.5px;color:var(--tx3);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:3px;background:var(--t100);display:inline-block"></span>Submitted</span>
+                <span style="font-size:10.5px;color:var(--tx3);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:3px;background:var(--a100);display:inline-block"></span>Late</span>
+                <span style="font-size:10.5px;color:var(--tx3);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:3px;background:var(--t700);display:inline-block"></span>Current</span>
+                <span style="font-size:10.5px;color:var(--tx3);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:3px;background:var(--surface2);border:1px solid var(--border);display:inline-block"></span>Upcoming</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Log scores table -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Log Scores</div><span class="card-link">View all →</span></div>
+            <table class="data-table">
+              <thead><tr><th>Week</th><th>Title</th><th>Score</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><span class="td-mono">W11</span></td><td>Client Meetings &amp; Reporting</td><td style="color:var(--tx3)">—</td><td><span class="badge bdg-a">Pending</span></td></tr>
+                <tr><td><span class="td-mono">W10</span></td><td>System Architecture Design</td><td style="color:var(--t700);font-weight:700">96</td><td><span class="badge bdg-t">Approved</span></td></tr>
+                <tr><td><span class="td-mono">W9</span></td><td>API Integration Sprint</td><td style="color:var(--t700);font-weight:700">92</td><td><span class="badge bdg-t">Approved</span></td></tr>
+                <tr><td><span class="td-mono">W8</span></td><td>Stakeholder Interviews</td><td style="color:var(--t600);font-weight:700">88</td><td><span class="badge bdg-t">Approved</span></td></tr>
+                <tr><td><span class="td-mono">W7</span></td><td>Project Kickoff (Late)</td><td style="color:var(--a700);font-weight:700">82</td><td><span class="badge bdg-a">Late</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div style="display:flex;flex-direction:column;gap:13px">
+
+          <!-- Score ring -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">My Score</div></div>
+            <div class="score-ring-wrap">
+              <div class="score-ring">
+                <svg viewBox="0 0 110 110">
+                  <circle class="score-ring-bg" cx="55" cy="55" r="46"/>
+                  <circle class="score-ring-fill" cx="55" cy="55" r="46"
+                    stroke="url(#sg1)"
+                    stroke-dasharray="289"
+                    stroke-dashoffset="50"/>
+                  <defs>
+                    <linearGradient id="sg1" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="var(--t700)"/>
+                      <stop offset="100%" stop-color="var(--t400)"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="score-ring-label">
+                  <div class="score-ring-num">94</div>
+                  <div class="score-ring-sub">/ 100</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-body" style="padding-top:0">
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Technical</span><span class="prog-val">96%</span></div><div class="prog-track"><div class="prog-fill" style="width:96%;background:linear-gradient(90deg,var(--t700),var(--t400))"></div></div></div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Communication</span><span class="prog-val">90%</span></div><div class="prog-track"><div class="prog-fill" style="width:90%;background:linear-gradient(90deg,var(--i700),var(--i400))"></div></div></div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Initiative</span><span class="prog-val">94%</span></div><div class="prog-track"><div class="prog-fill" style="width:94%;background:linear-gradient(90deg,var(--a700),var(--a400))"></div></div></div>
+              <div class="prog-row"><div class="prog-header"><span class="prog-label">Punctuality</span><span class="prog-val">100%</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:linear-gradient(90deg,var(--t800),var(--t500))"></div></div></div>
+            </div>
+          </div>
+
+          <!-- Supervisors -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">My Supervisors</div></div>
+            <div class="card-body">
+              <div class="person-row">
+                <div class="person-av" style="background:var(--t700)">DO</div>
+                <div style="flex:1"><div class="person-name">Dr. Owusu</div><div class="person-sub">Workplace Supervisor</div></div>
+                <button class="btn btn-outline btn-sm">Message</button>
+              </div>
+              <div class="person-row">
+                <div class="person-av" style="background:var(--violet)">PM</div>
+                <div style="flex:1"><div class="person-name">Prof. Mensah</div><div class="person-sub">Academic Supervisor</div></div>
+                <button class="btn btn-outline btn-sm">Message</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Latest Feedback</div><span class="card-link">All →</span></div>
+            <div class="card-body">
+              <div class="notif"><div class="notif-dot" style="background:var(--t500)"></div><div><div class="notif-text"><strong>Dr. Owusu</strong> approved your W10 log with comment</div><div class="notif-time">"Excellent architectural thinking — keep this up!"</div></div></div>
+              <div class="notif"><div class="notif-dot" style="background:var(--i500)"></div><div><div class="notif-text"><strong>Prof. Mensah</strong> viewed W9 log</div><div class="notif-time">Mon, 11:20 · No issues flagged</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+</div>
+
+<button class="mobile-toggle" onclick="toggleSidebar()">
+  <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div id="overlay" onclick="closeAll()"></div>
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════ -->
+<script>
+// ── NAV DATA ──────────────────────────────────────────────
+const NAV = {
+  admin: [
+    { section: 'Overview', items: [
+      { icon: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', label: 'Dashboard', active: true },
+      { icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>', label: 'All Interns', badge: '48', bc: 't' },
+      { icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>', label: 'All Logs' },
+    ]},
+    { section: 'Evaluation', items: [
+      { icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', label: 'Evaluations', badge: '9', bc: 'r' },
+      { icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>', label: 'Supervisors' },
+    ]},
+    { section: 'Analytics', items: [
+      { icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', label: 'Reports' },
+      { icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', label: 'Calendar' },
+    ]},
+    { section: 'System', items: [
+      { icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>', label: 'Notifications', badge: '5', bc: 'a' },
+      { icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83"/>', label: 'Settings' },
+    ]},
+  ],
+  workplace: [
+    { section: 'My Dashboard', items: [
+      { icon: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', label: 'Dashboard', active: true },
+      { icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>', label: 'My Interns', badge: '8', bc: 't' },
+    ]},
+    { section: 'Review', items: [
+      { icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', label: 'Pending Reviews', badge: '3', bc: 'r' },
+      { icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>', label: 'Approved Logs' },
+      { icon: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>', label: 'Feedback Given' },
+    ]},
+    { section: 'Reporting', items: [
+      { icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', label: 'Performance' },
+      { icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>', label: 'Notifications', badge: '2', bc: 'a' },
+    ]},
+  ],
+  academic: [
+    { section: 'My Dashboard', items: [
+      { icon: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', label: 'Dashboard', active: true },
+      { icon: '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>', label: 'My Students', badge: '12', bc: 't' },
+    ]},
+    { section: 'Academic', items: [
+      { icon: '<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>', label: 'Student Reports', badge: '2', bc: 'r' },
+      { icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>', label: 'Site Visits', badge: '3', bc: 'a' },
+      { icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>', label: 'Organisations' },
+    ]},
+    { section: 'Analytics', items: [
+      { icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', label: 'Dept Analytics' },
+      { icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>', label: 'Notifications', badge: '4', bc: 'a' },
+    ]},
+  ],
+  student: [
+    { section: 'My Internship', items: [
+      { icon: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', label: 'Dashboard', active: true },
+      { icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>', label: 'My Logs' },
+      { icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', label: 'My Scores' },
+    ]},
+    { section: 'Connect', items: [
+      { icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>', label: 'Supervisors' },
+      { icon: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>', label: 'Messages', badge: '2', bc: 'i' },
+    ]},
+    { section: 'Profile', items: [
+      { icon: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>', label: 'My Profile' },
+      { icon: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>', label: 'Notifications', badge: '1', bc: 'a' },
+    ]},
+  ],
+};
+
+// ── META DATA ─────────────────────────────────────────────
+const META = {
+  admin:     { role: 'System Administrator', dot: '#45C99A', av: 'AD', name: 'Admin User',       sub: 'System Admin',     email: 'admin@ailes.edu',       color: 'linear-gradient(135deg,#1A7A57,#2DAF83)', chip: 'Administrator', crumb: 'Dashboard', title: 'Overview' },
+  workplace: { role: 'Workplace Supervisor',  dot: '#7389EA', av: 'DO', name: 'Dr. Kwame Owusu',  sub: 'Engineering Dept', email: 'k.owusu@techcorp.com',  color: 'linear-gradient(135deg,#2F3DAA,#5569E0)', chip: 'Workplace Sup.', crumb: 'Dashboard', title: 'My Dashboard' },
+  academic:  { role: 'Academic Supervisor',   dot: '#A855F7', av: 'PM', name: 'Prof. E. Mensah',  sub: 'CS Department',    email: 'e.mensah@uni.edu',      color: 'linear-gradient(135deg,#6D28D9,#9C4AFF)', chip: 'Academic Sup.', crumb: 'Dashboard', title: 'Academic Overview' },
+  student:   { role: 'Student Intern',        dot: '#F08C30', av: 'KM', name: 'Kofi Mensah',      sub: 'Year 3 · CS',      email: 'k.mensah@student.edu',  color: 'linear-gradient(135deg,#C05500,#F08C30)', chip: 'Student · W11', crumb: 'My Internship', title: 'My Dashboard' },
+};
+
+let currentRole = 'admin';
+const roleOrder = ['admin', 'workplace', 'academic', 'student'];
+
+// ── BUILD NAV ─────────────────────────────────────────────
+function buildNav(role) {
+  const nav = document.getElementById('sb-nav');
+  let html = '';
+  NAV[role].forEach(sec => {
+    html += `<div class="sb-section"><div class="sb-sec-lbl">${sec.section}</div>`;
+    sec.items.forEach(item => {
+      html += `<div class="sb-item${item.active ? ' act' : ''}">
+        <div class="sb-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg>
+        </div>
+        <span class="sb-item-lbl">${item.label}</span>
+        ${item.badge ? `<span class="sb-badge ${item.bc || 't'}">${item.badge}</span>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  nav.innerHTML = html;
+}
+
+// ── UPDATE UI ─────────────────────────────────────────────
+function updateUI(role) {
+  const m = META[role];
+
+  // Avatar elements
+  ['sb-av', 'tb-uav', 'ud-av'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.background = m.color;
+  });
+  ['sb-av-txt', 'tb-av-txt', 'ud-av-txt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = m.av;
+  });
+
+  // Text
+  setEl('sb-uname', m.name);
+  setEl('sb-urole', m.role);
+  setEl('sb-role-name', m.role);
+  document.getElementById('sb-dot').style.background = m.dot;
+
+  setEl('tb-uname', m.name);
+  setEl('tb-urole', m.sub);
+  setEl('tb-crumb', m.crumb);
+  setEl('tb-title', m.title);
+
+  setEl('ud-name', m.name);
+  setEl('ud-email', m.email);
+  setEl('ud-chip', m.chip);
+}
+
+function setEl(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+
+// ── SWITCH ROLE ───────────────────────────────────────────
+function switchRole(role, btn) {
+  currentRole = role;
+  document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('act'));
+  btn.classList.add('act');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('act'));
+  document.getElementById('view-' + role).classList.add('act');
+  buildNav(role);
+  updateUI(role);
+  closeAll();
+}
+
+function cycleRole() {
+  const idx = roleOrder.indexOf(currentRole);
+  const next = roleOrder[(idx + 1) % roleOrder.length];
+  const btn = document.querySelectorAll('.role-tab')[roleOrder.indexOf(next)];
+  switchRole(next, btn);
+}
+
+// ── DROPDOWN ──────────────────────────────────────────────
+function toggleDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  const trigger = document.getElementById('user-trigger');
+  const ov = document.getElementById('overlay');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    dd.classList.remove('open'); trigger.classList.remove('open'); ov.style.display = 'none';
+  } else {
+    dd.classList.add('open'); trigger.classList.add('open'); ov.style.display = 'block';
+  }
+}
+
+function closeAll() {
+  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('user-trigger').classList.remove('open');
+  document.getElementById('overlay').style.display = 'none';
+}
+
+// ── THEME ─────────────────────────────────────────────────
+function setTheme(t, e) {
+  if (e) e.stopPropagation();
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('ud-light').classList.toggle('act', t === 'light');
+  document.getElementById('ud-dark').classList.toggle('act', t === 'dark');
+  const moonSvg = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  const sunSvg = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  document.getElementById('theme-btn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t === 'dark' ? sunSvg : moonSvg}</svg>`;
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// ── SIDEBAR MOBILE ────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── INIT ──────────────────────────────────────────────────
+buildNav('admin');
+updateUI('admin');
+</script>
+</body>
+</html>

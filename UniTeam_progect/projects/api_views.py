@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Sum
 from django.utils import timezone
@@ -349,6 +349,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'progress_percentage': _project_task_progress(project),
         })
 
+    @action(detail=True, methods=['get'])
+    def recent_files(self, request, pk=None):
+        project = self.get_object()
+        files = project.project_files.filter(is_deleted=False).select_related(
+            'uploaded_by', 'folder', 'current_version_file', 'linked_task'
+        ).order_by('-current_version_file__upload_timestamp', '-upload_timestamp')[:5]
+        serializer = ProjectFileSerializer(files, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def submission_checklist(self, request, pk=None):
+        project = self.get_object()
+        has_final_file = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
+        checklist = {
+            'final_file_uploaded': has_final_file,
+            'final_file_label': 'At least one file tagged as Final exists in the File Library',
+            'all_required_items_complete': has_final_file,
+        }
+        return Response(checklist)
+
     @action(detail=False, methods=['get'])
     def search_by_course_code(self, request):
         """Allow lecturers to find projects by course code and monitor them."""
@@ -540,6 +560,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if project.lifecycle_status != Project.LifecycleStatus.ACTIVE:
             return Response({'error': 'Only active projects can be submitted'}, status=status.HTTP_400_BAD_REQUEST)
 
+        has_final_file = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
+        if not has_final_file:
+            return Response(
+                {
+                    'error': 'Project submission requires at least one file tagged as Final in the File Library',
+                    'submission_checklist': {
+                        'final_file_uploaded': False,
+                        'final_file_label': 'At least one file tagged as Final exists in the File Library',
+                        'all_required_items_complete': False,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         project.lifecycle_status = Project.LifecycleStatus.SUBMITTED
         project.save(update_fields=['lifecycle_status', 'updated_at'])
 
@@ -559,7 +593,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
             recipient_list=[u.email for u in recipients if u and u.email],
         )
 
-        return Response({'message': 'Project submitted', 'lifecycle_status': project.lifecycle_status})
+        return Response(
+            {
+                'message': 'Project submitted',
+                'lifecycle_status': project.lifecycle_status,
+                'submission_checklist': {
+                    'final_file_uploaded': True,
+                    'final_file_label': 'At least one file tagged as Final exists in the File Library',
+                    'all_required_items_complete': True,
+                },
+            }
+        )
 
     @action(detail=True, methods=['post'])
     def archive_project(self, request, pk=None):
@@ -1152,7 +1196,13 @@ class TaskAttachmentViewSet(viewsets.ModelViewSet):
         task_id = self.request.query_params.get('task')
         if task_id:
             queryset = queryset.filter(task_id=task_id)
-        return queryset
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(task__project__supervisor=user)
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(task__project_id__in=member_project_ids)
 
     def perform_create(self, serializer):
         task = serializer.validated_data['task']
@@ -1169,6 +1219,75 @@ class TaskAttachmentViewSet(viewsets.ModelViewSet):
             file_size=uploaded_file.size,
         )
         _log_task_activity(task, actor=self.request.user, action_type=TaskActivityLog.ActionType.ATTACHMENT_ADDED, new_value=attachment.file_name)
+
+    @action(detail=True, methods=['post'])
+    def promote_to_library(self, request, pk=None):
+        attachment = self.get_object()
+        task = attachment.task
+        project = task.project
+
+        if not _member_is_leadership(project, request.user) and request.user.role != CustomUser.Role.ADMIN:
+            return Response({'error': 'Only leaders and co-leaders can promote task attachments to the project file library'}, status=status.HTTP_403_FORBIDDEN)
+
+        folder_id = request.data.get('folder_id')
+        folder = get_object_or_404(FileFolder, id=folder_id, project=project) if folder_id else _general_folder(project)
+        tag = request.data.get('tag') or ProjectFile.Tag.REFERENCE
+        display_name = (request.data.get('display_name') or attachment.file_name).strip()
+        version_note = (request.data.get('version_note') or 'Promoted from task attachment').strip()
+        description = (request.data.get('description') or '').strip()
+
+        if not attachment.file:
+            return Response({'error': 'Attachment file is not available'}, status=status.HTTP_400_BAD_REQUEST)
+
+        uploaded_file = attachment.file
+        file_extension = _extract_file_extension(uploaded_file.name)
+        mime_type, _ = mimetypes.guess_type(uploaded_file.name)
+
+        with transaction.atomic():
+            project_file = ProjectFile.objects.create(
+                project=project,
+                folder=folder,
+                display_name=display_name,
+                stored_file_name=_normalise_file_name(uploaded_file.name),
+                file_extension=file_extension,
+                file_size=attachment.file_size or 0,
+                mime_type=mime_type or 'application/octet-stream',
+                tag=tag,
+                description=description,
+                uploaded_by=request.user,
+                current_version_number=1,
+                current_version_note=version_note,
+                linked_task=task,
+            )
+            version = ProjectFileVersion.objects.create(
+                parent_file=project_file,
+                version_number=1,
+                stored_file=uploaded_file,
+                file_size=attachment.file_size or 0,
+                uploader=request.user,
+                version_note=version_note,
+                tag_at_time=tag,
+            )
+            project_file.current_version_file = version
+            project_file.save(update_fields=['current_version_file'])
+
+        ProjectFileActivityLog.objects.create(
+            project=project,
+            file=project_file,
+            actor=request.user,
+            action_type=ProjectFileActivityLog.ActionType.UPLOADED,
+            metadata={'source': 'task_attachment', 'task_id': task.id, 'attachment_id': attachment.id},
+        )
+
+        create_notification(
+            recipients=_project_members(project).values_list('user', flat=True),
+            notification_type=Notification.Type.FILE_UPLOADED,
+            title='Task attachment promoted to library',
+            message=f'{request.user.get_full_name() or request.user.username} promoted "{project_file.display_name}" from task "{task.title}" to the project file library.',
+            project=project,
+        )
+
+        return Response(ProjectFileSerializer(project_file, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 class FileFolderViewSet(viewsets.ModelViewSet):
@@ -1339,6 +1458,8 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
         description = (self.request.data.get('description') or '').strip()
         version_note = (self.request.data.get('version_note') or description or 'Initial upload').strip()
         linked_task = serializer.validated_data.get('linked_task')
+        if linked_task and linked_task.project_id != project.id:
+            raise ValidationError('Linked task must belong to the selected project')
 
         before_usage = _project_file_storage_usage(project)
 

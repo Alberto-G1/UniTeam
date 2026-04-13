@@ -242,6 +242,16 @@ class ProjectPhase2APITests(APITestCase):
 		project = self._create_project(title='Lifecycle Project')
 
 		self._authenticate(self.student_leader)
+		upload = self.client.post('/api/project-files/', {
+			'project': project['id'],
+			'display_name': 'Final Report',
+			'tag': 'FINAL',
+			'version_note': 'Final submission document',
+			'file': SimpleUploadedFile('final_report.pdf', b'final content', content_type='application/pdf'),
+		}, format='multipart')
+		self.assertEqual(upload.status_code, status.HTTP_201_CREATED)
+
+		self._authenticate(self.student_leader)
 		submit = self.client.post(f"/api/projects/{project['id']}/submit_project/")
 		self.assertEqual(submit.status_code, status.HTTP_200_OK)
 
@@ -380,3 +390,39 @@ class ProjectFilesAPITests(APITestCase):
 		project_file.refresh_from_db()
 		self.assertFalse(project_file.is_deleted)
 		self.assertFalse(ProjectTrash.objects.filter(id=trash_entry.id).exists())
+
+	def test_submission_requires_final_file(self):
+		response = self.client.post(f'/api/projects/{self.project_id}/submit_project/')
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertFalse(response.data.get('submission_checklist', {}).get('final_file_uploaded'))
+
+		self._upload_base_file()
+		project_file = ProjectFile.objects.filter(project_id=self.project_id).first()
+		project_file.tag = 'FINAL'
+		project_file.save(update_fields=['tag'])
+
+		response_ok = self.client.post(f'/api/projects/{self.project_id}/submit_project/')
+		self.assertEqual(response_ok.status_code, status.HTTP_200_OK)
+		self.assertTrue(response_ok.data.get('submission_checklist', {}).get('final_file_uploaded'))
+
+	def test_promote_task_attachment_to_library(self):
+		task_resp = self.client.post('/api/tasks/', {
+			'project_id': self.project_id,
+			'title': 'Prepare Architecture',
+			'description': 'Draft system architecture',
+			'priority': 'MEDIUM',
+			'deadline': str(timezone.now() + timedelta(days=3)),
+		}, format='json')
+		self.assertEqual(task_resp.status_code, status.HTTP_201_CREATED)
+
+		attachment_resp = self.client.post('/api/task-attachments/', {
+			'task': task_resp.data['id'],
+			'file': SimpleUploadedFile('diagram.pdf', b'architecture', content_type='application/pdf'),
+		}, format='multipart')
+		self.assertEqual(attachment_resp.status_code, status.HTTP_201_CREATED)
+
+		promote_resp = self.client.post(f"/api/task-attachments/{attachment_resp.data['id']}/promote_to_library/", {
+			'version_note': 'Promoted from task',
+		}, format='json')
+		self.assertEqual(promote_resp.status_code, status.HTTP_201_CREATED)
+		self.assertEqual(promote_resp.data.get('linked_task', {}).get('id'), task_resp.data['id'])

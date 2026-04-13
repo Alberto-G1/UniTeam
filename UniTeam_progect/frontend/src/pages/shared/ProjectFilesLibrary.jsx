@@ -3,43 +3,39 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ToastContainer';
 import { projectsAPI, projectFilesAPI, taskAPI } from '../../services/api';
+import Modal from '../../components/Modal';
 import './ProjectFilesLibrary.css';
 
-const tagOptions = [
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'FINAL', label: 'Final' },
-  { value: 'REFERENCE', label: 'Reference' },
-  { value: 'ARCHIVE', label: 'Archive' },
-];
+const tagOptions = ['DRAFT', 'FINAL', 'REFERENCE', 'ARCHIVE'];
 
 const sortOptions = [
-  { value: 'latest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
+  { value: 'latest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
   { value: 'name', label: 'Name A-Z' },
-  { value: 'size', label: 'Largest first' },
+  { value: 'size', label: 'Largest' },
 ];
 
-const formatFileSize = (value = 0) => {
-  if (!value) return '0 KB';
+const formatFileSize = (size = 0) => {
+  if (!size) return '0 KB';
   const units = ['B', 'KB', 'MB', 'GB'];
-  let size = value;
-  let unitIndex = 0;
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
+  let current = size;
+  let idx = 0;
+  while (current >= 1024 && idx < units.length - 1) {
+    current /= 1024;
+    idx += 1;
   }
-  return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  return `${current.toFixed(current >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
 };
 
-const formatDateTime = (value) => {
-  if (!value) return 'N/A';
-  return new Date(value).toLocaleString();
-};
+const formatDate = (value) => (value ? new Date(value).toLocaleString() : 'N/A');
 
-const getUserName = (user) => {
+const getUserLabel = (user) => {
   if (!user) return 'Unknown';
-  return user.get_full_name ? user.get_full_name() : user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Unknown';
+  const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  return fullName || user.username || 'Unknown';
 };
+
+const buildTaskOptions = (tasks) => tasks.map((task) => ({ value: String(task.id), label: task.title }));
 
 export const ProjectFilesLibrary = () => {
   const { user } = useAuth();
@@ -48,765 +44,659 @@ export const ProjectFilesLibrary = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(searchParams.get('project') || '');
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
   const [trashEntries, setTrashEntries] = useState([]);
-  const [versions, setVersions] = useState([]);
-  const [activityLogs, setActivityLogs] = useState([]);
   const [taskOptions, setTaskOptions] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFolderId, setSelectedFolderId] = useState('all');
-  const [sortBy, setSortBy] = useState('latest');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [loadingProjectData, setLoadingProjectData] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [showTrash, setShowTrash] = useState(false);
-  const [uploadState, setUploadState] = useState({
-    projectId: '',
-    displayName: '',
-    description: '',
-    tag: 'DRAFT',
-    folderId: '',
-    linkedTaskId: '',
-    versionNote: '',
-    file: null,
-  });
-  const [newFolderName, setNewFolderName] = useState('');
-  const [versionUpload, setVersionUpload] = useState({ file: null, note: '', tag: 'DRAFT' });
-  const [renameValue, setRenameValue] = useState('');
-  const [moveFolderId, setMoveFolderId] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [versions, setVersions] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [activeDetailTab, setActiveDetailTab] = useState('versions');
 
-  const selectedProjectId = searchParams.get('project') || '';
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isTrashView, setIsTrashView] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('latest');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [uploaderFilter, setUploaderFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    file: null,
+    display_name: '',
+    folder_id: '',
+    tag: 'DRAFT',
+    linked_task_id: '',
+    version_note: '',
+    description: '',
+  });
+  const [versionForm, setVersionForm] = useState({
+    file: null,
+    version_note: '',
+    tag: 'DRAFT',
+  });
+
   const isLecturerRoute = location.pathname.startsWith('/lecturer/');
+  const projectsPath = isLecturerRoute ? '/lecturer/projects' : '/student/projects';
 
   useEffect(() => {
     const loadProjects = async () => {
-      setLoadingProjects(true);
       try {
         const data = await projectsAPI.list();
         const list = Array.isArray(data) ? data : data?.results || [];
         setProjects(list);
         if (!selectedProjectId && list.length > 0) {
-          const nextParams = new URLSearchParams(searchParams);
-          nextParams.set('project', String(list[0].id));
-          setSearchParams(nextParams, { replace: true });
+          const firstProjectId = String(list[0].id);
+          setSelectedProjectId(firstProjectId);
+          const next = new URLSearchParams(searchParams);
+          next.set('project', firstProjectId);
+          setSearchParams(next, { replace: true });
         }
       } catch (error) {
-        showToast('error', 'Projects unavailable', error.response?.data?.detail || 'Failed to load projects.');
-      } finally {
-        setLoadingProjects(false);
+        showToast('error', 'Projects unavailable', 'Could not load projects.');
       }
     };
 
     loadProjects();
-  }, [selectedProjectId, setSearchParams, showToast]);
+  }, [selectedProjectId, searchParams, setSearchParams, showToast]);
 
   useEffect(() => {
-    const loadTaskOptions = async () => {
-      try {
-        const projectId = selectedProjectId;
-        if (!projectId) {
-          setTaskOptions([]);
-          return;
-        }
-        const data = await taskAPI.listTasks({ project: projectId });
-        setTaskOptions(Array.isArray(data) ? data : data?.results || []);
-      } catch (error) {
-        setTaskOptions([]);
-      }
-    };
-
-    loadTaskOptions();
-  }, [selectedProjectId]);
+    const syncFromQuery = searchParams.get('project') || '';
+    if (syncFromQuery !== selectedProjectId) {
+      setSelectedProjectId(syncFromQuery);
+    }
+  }, [searchParams, selectedProjectId]);
 
   useEffect(() => {
-    const loadProjectData = async () => {
+    const loadProjectContext = async () => {
       if (!selectedProjectId) {
         setFolders([]);
         setFiles([]);
         setTrashEntries([]);
-        setSelectedFile(null);
-        setVersions([]);
-        setActivityLogs([]);
+        setTaskOptions([]);
         return;
       }
 
-      setLoadingProjectData(true);
+      setIsLoading(true);
       try {
-        const [foldersData, filesData, trashData] = await Promise.all([
+        const [foldersData, filesData, trashData, tasksData] = await Promise.all([
           projectFilesAPI.listFolders({ project: selectedProjectId }),
-          projectFilesAPI.listFiles({ project: selectedProjectId, include_deleted: showTrash ? '1' : '0' }),
+          projectFilesAPI.listFiles({ project: selectedProjectId, include_deleted: '0' }),
           projectFilesAPI.listTrash({ project: selectedProjectId }),
+          taskAPI.listTasks({ project: selectedProjectId }),
         ]);
-        setFolders(Array.isArray(foldersData) ? foldersData : foldersData?.results || []);
-        setFiles(Array.isArray(filesData) ? filesData : filesData?.results || []);
-        setTrashEntries(Array.isArray(trashData) ? trashData : trashData?.results || []);
-        setSelectedFolderId('all');
+
+        const resolvedFolders = Array.isArray(foldersData) ? foldersData : foldersData?.results || [];
+        const resolvedFiles = Array.isArray(filesData) ? filesData : filesData?.results || [];
+        const resolvedTrash = Array.isArray(trashData) ? trashData : trashData?.results || [];
+        const resolvedTasks = Array.isArray(tasksData) ? tasksData : tasksData?.results || [];
+
+        setFolders(resolvedFolders);
+        setFiles(resolvedFiles);
+        setTrashEntries(resolvedTrash);
+        setTaskOptions(buildTaskOptions(resolvedTasks));
         setSelectedFile(null);
-        setVersions([]);
-        setActivityLogs([]);
       } catch (error) {
-        showToast('error', 'File library unavailable', error.response?.data?.error || 'Unable to load project files.');
+        showToast('error', 'File library unavailable', error.response?.data?.error || 'Could not load project files.');
       } finally {
-        setLoadingProjectData(false);
+        setIsLoading(false);
       }
     };
 
-    loadProjectData();
-  }, [selectedProjectId, showTrash, showToast]);
+    loadProjectContext();
+  }, [selectedProjectId, showToast]);
 
   useEffect(() => {
-    const loadDetails = async () => {
+    const loadFileDetails = async () => {
       if (!selectedFile?.id) {
         setVersions([]);
-        setActivityLogs([]);
-        setRenameValue('');
-        setMoveFolderId('');
+        setActivity([]);
         return;
       }
 
-      setLoadingDetails(true);
+      setIsDetailLoading(true);
       try {
         const [versionsData, activityData] = await Promise.all([
           projectFilesAPI.listVersions({ file: selectedFile.id }),
           projectFilesAPI.listActivity({ file: selectedFile.id }),
         ]);
         setVersions(Array.isArray(versionsData) ? versionsData : versionsData?.results || []);
-        setActivityLogs(Array.isArray(activityData) ? activityData : activityData?.results || []);
-        setRenameValue(selectedFile.display_name || '');
-        setMoveFolderId(selectedFile.folder?.id ? String(selectedFile.folder.id) : '');
+        setActivity(Array.isArray(activityData) ? activityData : activityData?.results || []);
       } catch (error) {
-        showToast('error', 'Unable to load file details', 'Please try again.');
+        setVersions([]);
+        setActivity([]);
       } finally {
-        setLoadingDetails(false);
+        setIsDetailLoading(false);
       }
     };
 
-    loadDetails();
-  }, [selectedFile, showToast]);
+    loadFileDetails();
+  }, [selectedFile]);
 
-  const currentProject = projects.find((item) => String(item.id) === selectedProjectId);
-  const projectsListPath = isLecturerRoute ? '/lecturer/projects' : '/student/projects';
-  const projectDashboardPath = currentProject
-    ? (isLecturerRoute ? `/lecturer/projects/${currentProject.id}` : `/student/projects/${currentProject.id}`)
-    : projectsListPath;
-  const visibleFiles = useMemo(() => {
+  const currentProject = useMemo(
+    () => projects.find((project) => String(project.id) === String(selectedProjectId)),
+    [projects, selectedProjectId]
+  );
+
+  const dashboardPath = currentProject
+    ? `${projectsPath}/${currentProject.id}`
+    : projectsPath;
+
+  const uploaderOptions = useMemo(() => {
+    const map = new Map();
+    files.forEach((file) => {
+      if (file.uploaded_by?.id) {
+        map.set(String(file.uploaded_by.id), getUserLabel(file.uploaded_by));
+      }
+    });
+    return [...map.entries()].map(([value, label]) => ({ value, label }));
+  }, [files]);
+
+  const fileTypeOptions = useMemo(() => {
+    const set = new Set(files.map((file) => (file.file_extension || '').toLowerCase()).filter(Boolean));
+    return [...set].map((ext) => ({ value: ext, label: ext.replace('.', '').toUpperCase() }));
+  }, [files]);
+
+  const filteredFiles = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    return files
-      .filter((item) => (selectedFolderId === 'all' ? true : String(item.folder?.id || '') === String(selectedFolderId)))
-      .filter((item) => {
+    const result = files
+      .filter((file) => (selectedFolderId === 'all' ? true : String(file.folder?.id || '') === String(selectedFolderId)))
+      .filter((file) => (tagFilter === 'all' ? true : file.tag === tagFilter))
+      .filter((file) => (uploaderFilter === 'all' ? true : String(file.uploaded_by?.id || '') === uploaderFilter))
+      .filter((file) => (typeFilter === 'all' ? true : (file.file_extension || '').toLowerCase() === typeFilter))
+      .filter((file) => {
         if (!query) return true;
-        return [item.display_name, item.description, item.stored_file_name, item.folder?.name, item.uploaded_by?.username]
+        return [file.display_name, file.description, file.stored_file_name, file.folder?.name]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
-      })
-      .sort((left, right) => {
-        if (sortBy === 'name') return (left.display_name || '').localeCompare(right.display_name || '');
-        if (sortBy === 'size') return (right.file_size || 0) - (left.file_size || 0);
-        const leftTime = new Date(left.upload_timestamp || 0).getTime();
-        const rightTime = new Date(right.upload_timestamp || 0).getTime();
-        return sortBy === 'oldest' ? leftTime - rightTime : rightTime - leftTime;
       });
-  }, [files, searchTerm, selectedFolderId, sortBy]);
 
-  const selectedFolder = selectedFolderId === 'all'
-    ? null
-    : folders.find((folder) => String(folder.id) === String(selectedFolderId));
+    return result.sort((a, b) => {
+      if (sortBy === 'name') return (a.display_name || '').localeCompare(b.display_name || '');
+      if (sortBy === 'size') return (b.file_size || 0) - (a.file_size || 0);
+      const leftTime = new Date(a.current_version_file?.upload_timestamp || a.upload_timestamp || 0).getTime();
+      const rightTime = new Date(b.current_version_file?.upload_timestamp || b.upload_timestamp || 0).getTime();
+      return sortBy === 'oldest' ? leftTime - rightTime : rightTime - leftTime;
+    });
+  }, [files, searchTerm, selectedFolderId, sortBy, tagFilter, uploaderFilter, typeFilter]);
 
-  const canManageFiles = currentProject && (user?.role === 'ADMIN' || user?.role === 'LECTURER' || currentProject.current_membership);
-  const canManageFolders = user?.role === 'ADMIN' || user?.role === 'LECTURER' || currentProject?.current_membership?.role === 'LEADER' || currentProject?.current_membership?.role === 'CO_LEADER';
+  const filteredTrash = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return trashEntries.filter((entry) => {
+      if (!query) return true;
+      return String(entry.original_file?.display_name || '').toLowerCase().includes(query);
+    });
+  }, [trashEntries, searchTerm]);
 
-  const refreshProjectData = async () => {
+  const storageUsedBytes = useMemo(
+    () => files.reduce((sum, file) => sum + (file.file_size || 0), 0),
+    [files]
+  );
+
+  const closePanels = () => {
+    setSelectedFile(null);
+    setIsVersionModalOpen(false);
+    setActiveDetailTab('versions');
+  };
+
+  const reloadProjectFiles = async () => {
     if (!selectedProjectId) return;
-    const [foldersData, filesData, trashData] = await Promise.all([
-      projectFilesAPI.listFolders({ project: selectedProjectId }),
-      projectFilesAPI.listFiles({ project: selectedProjectId, include_deleted: showTrash ? '1' : '0' }),
+    const [filesData, trashData] = await Promise.all([
+      projectFilesAPI.listFiles({ project: selectedProjectId, include_deleted: '0' }),
       projectFilesAPI.listTrash({ project: selectedProjectId }),
     ]);
-    setFolders(Array.isArray(foldersData) ? foldersData : foldersData?.results || []);
-    setFiles(Array.isArray(filesData) ? filesData : filesData?.results || []);
-    setTrashEntries(Array.isArray(trashData) ? trashData : trashData?.results || []);
-  };
-
-  const handleProjectChange = (event) => {
-    const nextParams = new URLSearchParams(searchParams);
-    if (event.target.value) {
-      nextParams.set('project', event.target.value);
-    } else {
-      nextParams.delete('project');
+    const resolvedFiles = Array.isArray(filesData) ? filesData : filesData?.results || [];
+    const resolvedTrash = Array.isArray(trashData) ? trashData : trashData?.results || [];
+    setFiles(resolvedFiles);
+    setTrashEntries(resolvedTrash);
+    if (selectedFile) {
+      const refreshed = resolvedFiles.find((file) => file.id === selectedFile.id);
+      setSelectedFile(refreshed || null);
     }
-    setSearchParams(nextParams);
   };
 
-  const handleCreateFolder = async (event) => {
-    event.preventDefault();
+  const handleProjectChange = (projectId) => {
+    setSelectedProjectId(projectId);
+    const next = new URLSearchParams(searchParams);
+    if (projectId) {
+      next.set('project', projectId);
+    } else {
+      next.delete('project');
+    }
+    setSearchParams(next);
+    closePanels();
+  };
+
+  const handleCreateFolder = async () => {
     if (!selectedProjectId || !newFolderName.trim()) return;
     try {
       await projectFilesAPI.createFolder({ project: selectedProjectId, name: newFolderName.trim() });
+      const foldersData = await projectFilesAPI.listFolders({ project: selectedProjectId });
+      const resolvedFolders = Array.isArray(foldersData) ? foldersData : foldersData?.results || [];
+      setFolders(resolvedFolders);
       setNewFolderName('');
-      await refreshProjectData();
-      showToast('success', 'Folder created', 'The new folder is ready to use.');
+      setIsCreateFolderOpen(false);
+      showToast('success', 'Folder Created', 'New folder has been added.');
     } catch (error) {
-      showToast('error', 'Folder not created', error.response?.data?.error || 'Please try again.');
+      showToast('error', 'Folder Error', error.response?.data?.error || 'Could not create folder.');
     }
   };
 
-  const handleUploadFile = async (event) => {
-    event.preventDefault();
-    if (!selectedProjectId || !uploadState.file) {
-      showToast('error', 'File required', 'Choose a file before uploading.');
+  const handleUploadFile = async () => {
+    if (!selectedProjectId || !uploadForm.file) {
+      showToast('error', 'Missing File', 'Please choose a file to upload.');
       return;
     }
 
     try {
       const formData = new FormData();
       formData.append('project', selectedProjectId);
-      if (uploadState.folderId) {
-        formData.append('folder_id', uploadState.folderId);
-      }
-      if (uploadState.displayName.trim()) {
-        formData.append('display_name', uploadState.displayName.trim());
-      }
-      if (uploadState.description.trim()) {
-        formData.append('description', uploadState.description.trim());
-      }
-      if (uploadState.tag) {
-        formData.append('tag', uploadState.tag);
-      }
-      if (uploadState.linkedTaskId) {
-        formData.append('linked_task_id', uploadState.linkedTaskId);
-      }
-      if (uploadState.versionNote.trim()) {
-        formData.append('version_note', uploadState.versionNote.trim());
-      }
-      formData.append('file', uploadState.file);
+      formData.append('file', uploadForm.file);
+      if (uploadForm.display_name.trim()) formData.append('display_name', uploadForm.display_name.trim());
+      if (uploadForm.folder_id) formData.append('folder_id', uploadForm.folder_id);
+      if (uploadForm.tag) formData.append('tag', uploadForm.tag);
+      if (uploadForm.linked_task_id) formData.append('linked_task_id', uploadForm.linked_task_id);
+      if (uploadForm.version_note.trim()) formData.append('version_note', uploadForm.version_note.trim());
+      if (uploadForm.description.trim()) formData.append('description', uploadForm.description.trim());
+
       await projectFilesAPI.createFile(formData);
-      setUploadState({
-        projectId: selectedProjectId,
-        displayName: '',
-        description: '',
-        tag: 'DRAFT',
-        folderId: '',
-        linkedTaskId: '',
-        versionNote: '',
+      await reloadProjectFiles();
+      setIsUploadModalOpen(false);
+      setUploadForm({
         file: null,
+        display_name: '',
+        folder_id: '',
+        tag: 'DRAFT',
+        linked_task_id: '',
+        version_note: '',
+        description: '',
       });
-      await refreshProjectData();
-      showToast('success', 'File uploaded', 'The file has been added to the project library.');
+      showToast('success', 'Upload Complete', 'File uploaded to project library.');
     } catch (error) {
-      showToast('error', 'Upload failed', error.response?.data?.error || 'Please check the file and try again.');
+      showToast('error', 'Upload Failed', error.response?.data?.error || 'Could not upload file.');
     }
   };
 
-  const handleSelectFile = (file) => {
-    setSelectedFile(file);
-  };
-
-  const handleLockAndPrepareVersion = async () => {
-    if (!selectedFile) return;
-    try {
-      await projectFilesAPI.startVersionLock(selectedFile.id);
-      showToast('info', 'Version locked', 'You have 10 minutes to upload the new version.');
-      await refreshProjectData();
-      const refreshed = await projectFilesAPI.getFile(selectedFile.id);
-      setSelectedFile(refreshed);
-    } catch (error) {
-      showToast('error', 'Version lock unavailable', error.response?.data?.detail || error.response?.data?.error || 'Another member may already be editing this file.');
-    }
-  };
-
-  const handleUploadVersion = async (event) => {
-    event.preventDefault();
-    if (!selectedFile || !versionUpload.file) {
-      showToast('error', 'Version file required', 'Choose a file before uploading a new version.');
+  const handleUploadVersion = async () => {
+    if (!selectedFile || !versionForm.file || !versionForm.version_note.trim()) {
+      showToast('error', 'Missing Fields', 'Version file and note are required.');
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append('file', versionUpload.file);
-      formData.append('version_note', versionUpload.note.trim());
-      formData.append('tag', versionUpload.tag);
+      formData.append('file', versionForm.file);
+      formData.append('version_note', versionForm.version_note.trim());
+      formData.append('tag', versionForm.tag);
       await projectFilesAPI.uploadVersion(selectedFile.id, formData);
-      setVersionUpload({ file: null, note: '', tag: selectedFile.tag || 'DRAFT' });
-      await refreshProjectData();
+      await reloadProjectFiles();
       const refreshed = await projectFilesAPI.getFile(selectedFile.id);
       setSelectedFile(refreshed);
-      showToast('success', 'Version uploaded', 'The latest revision has been stored.');
+      setIsVersionModalOpen(false);
+      setVersionForm({ file: null, version_note: '', tag: selectedFile.tag || 'DRAFT' });
+      showToast('success', 'Version Added', 'New version uploaded successfully.');
     } catch (error) {
-      showToast('error', 'Version upload failed', error.response?.data?.error || 'Please try again.');
-    }
-  };
-
-  const handleRenameFile = async (event) => {
-    event.preventDefault();
-    if (!selectedFile || !renameValue.trim()) return;
-    try {
-      await projectFilesAPI.rename(selectedFile.id, renameValue.trim());
-      await refreshProjectData();
-      const refreshed = await projectFilesAPI.getFile(selectedFile.id);
-      setSelectedFile(refreshed);
-      showToast('success', 'File renamed', 'Display name updated successfully.');
-    } catch (error) {
-      showToast('error', 'Rename failed', error.response?.data?.error || 'Please try again.');
-    }
-  };
-
-  const handleMoveFile = async (event) => {
-    event.preventDefault();
-    if (!selectedFile) return;
-    try {
-      await projectFilesAPI.moveFolder(selectedFile.id, moveFolderId || null);
-      await refreshProjectData();
-      const refreshed = await projectFilesAPI.getFile(selectedFile.id);
-      setSelectedFile(refreshed);
-      showToast('success', 'File moved', 'Folder changed successfully.');
-    } catch (error) {
-      showToast('error', 'Move failed', error.response?.data?.error || 'Please try again.');
+      showToast('error', 'Version Upload Failed', error.response?.data?.error || 'Could not upload new version.');
     }
   };
 
   const handleDeleteFile = async () => {
     if (!selectedFile) return;
-    const confirmed = window.confirm(`Delete ${selectedFile.display_name}? It will move to trash.`);
-    if (!confirmed) return;
     try {
       await projectFilesAPI.deleteFile(selectedFile.id);
+      await reloadProjectFiles();
       setSelectedFile(null);
-      await refreshProjectData();
-      showToast('success', 'File moved to trash', 'You can restore it from the trash panel.');
+      showToast('success', 'Moved to Trash', 'File has been moved to trash.');
     } catch (error) {
-      showToast('error', 'Delete failed', error.response?.data?.error || 'Please try again.');
+      showToast('error', 'Delete Failed', error.response?.data?.error || 'Could not delete file.');
     }
   };
 
-  const handleRestore = async (trashEntry) => {
+  const handleRestoreFile = async (trashId) => {
     try {
-      await projectFilesAPI.restoreTrash(trashEntry.id);
-      await refreshProjectData();
-      showToast('success', 'File restored', 'The file has been returned to the library.');
+      await projectFilesAPI.restoreTrash(trashId);
+      await reloadProjectFiles();
+      showToast('success', 'Restored', 'File has been restored from trash.');
     } catch (error) {
-      showToast('error', 'Restore failed', error.response?.data?.error || 'Please try again.');
+      showToast('error', 'Restore Failed', error.response?.data?.error || 'Could not restore file.');
     }
   };
+
+  const fileRows = isTrashView ? filteredTrash : filteredFiles;
 
   return (
-    <div className="file-library-page">
-      <section className="file-library-hero">
-        <div>
-          <span className="eyebrow">File Sharing &amp; Version Control</span>
-          <h1>Project file library</h1>
-          <p>Keep all project documents in one place with folders, version history, trash recovery, and task links.</p>
-        </div>
-        <div className="file-library-hero-actions">
-          <Link to={projectsListPath} className="file-library-secondary-action">
-            <i className="fa-solid fa-diagram-project"></i>
-            Back to projects
-          </Link>
-          {currentProject && (
-            <Link to={projectDashboardPath} className="file-library-primary-action">
-              Open project dashboard
-            </Link>
-          )}
-        </div>
-      </section>
-
-      <section className="file-library-toolbar">
-        <div className="toolbar-block">
-          <label>Project</label>
-          <select value={selectedProjectId} onChange={handleProjectChange} disabled={loadingProjects}>
-            <option value="">Select a project</option>
+    <div className="file-library-shell">
+      <aside className="library-sidebar">
+        <div className="sidebar-top">
+          <h2>{currentProject?.title || 'Project File Library'}</h2>
+          <select value={selectedProjectId} onChange={(event) => handleProjectChange(event.target.value)}>
+            <option value="">Select Project</option>
             {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
+              <option key={project.id} value={project.id}>{project.title}</option>
             ))}
           </select>
         </div>
-        <div className="toolbar-block toolbar-wide">
-          <label>Search</label>
-          <input
-            type="search"
-            placeholder="Search files, folders, uploads..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </div>
-        <div className="toolbar-block">
-          <label>Sort</label>
-          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-        <button className={`toolbar-toggle ${showTrash ? 'active' : ''}`} onClick={() => setShowTrash((value) => !value)}>
-          <i className="fa-solid fa-trash-can"></i>
-          {showTrash ? 'Hide trash' : 'Show trash'}
-        </button>
-      </section>
 
-      <section className="file-library-layout">
-        <aside className="file-library-sidebar">
-          <div className="panel-card">
-            <div className="panel-head">
-              <h2>Folders</h2>
-              <span>{folders.length}</span>
-            </div>
-            <button className={`folder-pill ${selectedFolderId === 'all' ? 'active' : ''}`} onClick={() => setSelectedFolderId('all')}>
-              All files
-            </button>
-            {folders.map((folder) => (
-              <button
-                key={folder.id}
-                className={`folder-pill ${String(selectedFolderId) === String(folder.id) ? 'active' : ''}`}
-                onClick={() => setSelectedFolderId(String(folder.id))}
-              >
-                <span>{folder.name}</span>
-                <strong>{folder.file_count}</strong>
-              </button>
-            ))}
+        <div className="folders-panel">
+          <div className="folders-header">
+            <h3>Folders</h3>
+            <button type="button" className="link-button" onClick={() => setIsCreateFolderOpen((value) => !value)}>+ New Folder</button>
           </div>
-
-          <div className="panel-card">
-            <div className="panel-head">
-              <h2>Create folder</h2>
-            </div>
-            <form onSubmit={handleCreateFolder} className="stack-form">
+          {isCreateFolderOpen && (
+            <div className="inline-folder-create">
               <input
-                type="text"
-                placeholder="Folder name"
                 value={newFolderName}
                 onChange={(event) => setNewFolderName(event.target.value)}
-                disabled={!selectedProjectId || !canManageFolders}
+                placeholder="Folder name"
               />
-              <button type="submit" disabled={!selectedProjectId || !newFolderName.trim() || !canManageFolders}>
-                Add folder
-              </button>
-            </form>
+              <button type="button" onClick={handleCreateFolder}>Create</button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className={`folder-item ${selectedFolderId === 'all' && !isTrashView ? 'active' : ''}`}
+            onClick={() => {
+              setIsTrashView(false);
+              setSelectedFolderId('all');
+            }}
+          >
+            <span>All Files</span>
+            <small>{files.length}</small>
+          </button>
+
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              className={`folder-item ${String(selectedFolderId) === String(folder.id) && !isTrashView ? 'active' : ''}`}
+              onClick={() => {
+                setIsTrashView(false);
+                setSelectedFolderId(String(folder.id));
+              }}
+            >
+              <span>{folder.name}</span>
+              <small>{folder.file_count}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="sidebar-bottom">
+          <button
+            type="button"
+            className={`folder-item trash-link ${isTrashView ? 'active' : ''}`}
+            onClick={() => {
+              setIsTrashView(true);
+              setSelectedFile(null);
+            }}
+          >
+            <span>Trash</span>
+            <small>{trashEntries.length}</small>
+          </button>
+          <Link to={dashboardPath} className="sidebar-nav-link">Project Dashboard</Link>
+          <Link to={projectsPath} className="sidebar-nav-link">Back to Projects</Link>
+        </div>
+      </aside>
+
+      <main className="library-main">
+        <header className="library-toolbar">
+          <div className="toolbar-left">
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={isTrashView ? 'Search trash...' : 'Search files...'}
+            />
+            <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} disabled={isTrashView}>
+              <option value="all">All Tags</option>
+              {tagOptions.map((tag) => (<option key={tag} value={tag}>{tag}</option>))}
+            </select>
+            <select value={uploaderFilter} onChange={(event) => setUploaderFilter(event.target.value)} disabled={isTrashView}>
+              <option value="all">All Members</option>
+              {uploaderOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+            </select>
+            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} disabled={isTrashView}>
+              <option value="all">All Types</option>
+              {fileTypeOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+            </select>
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+              {sortOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+            </select>
           </div>
 
-          <div className="panel-card">
-            <div className="panel-head">
-              <h2>Trash</h2>
-              <span>{trashEntries.length}</span>
+          <div className="toolbar-right">
+            <div className="view-toggle" role="group" aria-label="View mode">
+              <button type="button" className={!isGridView ? '' : 'active'} onClick={() => setIsGridView(true)}>Grid</button>
+              <button type="button" className={isGridView ? '' : 'active'} onClick={() => setIsGridView(false)}>List</button>
             </div>
-            <div className="trash-list">
-              {trashEntries.length === 0 ? (
-                <p className="empty-copy">No files in trash.</p>
-              ) : (
-                trashEntries.map((entry) => (
-                  <div key={entry.id} className="trash-item">
-                    <div>
-                      <strong>{entry.original_file?.display_name}</strong>
-                      <span>{formatDateTime(entry.deletion_timestamp)}</span>
-                    </div>
-                    <button type="button" onClick={() => handleRestore(entry)}>Restore</button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </aside>
-
-        <main className="file-library-main">
-          <div className="summary-grid">
-            <article className="summary-card">
-              <span>Total files</span>
-              <strong>{files.length}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Visible files</span>
-              <strong>{visibleFiles.length}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Folders</span>
-              <strong>{folders.length}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Selected folder</span>
-              <strong>{selectedFolder?.name || 'All'}</strong>
-            </article>
-          </div>
-
-          <section className="panel-card upload-panel">
-            <div className="panel-head">
-              <h2>Upload a new file</h2>
-              <span>{canManageFiles ? 'Allowed' : 'Read only'}</span>
-            </div>
-            <form onSubmit={handleUploadFile} className="upload-form">
-              <div className="upload-grid">
-                <label>
-                  <span>File</span>
-                  <input
-                    type="file"
-                    onChange={(event) => setUploadState((value) => ({ ...value, file: event.target.files?.[0] || null }))}
-                    disabled={!selectedProjectId || !canManageFiles}
-                  />
-                </label>
-                <label>
-                  <span>Display name</span>
-                  <input
-                    type="text"
-                    value={uploadState.displayName}
-                    onChange={(event) => setUploadState((value) => ({ ...value, displayName: event.target.value }))}
-                    placeholder="Optional"
-                    disabled={!selectedProjectId || !canManageFiles}
-                  />
-                </label>
-                <label>
-                  <span>Folder</span>
-                  <select
-                    value={uploadState.folderId}
-                    onChange={(event) => setUploadState((value) => ({ ...value, folderId: event.target.value }))}
-                    disabled={!selectedProjectId || !canManageFiles}
-                  >
-                    <option value="">General</option>
-                    {folders.map((folder) => (
-                      <option key={folder.id} value={folder.id}>{folder.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Linked task</span>
-                  <select
-                    value={uploadState.linkedTaskId}
-                    onChange={(event) => setUploadState((value) => ({ ...value, linkedTaskId: event.target.value }))}
-                    disabled={!selectedProjectId || !canManageFiles}
-                  >
-                    <option value="">None</option>
-                    {taskOptions.map((task) => (
-                      <option key={task.id} value={task.id}>{task.title}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Tag</span>
-                  <select
-                    value={uploadState.tag}
-                    onChange={(event) => setUploadState((value) => ({ ...value, tag: event.target.value }))}
-                    disabled={!selectedProjectId || !canManageFiles}
-                  >
-                    {tagOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="upload-wide">
-                  <span>Version note</span>
-                  <input
-                    type="text"
-                    value={uploadState.versionNote}
-                    onChange={(event) => setUploadState((value) => ({ ...value, versionNote: event.target.value }))}
-                    placeholder="What does this upload change?"
-                    disabled={!selectedProjectId || !canManageFiles}
-                  />
-                </label>
-                <label className="upload-wide">
-                  <span>Description</span>
-                  <textarea
-                    value={uploadState.description}
-                    onChange={(event) => setUploadState((value) => ({ ...value, description: event.target.value }))}
-                    placeholder="Add notes for the team"
-                    disabled={!selectedProjectId || !canManageFiles}
-                    rows={3}
-                  />
-                </label>
-              </div>
-              <button type="submit" className="primary-button" disabled={!selectedProjectId || !canManageFiles || !uploadState.file}>
-                Upload file
-              </button>
-            </form>
-          </section>
-
-          <section className="file-grid">
-            {loadingProjects || loadingProjectData ? (
-              <div className="empty-state panel-card">Loading files...</div>
-            ) : visibleFiles.length === 0 ? (
-              <div className="empty-state panel-card">
-                <i className="fa-regular fa-folder-open"></i>
-                <h3>No files found</h3>
-                <p>Upload a document or change the current filters.</p>
-              </div>
-            ) : (
-              visibleFiles.map((file) => (
-                <button key={file.id} type="button" className={`file-card ${selectedFile?.id === file.id ? 'selected' : ''}`} onClick={() => handleSelectFile(file)}>
-                  <div className="file-card-top">
-                    <div>
-                      <span className="file-tag">{file.tag}</span>
-                      <h3>{file.display_name}</h3>
-                    </div>
-                    <span className={`lock-badge ${file.is_locked ? 'active' : ''}`}>
-                      <i className="fa-solid fa-lock"></i>
-                      {file.is_locked ? 'Locked' : 'Open'}
-                    </span>
-                  </div>
-                  <p>{file.description || 'No description provided.'}</p>
-                  <div className="file-card-meta">
-                    <span>{file.folder?.name || 'General'}</span>
-                    <span>{formatFileSize(file.file_size)}</span>
-                    <span>v{file.current_version_number}</span>
-                  </div>
-                </button>
-              ))
+            {!isTrashView && (
+              <button type="button" className="upload-button" onClick={() => setIsUploadModalOpen(true)}>+ Upload File</button>
             )}
-          </section>
-        </main>
+          </div>
+        </header>
 
-        <aside className="file-library-detail">
-          <div className="panel-card detail-card">
-            <div className="panel-head">
-              <h2>File details</h2>
-            </div>
-            {!selectedFile ? (
-              <p className="empty-copy">Select a file to view versions, activity, and actions.</p>
+        <section className="stats-strip">
+          <span>Total Files: <strong>{files.length}</strong></span>
+          <span>Folders: <strong>{folders.length}</strong></span>
+          <span>Storage Used: <strong>{formatFileSize(storageUsedBytes)}</strong></span>
+          {searchTerm.trim() && <span>Showing <strong>{fileRows.length}</strong> results for "{searchTerm.trim()}"</span>}
+        </section>
+
+        {isLoading ? (
+          <div className="library-empty">Loading files...</div>
+        ) : fileRows.length === 0 ? (
+          <div className="library-empty">
+            {isTrashView ? (
+              <>
+                <h3>Trash is empty</h3>
+                <p>Deleted files will appear here for restoration before purge.</p>
+              </>
             ) : (
               <>
-                <div className="detail-title">
-                  <div>
-                    <span className="file-tag">{selectedFile.tag}</span>
-                    <h3>{selectedFile.display_name}</h3>
-                    <p>{selectedFile.description || 'No description provided.'}</p>
-                  </div>
-                </div>
-                <dl className="detail-list">
-                  <div>
-                    <dt>Folder</dt>
-                    <dd>{selectedFile.folder?.name || 'General'}</dd>
-                  </div>
-                  <div>
-                    <dt>Uploaded by</dt>
-                    <dd>{getUserName(selectedFile.uploaded_by)}</dd>
-                  </div>
-                  <div>
-                    <dt>Current version</dt>
-                    <dd>v{selectedFile.current_version_number}</dd>
-                  </div>
-                  <div>
-                    <dt>File size</dt>
-                    <dd>{formatFileSize(selectedFile.file_size)}</dd>
-                  </div>
-                  <div>
-                    <dt>Linked task</dt>
-                    <dd>{selectedFile.linked_task?.title || 'None'}</dd>
-                  </div>
-                  <div>
-                    <dt>Lock status</dt>
-                    <dd>{selectedFile.is_locked ? `Locked by ${selectedFile.version_lock_by?.username || 'another member'}` : 'Available'}</dd>
-                  </div>
-                </dl>
-
-                <div className="detail-actions">
-                  <a href={selectedFile.current_file_url} target="_blank" rel="noreferrer" className="file-library-secondary-action">
-                    <i className="fa-solid fa-download"></i>
-                    Download
-                  </a>
-                  <button type="button" onClick={handleLockAndPrepareVersion} disabled={!canManageFiles}>
-                    Reserve version upload
-                  </button>
-                </div>
-
-                <form onSubmit={handleRenameFile} className="stack-form compact">
-                  <label>
-                    <span>Rename file</span>
-                    <input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} disabled={!canManageFiles} />
-                  </label>
-                  <label>
-                    <span>Move folder</span>
-                    <select value={moveFolderId} onChange={(event) => setMoveFolderId(event.target.value)} disabled={!canManageFiles}>
-                      <option value="">General</option>
-                      {folders.map((folder) => (
-                        <option key={folder.id} value={folder.id}>{folder.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="inline-actions">
-                    <button type="submit" disabled={!canManageFiles || !renameValue.trim()}>Save name</button>
-                    <button type="button" onClick={handleMoveFile} disabled={!canManageFiles}>Move</button>
-                  </div>
-                </form>
-
-                <form onSubmit={handleUploadVersion} className="stack-form compact version-box">
-                  <h4>Upload new version</h4>
-                  {selectedFile.is_locked && selectedFile.version_lock_by && (
-                    <p className="lock-copy">
-                      Locked by {selectedFile.version_lock_by.username} until {formatDateTime(selectedFile.version_lock_expires_at)}
-                    </p>
-                  )}
-                  <label>
-                    <span>Version file</span>
-                    <input type="file" onChange={(event) => setVersionUpload((value) => ({ ...value, file: event.target.files?.[0] || null }))} disabled={!canManageFiles} />
-                  </label>
-                  <label>
-                    <span>Version note</span>
-                    <textarea value={versionUpload.note} onChange={(event) => setVersionUpload((value) => ({ ...value, note: event.target.value }))} rows={3} disabled={!canManageFiles} />
-                  </label>
-                  <label>
-                    <span>Tag</span>
-                    <select value={versionUpload.tag} onChange={(event) => setVersionUpload((value) => ({ ...value, tag: event.target.value }))} disabled={!canManageFiles}>
-                      {tagOptions.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="submit" disabled={!canManageFiles || !versionUpload.file || !versionUpload.note.trim()}>Upload version</button>
-                </form>
-
-                <button type="button" className="danger-button" onClick={handleDeleteFile} disabled={!canManageFiles}>
-                  Move to trash
-                </button>
+                <h3>No files yet</h3>
+                <p>Upload your first document to start the project library.</p>
+                <button type="button" className="upload-button" onClick={() => setIsUploadModalOpen(true)}>Upload First File</button>
               </>
             )}
           </div>
-
-          <div className="panel-card detail-card">
-            <div className="panel-head">
-              <h2>Versions</h2>
-              <span>{versions.length}</span>
-            </div>
-            <div className="timeline-list">
-              {loadingDetails ? (
-                <p className="empty-copy">Loading history...</p>
-              ) : versions.length === 0 ? (
-                <p className="empty-copy">No versions available yet.</p>
-              ) : (
-                versions.map((version) => (
-                  <div key={version.id} className="timeline-item">
-                    <div>
-                      <strong>v{version.version_number}</strong>
-                      <span>{version.version_note || 'No note provided.'}</span>
-                    </div>
-                    <small>{formatDateTime(version.upload_timestamp)}</small>
+        ) : (
+          <section className={`file-results ${isGridView ? 'grid' : 'list'}`}>
+            {isTrashView
+              ? filteredTrash.map((entry) => (
+                <article key={entry.id} className="file-card muted">
+                  <div>
+                    <h4>{entry.original_file?.display_name}</h4>
+                    <p>Deleted: {formatDate(entry.deletion_timestamp)}</p>
+                    <p>Deletes on: {formatDate(entry.scheduled_purge_date)}</p>
                   </div>
-                ))
-              )}
+                  <button type="button" onClick={() => handleRestoreFile(entry.id)}>Restore</button>
+                </article>
+              ))
+              : filteredFiles.map((file) => (
+                <article
+                  key={file.id}
+                  className={`file-card ${selectedFile?.id === file.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedFile(file)}
+                >
+                  <div>
+                    <h4>{file.display_name}</h4>
+                    <p>{file.folder?.name || 'General'} · {file.file_extension || 'file'}</p>
+                    <p>{getUserLabel(file.uploaded_by)} · {formatDate(file.current_version_file?.upload_timestamp || file.upload_timestamp)}</p>
+                  </div>
+                  <div className="file-card-right">
+                    <span className={`tag-badge ${String(file.tag || '').toLowerCase()}`}>{file.tag}</span>
+                    <small>v{file.current_version_number}</small>
+                  </div>
+                </article>
+              ))}
+          </section>
+        )}
+      </main>
+
+      {selectedFile && !isTrashView && (
+        <aside className="file-detail-panel">
+          <header>
+            <div>
+              <h3>{selectedFile.display_name}</h3>
+              <p>{selectedFile.tag} · v{selectedFile.current_version_number}</p>
             </div>
+            <button type="button" onClick={() => setSelectedFile(null)} aria-label="Close details">X</button>
+          </header>
+
+          <section className="meta-grid">
+            <div><span>Uploaded by</span><strong>{getUserLabel(selectedFile.uploaded_by)}</strong></div>
+            <div><span>Date</span><strong>{formatDate(selectedFile.upload_timestamp)}</strong></div>
+            <div><span>Size</span><strong>{formatFileSize(selectedFile.file_size)}</strong></div>
+            <div><span>Folder</span><strong>{selectedFile.folder?.name || 'General'}</strong></div>
+            <div><span>Linked Task</span><strong>{selectedFile.linked_task?.title || 'None'}</strong></div>
+            <div><span>Description</span><strong>{selectedFile.description || 'No description'}</strong></div>
+          </section>
+
+          <div className="detail-actions">
+            {selectedFile.current_file_url && (
+              <a href={selectedFile.current_file_url} target="_blank" rel="noreferrer" className="button-link">Download</a>
+            )}
+            <button type="button" onClick={() => {
+              setVersionForm((prev) => ({ ...prev, tag: selectedFile.tag || 'DRAFT' }));
+              setIsVersionModalOpen(true);
+            }}>Upload New Version</button>
+            <button type="button" className="danger" onClick={handleDeleteFile}>Delete</button>
           </div>
 
-          <div className="panel-card detail-card">
-            <div className="panel-head">
-              <h2>Activity</h2>
-              <span>{activityLogs.length}</span>
-            </div>
-            <div className="timeline-list">
-              {activityLogs.length === 0 ? (
-                <p className="empty-copy">No activity recorded yet.</p>
-              ) : (
-                activityLogs.map((item) => (
-                  <div key={item.id} className="timeline-item">
-                    <div>
-                      <strong>{item.action_type}</strong>
-                      <span>{getUserName(item.actor)}</span>
-                    </div>
-                    <small>{formatDateTime(item.created_at)}</small>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="detail-tabs">
+            <button type="button" className={activeDetailTab === 'versions' ? 'active' : ''} onClick={() => setActiveDetailTab('versions')}>Versions</button>
+            <button type="button" className={activeDetailTab === 'activity' ? 'active' : ''} onClick={() => setActiveDetailTab('activity')}>Activity</button>
+          </div>
+
+          <div className="detail-feed">
+            {isDetailLoading ? (
+              <p>Loading...</p>
+            ) : activeDetailTab === 'versions' ? (
+              versions.map((version) => (
+                <article key={version.id}>
+                  <strong>v{version.version_number}</strong>
+                  <p>{version.version_note || 'No note'}</p>
+                  <small>{getUserLabel(version.uploader)} · {formatDate(version.upload_timestamp)}</small>
+                </article>
+              ))
+            ) : (
+              activity.map((item) => (
+                <article key={item.id}>
+                  <strong>{item.action_type}</strong>
+                  <p>{getUserLabel(item.actor)}</p>
+                  <small>{formatDate(item.created_at)}</small>
+                </article>
+              ))
+            )}
           </div>
         </aside>
-      </section>
+      )}
+
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        title="Upload File"
+        subtitle="Add a document to the project file library"
+        onConfirm={handleUploadFile}
+        confirmText="Upload"
+      >
+        <form className="library-modal-form" onSubmit={(event) => {
+          event.preventDefault();
+          handleUploadFile();
+        }}>
+          <label>
+            File
+            <input type="file" onChange={(event) => setUploadForm((prev) => ({ ...prev, file: event.target.files?.[0] || null }))} required />
+          </label>
+          {uploadForm.file && (
+            <p className="selected-file-preview">Selected: {uploadForm.file.name} ({formatFileSize(uploadForm.file.size)})</p>
+          )}
+          <label>
+            Display Name
+            <input value={uploadForm.display_name} onChange={(event) => setUploadForm((prev) => ({ ...prev, display_name: event.target.value }))} />
+          </label>
+          <label>
+            Folder
+            <select value={uploadForm.folder_id} onChange={(event) => setUploadForm((prev) => ({ ...prev, folder_id: event.target.value }))}>
+              <option value="">General</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>{folder.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Tag
+            <select value={uploadForm.tag} onChange={(event) => setUploadForm((prev) => ({ ...prev, tag: event.target.value }))}>
+              {tagOptions.map((tag) => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Link to Task (optional)
+            <select value={uploadForm.linked_task_id} onChange={(event) => setUploadForm((prev) => ({ ...prev, linked_task_id: event.target.value }))}>
+              <option value="">No linked task</option>
+              {taskOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Version Note
+            <input value={uploadForm.version_note} onChange={(event) => setUploadForm((prev) => ({ ...prev, version_note: event.target.value }))} />
+          </label>
+          <label>
+            Description
+            <textarea rows={3} value={uploadForm.description} onChange={(event) => setUploadForm((prev) => ({ ...prev, description: event.target.value }))} />
+          </label>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isVersionModalOpen}
+        onClose={() => setIsVersionModalOpen(false)}
+        title="Upload New Version"
+        subtitle={selectedFile ? `You are uploading version ${selectedFile.current_version_number + 1} of ${selectedFile.display_name}` : ''}
+        onConfirm={handleUploadVersion}
+        confirmText="Upload Version"
+      >
+        <form className="library-modal-form" onSubmit={(event) => {
+          event.preventDefault();
+          handleUploadVersion();
+        }}>
+          <label>
+            File (required)
+            <input type="file" onChange={(event) => setVersionForm((prev) => ({ ...prev, file: event.target.files?.[0] || null }))} required />
+          </label>
+          <label>
+            Tag
+            <select value={versionForm.tag} onChange={(event) => setVersionForm((prev) => ({ ...prev, tag: event.target.value }))}>
+              {tagOptions.map((tag) => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Version Note (required)
+            <textarea
+              rows={3}
+              value={versionForm.version_note}
+              onChange={(event) => setVersionForm((prev) => ({ ...prev, version_note: event.target.value }))}
+              required
+            />
+          </label>
+        </form>
+      </Modal>
     </div>
   );
 };

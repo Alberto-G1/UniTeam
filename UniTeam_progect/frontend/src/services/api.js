@@ -115,6 +115,16 @@ export const projectsAPI = {
     return response.data;
   },
 
+  getRecentFiles: async (id) => {
+    const response = await api.get(`/projects/${id}/recent_files/`);
+    return response.data;
+  },
+
+  getSubmissionChecklist: async (id) => {
+    const response = await api.get(`/projects/${id}/submission_checklist/`);
+    return response.data;
+  },
+
   getCandidateStudents: async (id, q = '') => {
     const response = await api.get(`/projects/${id}/candidate_students/`, {
       params: { q },
@@ -356,6 +366,11 @@ export const taskAPI = {
     const response = await api.post('/task-attachments/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+
+  promoteAttachmentToLibrary: async (attachmentId, payload = {}) => {
+    const response = await api.post(`/task-attachments/${attachmentId}/promote_to_library/`, payload);
     return response.data;
   },
 

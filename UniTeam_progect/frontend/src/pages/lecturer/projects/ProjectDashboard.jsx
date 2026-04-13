@@ -8,6 +8,7 @@ export const ProjectDashboard = () => {
   const [project, setProject] = useState(null);
   const [milestones, setMilestones] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [recentFiles, setRecentFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -23,9 +24,12 @@ export const ProjectDashboard = () => {
         projectsAPI.getTeam(id),
       ]);
 
+      const recentFilesRes = await projectsAPI.getRecentFiles(id);
+
       setProject(projectRes);
       setMilestones(milestonesRes || []);
       setTeamMembers(teamRes?.members || []);
+      setRecentFiles(Array.isArray(recentFilesRes) ? recentFilesRes : []);
     } catch (err) {
       setError('Failed to load project data');
     } finally {
@@ -85,6 +89,23 @@ export const ProjectDashboard = () => {
             </div>
           ) : (
             <p>No team members</p>
+          )}
+        </div>
+
+        <div className="project-section surface">
+          <h2>Recent Files</h2>
+          {recentFiles.length > 0 ? (
+            <div className="team-grid">
+              {recentFiles.map((file) => (
+                <div key={file.id} className="member-card">
+                  <h3>{file.display_name}</h3>
+                  <p className="email">{file.tag} · v{file.current_version_number} · {file.folder?.name || 'General'}</p>
+                  <p className="email">{file.uploaded_by?.username || 'Unknown'} · {file.current_version_file?.upload_timestamp ? new Date(file.current_version_file.upload_timestamp).toLocaleString() : 'N/A'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No recent file activity yet.</p>
           )}
         </div>
       </div>
