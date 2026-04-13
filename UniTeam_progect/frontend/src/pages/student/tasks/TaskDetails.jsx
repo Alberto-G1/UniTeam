@@ -201,6 +201,24 @@ export const TaskDetails = () => {
     }
   };
 
+  const handlePromoteAttachment = async (attachment) => {
+    if (!attachment?.id || !task) return;
+    setBusy(true);
+    try {
+      await taskAPI.promoteAttachmentToLibrary(attachment.id, {
+        display_name: attachment.file_name,
+        version_note: 'Promoted from task attachment',
+      });
+      showToast('success', 'Promoted to File Library', 'Attachment is now available in the project file library and linked to this task.');
+      await refreshTask();
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Could not promote attachment';
+      showToast('error', 'Promotion Failed', message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleCreateSubtask = async () => {
     if (!task || !subtaskForm.description.trim()) {
       showToast('error', 'Missing Description', 'Please enter subtask details');
@@ -487,28 +505,28 @@ export const TaskDetails = () => {
               <article key={attachment.id} className="task-comment">
                 <strong>{attachment.file_name}</strong>
                 <p>{attachment.file_size ? `${attachment.file_size} bytes` : 'File attachment'}</p>
-                {attachment.file_url && <a href={attachment.file_url} target="_blank" rel="noreferrer">Open file</a>}
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {attachment.file_url && <a href={attachment.file_url} target="_blank" rel="noreferrer">Open file</a>}
+                  {canEditBoard && (
+                    <button type="button" className="btn btn-secondary" onClick={() => handlePromoteAttachment(attachment)} disabled={busy}>
+                      Promote to File Library
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+            {projectFiles.map((file) => (
+              <article key={`library-${file.id}`} className="task-comment">
+                <strong>{file.display_name} · Library File</strong>
+                <p>{file.folder?.name || 'General'} · v{file.current_version_number}</p>
+                {file.current_file_url && <a href={file.current_file_url} target="_blank" rel="noreferrer">Open file</a>}
               </article>
             ))}
           </div>
         </section>
 
         <section>
-          <h4>Linked Project Files</h4>
-          <div className="task-comment-list">
-            {projectFiles.length === 0 ? (
-              <p>No project files are linked to this task yet.</p>
-            ) : (
-              projectFiles.map((file) => (
-                <article key={file.id} className="task-comment">
-                  <strong>{file.display_name}</strong>
-                  <p>{file.folder?.name || 'General'} · {file.current_version_number ? `v${file.current_version_number}` : 'No version yet'}</p>
-                  {file.current_file_url && <a href={file.current_file_url} target="_blank" rel="noreferrer">Open linked file</a>}
-                </article>
-              ))
-            )}
-            <Link to={`${filesPath}?project=${project?.id || id}`}>Open project file library</Link>
-          </div>
+          <Link to={`${filesPath}?project=${project?.id || id}`}>Open project file library</Link>
         </section>
 
         <section>
