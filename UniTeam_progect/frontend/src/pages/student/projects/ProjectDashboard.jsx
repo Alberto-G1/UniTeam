@@ -359,6 +359,9 @@ export const ProjectDashboard = () => {
           <Link to={`/student/projects/${id}/tasks`} className="btn btn-primary">
             Open Task Board
           </Link>
+          <Link to={`/student/files?project=${id}`} className="btn btn-secondary">
+            Open File Library
+          </Link>
           {isPrimaryLeader && (
             <Link to={`/student/projects/${id}/edit`} className="btn btn-primary">
               Edit Project Details

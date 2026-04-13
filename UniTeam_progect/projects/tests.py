@@ -2,10 +2,11 @@ from datetime import date, timedelta
 
 from django.urls import reverse
 from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from projects.models import Invitation, Notification, TeamMembership
+from projects.models import Invitation, Notification, TeamMembership, Project, FileFolder, ProjectFile, ProjectTrash
 from users.models import CustomUser
 
 
@@ -285,3 +286,97 @@ class ProjectPhase2APITests(APITestCase):
 				title='Milestone status updated',
 			).exists()
 		)
+
+
+class ProjectFilesAPITests(APITestCase):
+	def setUp(self):
+		self.leader = CustomUser.objects.create_user(
+			username='fileleader',
+			email='fileleader@example.com',
+			password='pass12345',
+			role=CustomUser.Role.STUDENT,
+		)
+		self.member = CustomUser.objects.create_user(
+			username='filemember',
+			email='filemember@example.com',
+			password='pass12345',
+			role=CustomUser.Role.STUDENT,
+		)
+		self.lecturer = CustomUser.objects.create_user(
+			username='filelecturer',
+			email='filelecturer@example.com',
+			password='pass12345',
+			role=CustomUser.Role.LECTURER,
+			is_approved=True,
+		)
+
+		self.client.force_authenticate(user=self.leader)
+		project_resp = self.client.post('/api/projects/', {
+			'title': 'File Phase Project',
+			'description': 'Project with file library',
+			'course_code': 'SE460',
+			'deadline': str(date.today() + timedelta(days=20)),
+			'supervisor_id': self.lecturer.id,
+		}, format='json')
+		self.assertEqual(project_resp.status_code, status.HTTP_201_CREATED)
+		self.project_id = project_resp.data['id']
+		self.project = Project.objects.get(id=self.project_id)
+
+		invite_resp = self.client.post(f'/api/projects/{self.project_id}/invite_member/', {
+			'receiver_id': self.member.id,
+		}, format='json')
+		self.assertEqual(invite_resp.status_code, status.HTTP_201_CREATED)
+		invitation_id = invite_resp.data['id']
+
+		self.client.force_authenticate(user=self.member)
+		accept_resp = self.client.post(f'/api/invitations/{invitation_id}/accept/')
+		self.assertEqual(accept_resp.status_code, status.HTTP_200_OK)
+
+		self.client.force_authenticate(user=self.leader)
+
+	def _upload_base_file(self):
+		payload = {
+			'project': str(self.project_id),
+			'display_name': 'System Design',
+			'version_note': 'Initial draft',
+			'tag': 'DRAFT',
+			'file': SimpleUploadedFile('design.pdf', b'initial file', content_type='application/pdf'),
+		}
+		response = self.client.post('/api/project-files/', payload, format='multipart')
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		return response.data
+
+	def test_member_cannot_create_folder(self):
+		self.client.force_authenticate(user=self.member)
+		response = self.client.post('/api/file-folders/', {
+			'project': self.project_id,
+			'name': 'Restricted Folder',
+		}, format='json')
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+	def test_upload_version_and_move_to_trash_then_restore(self):
+		created = self._upload_base_file()
+		file_id = created['id']
+
+		version_payload = {
+			'version_note': 'Second revision',
+			'tag': 'FINAL',
+			'file': SimpleUploadedFile('design_v2.pdf', b'second file', content_type='application/pdf'),
+		}
+		version_resp = self.client.post(f'/api/project-files/{file_id}/upload_version/', version_payload, format='multipart')
+		self.assertEqual(version_resp.status_code, status.HTTP_200_OK)
+		self.assertEqual(version_resp.data['current_version_number'], 2)
+
+		delete_resp = self.client.delete(f'/api/project-files/{file_id}/')
+		self.assertEqual(delete_resp.status_code, status.HTTP_204_NO_CONTENT)
+
+		project_file = ProjectFile.objects.get(id=file_id)
+		self.assertTrue(project_file.is_deleted)
+		trash_entry = ProjectTrash.objects.get(original_file_id=file_id)
+
+		restore_resp = self.client.post(f'/api/project-trash/{trash_entry.id}/restore/')
+		self.assertEqual(restore_resp.status_code, status.HTTP_200_OK)
+
+		project_file.refresh_from_db()
+		self.assertFalse(project_file.is_deleted)
+		self.assertFalse(ProjectTrash.objects.filter(id=trash_entry.id).exists())

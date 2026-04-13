@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { projectsAPI, taskAPI } from '../../../services/api';
+import { projectsAPI, projectFilesAPI, taskAPI } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ToastContainer';
 import Modal from '../../../components/Modal';
@@ -60,6 +60,7 @@ export const TaskDetails = () => {
   const [task, setTask] = useState(null);
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
+  const [projectFiles, setProjectFiles] = useState([]);
   const [commentForm, setCommentForm] = useState({ content: '' });
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [subtaskModalOpen, setSubtaskModalOpen] = useState(false);
@@ -73,6 +74,7 @@ export const TaskDetails = () => {
   const isLecturerRoute = location.pathname.startsWith('/lecturer/');
   const boardPath = isLecturerRoute ? `/lecturer/projects/${id}/tasks` : `/student/projects/${id}/tasks`;
   const projectPath = isLecturerRoute ? `/lecturer/projects/${id}` : `/student/projects/${id}`;
+  const filesPath = isLecturerRoute ? '/lecturer/files' : '/student/files';
 
   useEffect(() => {
     loadData();
@@ -100,6 +102,25 @@ export const TaskDetails = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadLinkedFiles = async () => {
+      if (!project?.id || !task?.id) {
+        setProjectFiles([]);
+        return;
+      }
+
+      try {
+        const filesData = await projectFilesAPI.listFiles({ project: project.id, include_deleted: '0' });
+        const list = Array.isArray(filesData) ? filesData : filesData?.results || [];
+        setProjectFiles(list.filter((file) => file.linked_task?.id === task.id));
+      } catch (error) {
+        setProjectFiles([]);
+      }
+    };
+
+    loadLinkedFiles();
+  }, [project?.id, task?.id]);
 
   const openConfirm = (payload) => {
     setConfirmState({
@@ -469,6 +490,24 @@ export const TaskDetails = () => {
                 {attachment.file_url && <a href={attachment.file_url} target="_blank" rel="noreferrer">Open file</a>}
               </article>
             ))}
+          </div>
+        </section>
+
+        <section>
+          <h4>Linked Project Files</h4>
+          <div className="task-comment-list">
+            {projectFiles.length === 0 ? (
+              <p>No project files are linked to this task yet.</p>
+            ) : (
+              projectFiles.map((file) => (
+                <article key={file.id} className="task-comment">
+                  <strong>{file.display_name}</strong>
+                  <p>{file.folder?.name || 'General'} · {file.current_version_number ? `v${file.current_version_number}` : 'No version yet'}</p>
+                  {file.current_file_url && <a href={file.current_file_url} target="_blank" rel="noreferrer">Open linked file</a>}
+                </article>
+              ))
+            )}
+            <Link to={`${filesPath}?project=${project?.id || id}`}>Open project file library</Link>
           </div>
         </section>
 

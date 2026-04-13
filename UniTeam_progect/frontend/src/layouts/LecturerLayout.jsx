@@ -55,6 +55,7 @@ export const LecturerLayout = () => {
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: 'fa-chalkboard-user' },
     { path: '/lecturer/students', label: 'Students', icon: 'fa-users' },
     { path: '/lecturer/projects', label: 'Supervised Projects', icon: 'fa-folder-open' },
+    { path: '/lecturer/files', label: 'Files', icon: 'fa-file-lines' },
     { path: '/lecturer/templates', label: 'Project Templates', icon: 'fa-clipboard-list' },
     { path: '/lecturer/reports', label: 'Reports', icon: 'fa-chart-bar' },
     { path: '/lecturer/calendar', label: 'Calendar', icon: 'fa-calendar-days' },

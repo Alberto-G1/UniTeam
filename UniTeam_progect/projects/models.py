@@ -148,6 +148,11 @@ class Notification(models.Model):
         INVITATION_DECLINED = 'INVITATION_DECLINED', 'Invitation Declined'
         INVITATION_EXPIRED = 'INVITATION_EXPIRED', 'Invitation Expired'
         INVITATION_CANCELLED = 'INVITATION_CANCELLED', 'Invitation Cancelled'
+        FILE_UPLOADED = 'FILE_UPLOADED', 'File Uploaded'
+        FILE_VERSION_CREATED = 'FILE_VERSION_CREATED', 'File Version Created'
+        FILE_DELETED = 'FILE_DELETED', 'File Deleted'
+        FILE_RESTORED = 'FILE_RESTORED', 'File Restored'
+        FILE_QUOTA_WARNING = 'FILE_QUOTA_WARNING', 'File Quota Warning'
         TASK_ASSIGNED = 'TASK_ASSIGNED', 'Task Assigned'
         TASK_REASSIGNED = 'TASK_REASSIGNED', 'Task Reassigned'
         TASK_STATUS_CHANGED = 'TASK_STATUS_CHANGED', 'Task Status Changed'
@@ -339,3 +344,110 @@ class TaskNotification(models.Model):
 
     def __str__(self):
         return f"{self.get_notification_type_display()} for {self.recipient.username}"
+
+
+class FileFolder(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='file_folders')
+    name = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_file_folders')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+        unique_together = ('project', 'name')
+
+    def __str__(self):
+        return f"{self.name} ({self.project.title})"
+
+
+class ProjectFile(models.Model):
+    class Tag(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        FINAL = 'FINAL', 'Final'
+        REFERENCE = 'REFERENCE', 'Reference'
+        ARCHIVE = 'ARCHIVE', 'Archive'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_files')
+    folder = models.ForeignKey(FileFolder, on_delete=models.SET_NULL, null=True, blank=True, related_name='project_files')
+    display_name = models.CharField(max_length=255)
+    stored_file_name = models.CharField(max_length=255)
+    file_extension = models.CharField(max_length=20, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+    mime_type = models.CharField(max_length=100, blank=True)
+    current_version_number = models.PositiveIntegerField(default=1)
+    tag = models.CharField(max_length=20, choices=Tag.choices, default=Tag.DRAFT)
+    description = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_project_files')
+    upload_timestamp = models.DateTimeField(auto_now_add=True)
+    linked_task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True, related_name='linked_project_files')
+    current_version_file = models.ForeignKey('ProjectFileVersion', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    is_deleted = models.BooleanField(default=False)
+    deletion_timestamp = models.DateTimeField(null=True, blank=True)
+    current_version_note = models.TextField(blank=True)
+    version_lock_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='version_locked_project_files')
+    version_lock_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-upload_timestamp']
+
+    def __str__(self):
+        return self.display_name
+
+
+class ProjectFileVersion(models.Model):
+    parent_file = models.ForeignKey(ProjectFile, on_delete=models.CASCADE, related_name='versions')
+    version_number = models.PositiveIntegerField()
+    stored_file = models.FileField(upload_to='project_files/%Y/%m/')
+    file_size = models.PositiveIntegerField(default=0)
+    uploader = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='project_file_versions')
+    version_note = models.TextField(blank=True)
+    upload_timestamp = models.DateTimeField(auto_now_add=True)
+    tag_at_time = models.CharField(max_length=20, choices=ProjectFile.Tag.choices, default=ProjectFile.Tag.DRAFT)
+
+    class Meta:
+        ordering = ['-version_number', '-upload_timestamp']
+        unique_together = ('parent_file', 'version_number')
+
+    def __str__(self):
+        return f"{self.parent_file.display_name} v{self.version_number}"
+
+
+class ProjectFileActivityLog(models.Model):
+    class ActionType(models.TextChoices):
+        UPLOADED = 'UPLOADED', 'Uploaded'
+        VERSION_CREATED = 'VERSION_CREATED', 'Version Created'
+        RENAMED = 'RENAMED', 'Renamed'
+        MOVED = 'MOVED', 'Moved'
+        DELETED = 'DELETED', 'Deleted'
+        RESTORED = 'RESTORED', 'Restored'
+        DOWNLOADED = 'DOWNLOADED', 'Downloaded'
+        TAG_UPDATED = 'TAG_UPDATED', 'Tag Updated'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='file_activity_logs')
+    file = models.ForeignKey(ProjectFile, on_delete=models.CASCADE, related_name='activity_logs')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='file_activity_logs')
+    action_type = models.CharField(max_length=40, choices=ActionType.choices)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_action_type_display()} - {self.file.display_name}"
+
+
+class ProjectTrash(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='trash_entries')
+    original_file = models.OneToOneField(ProjectFile, on_delete=models.CASCADE, related_name='trash_entry')
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_project_files')
+    deletion_timestamp = models.DateTimeField(auto_now_add=True)
+    scheduled_purge_date = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-deletion_timestamp']
+
+    def __str__(self):
+        return f"Trash: {self.original_file.display_name}"

@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation, Notification,
-    ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment, TaskComment, TaskActivityLog, TaskNotification
+    ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment, TaskComment, TaskActivityLog, TaskNotification,
+    FileFolder, ProjectFile, ProjectFileVersion, ProjectFileActivityLog, ProjectTrash
 )
 from users.serializers import UserSerializer
 from users.models import CustomUser
@@ -226,6 +227,112 @@ class TaskNotificationSerializer(serializers.ModelSerializer):
         model = TaskNotification
         fields = ['id', 'recipient', 'task', 'notification_type', 'message', 'is_read', 'created_at']
         read_only_fields = fields
+
+
+class FileFolderSerializer(serializers.ModelSerializer):
+    file_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileFolder
+        fields = ['id', 'project', 'name', 'order', 'created_by', 'created_at', 'updated_at', 'file_count']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'file_count']
+
+    def get_file_count(self, obj):
+        return obj.project_files.filter(is_deleted=False).count()
+
+
+class ProjectFileVersionSerializer(serializers.ModelSerializer):
+    uploader = UserSerializer(read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectFileVersion
+        fields = ['id', 'parent_file', 'version_number', 'stored_file', 'file_url', 'file_size', 'uploader', 'version_note', 'upload_timestamp', 'tag_at_time']
+        read_only_fields = ['id', 'version_number', 'file_url', 'file_size', 'uploader', 'upload_timestamp']
+
+    def get_file_url(self, obj):
+        request = self.context.get('request')
+        if not obj.stored_file:
+            return None
+        url = obj.stored_file.url
+        return request.build_absolute_uri(url) if request else url
+
+
+class ProjectFileActivityLogSerializer(serializers.ModelSerializer):
+    actor = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProjectFileActivityLog
+        fields = ['id', 'project', 'file', 'actor', 'action_type', 'metadata', 'created_at']
+        read_only_fields = fields
+
+
+class ProjectTrashSerializer(serializers.ModelSerializer):
+    original_file = serializers.SerializerMethodField()
+    deleted_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProjectTrash
+        fields = ['id', 'project', 'original_file', 'deleted_by', 'deletion_timestamp', 'scheduled_purge_date']
+        read_only_fields = fields
+
+    def get_original_file(self, obj):
+        return {
+            'id': obj.original_file.id,
+            'display_name': obj.original_file.display_name,
+            'folder': obj.original_file.folder_id,
+        }
+
+
+class ProjectFileSerializer(serializers.ModelSerializer):
+    uploaded_by = UserSerializer(read_only=True)
+    version_lock_by = UserSerializer(read_only=True)
+    folder = FileFolderSerializer(read_only=True)
+    folder_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=FileFolder.objects.all(), source='folder', required=False, allow_null=True)
+    linked_task = serializers.SerializerMethodField()
+    linked_task_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Task.objects.all(), source='linked_task', required=False, allow_null=True)
+    current_version_file = ProjectFileVersionSerializer(read_only=True)
+    versions = ProjectFileVersionSerializer(many=True, read_only=True)
+    version_count = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
+    current_file_url = serializers.SerializerMethodField()
+    activity_logs = ProjectFileActivityLogSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProjectFile
+        fields = [
+            'id', 'project', 'folder', 'folder_id', 'display_name', 'stored_file_name', 'file_extension', 'file_size',
+            'mime_type', 'current_version_number', 'tag', 'description', 'uploaded_by', 'upload_timestamp',
+            'linked_task', 'linked_task_id', 'current_version_file', 'versions', 'version_count', 'is_locked',
+            'current_file_url', 'activity_logs', 'is_deleted', 'deletion_timestamp', 'current_version_note',
+            'version_lock_by', 'version_lock_expires_at',
+        ]
+        read_only_fields = ['id', 'stored_file_name', 'file_extension', 'file_size', 'mime_type', 'current_version_number', 'uploaded_by', 'upload_timestamp', 'current_version_file', 'versions', 'version_count', 'is_locked', 'current_file_url', 'activity_logs', 'is_deleted', 'deletion_timestamp', 'version_lock_by', 'version_lock_expires_at']
+
+    def get_linked_task(self, obj):
+        if not obj.linked_task:
+            return None
+        return {
+            'id': obj.linked_task.id,
+            'title': obj.linked_task.title,
+            'status': obj.linked_task.status,
+        }
+
+    def get_version_count(self, obj):
+        return obj.versions.count()
+
+    def get_is_locked(self, obj):
+        if not obj.version_lock_expires_at:
+            return False
+        return obj.version_lock_expires_at >= timezone.now()
+
+    def get_current_file_url(self, obj):
+        request = self.context.get('request')
+        version = obj.current_version_file
+        if not version or not version.stored_file:
+            return None
+        url = version.stored_file.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class TaskSerializer(serializers.ModelSerializer):
