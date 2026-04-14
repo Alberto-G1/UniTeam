@@ -562,4 +562,142 @@ export const usersAPI = {
   },
 };
 
+export const communicationAPI = {
+  listChannels: async (params = {}) => {
+    const response = await api.get('/communication/channels/', { params });
+    return response.data;
+  },
+
+  createChannel: async (payload) => {
+    const response = await api.post('/communication/channels/', payload);
+    return response.data;
+  },
+
+  updateChannel: async (id, payload) => {
+    const response = await api.put(`/communication/channels/${id}/`, payload);
+    return response.data;
+  },
+
+  deleteChannel: async (id) => {
+    const response = await api.delete(`/communication/channels/${id}/`);
+    return response.data;
+  },
+
+  listAnnouncements: async (params = {}) => {
+    const response = await api.get('/communication/announcements/', { params });
+    return response.data;
+  },
+
+  createAnnouncement: async (payload) => {
+    const response = await api.post('/communication/announcements/', payload);
+    return response.data;
+  },
+
+  reactAnnouncement: async (id, emoji) => {
+    const response = await api.post(`/communication/announcements/${id}/react/`, { emoji });
+    return response.data;
+  },
+
+  convertAnnouncementToTask: async (id, payload) => {
+    const response = await api.post(`/communication/announcements/${id}/convert_to_task/`, payload);
+    return response.data;
+  },
+
+  listMessages: async (params = {}) => {
+    const response = await api.get('/communication/channel-messages/', { params });
+    return response.data;
+  },
+
+  createMessage: async (payload) => {
+    const headers = payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined;
+    const response = await api.post('/communication/channel-messages/', payload, headers ? { headers } : undefined);
+    return response.data;
+  },
+
+  updateMessage: async (id, payload) => {
+    const response = await api.put(`/communication/channel-messages/${id}/`, payload);
+    return response.data;
+  },
+
+  deleteMessage: async (id) => {
+    const response = await api.delete(`/communication/channel-messages/${id}/`);
+    return response.data;
+  },
+
+  reactMessage: async (id, emoji) => {
+    const response = await api.post(`/communication/channel-messages/${id}/react/`, { emoji });
+    return response.data;
+  },
+
+  listDirectMessages: async (params = {}) => {
+    const response = await api.get('/communication/direct-messages/', { params });
+    return response.data;
+  },
+
+  createDirectMessage: async (payload) => {
+    const response = await api.post('/communication/direct-messages/', payload);
+    return response.data;
+  },
+
+  listMeetingPolls: async (params = {}) => {
+    const response = await api.get('/communication/meeting-polls/', { params });
+    return response.data;
+  },
+
+  createMeetingPoll: async (payload) => {
+    const response = await api.post('/communication/meeting-polls/', payload);
+    return response.data;
+  },
+
+  addMeetingSlot: async (pollId, payload) => {
+    const response = await api.post(`/communication/meeting-polls/${pollId}/add_slot/`, payload);
+    return response.data;
+  },
+
+  respondMeetingSlot: async (pollId, payload) => {
+    const response = await api.post(`/communication/meeting-polls/${pollId}/respond/`, payload);
+    return response.data;
+  },
+
+  confirmMeetingSlot: async (pollId, payload) => {
+    const response = await api.post(`/communication/meeting-polls/${pollId}/confirm_slot/`, payload);
+    return response.data;
+  },
+
+  addMeetingNotes: async (pollId, payload) => {
+    const response = await api.post(`/communication/meeting-polls/${pollId}/add_notes/`, payload);
+    return response.data;
+  },
+
+  listNotifications: async () => {
+    const response = await api.get('/communication/notifications/');
+    return response.data;
+  },
+
+  markAllNotificationsRead: async () => {
+    const response = await api.post('/communication/notifications/mark_all_read/');
+    return response.data;
+  },
+
+  listNotificationPreferences: async () => {
+    const response = await api.get('/communication/notification-preferences/');
+    return response.data;
+  },
+
+  upsertNotificationPreference: async (payload) => {
+    const response = await api.post('/communication/notification-preferences/', payload);
+    return response.data;
+  },
+
+  listChannelNotificationPreferences: async () => {
+    const response = await api.get('/communication/channel-notification-preferences/');
+    return response.data;
+  },
+
+  upsertChannelNotificationPreference: async (payload) => {
+    const response = await api.post('/communication/channel-notification-preferences/', payload);
+    return response.data;
+  },
+};
+
 export default api;

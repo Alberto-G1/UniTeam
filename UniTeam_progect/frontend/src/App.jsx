@@ -31,6 +31,7 @@ import MyTasks from './pages/student/tasks/MyTasks';
 import ProjectTasks from './pages/student/tasks/ProjectTasks';
 import TaskDetails from './pages/student/tasks/TaskDetails';
 import ProjectFilesLibrary from './pages/shared/ProjectFilesLibrary';
+import CommunicationWorkspace from './pages/shared/CommunicationWorkspace';
 import Invitations from './pages/student/invitations/Invitations';
 import StudentProfile from './pages/student/profile/StudentProfile';
 import StudentProfileEdit from './pages/student/profile/StudentProfileEdit';
@@ -120,6 +121,7 @@ function App() {
               <Route path="projects/:id/milestones/:milestoneId/edit" element={<MilestoneForm />} />
               <Route path="tasks" element={<MyTasks />} />
               <Route path="files" element={<ProjectFilesLibrary />} />
+              <Route path="communication" element={<CommunicationWorkspace />} />
               <Route path="invitations" element={<Invitations />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<StudentProfile />} />
@@ -141,6 +143,8 @@ function App() {
               <Route path="projects/:id/tasks" element={<ProjectTasks />} />
               <Route path="projects/:id/tasks/:taskId" element={<TaskDetails />} />
               <Route path="files" element={<ProjectFilesLibrary />} />
+              <Route path="communication" element={<CommunicationWorkspace />} />
+              <Route path="messages" element={<CommunicationWorkspace />} />
               <Route path="templates" element={<TemplateList />} />
               <Route path="templates/create" element={<TemplateForm />} />
               <Route path="templates/:id" element={<TemplateDetails />} />
