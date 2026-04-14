@@ -1,0 +1,178 @@
+.communication-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.communication-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.communication-topbar h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.project-picker {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.project-picker select,
+.compose-box input,
+.compose-box textarea,
+.compose-row input,
+.compose-row select,
+.channels-sidebar input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  padding: 0.65rem 0.75rem;
+}
+
+.communication-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.communication-tabs button {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+}
+
+.communication-tabs button.active {
+  background: var(--green-primary);
+  border-color: var(--green-primary);
+  color: #fff;
+}
+
+.communication-panel {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.communication-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 1rem;
+}
+
+.channels-sidebar,
+.channel-main,
+.compose-box,
+.stream-card,
+.communication-hint {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.channels-sidebar {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.channels-sidebar button,
+.compose-box button,
+.compose-row button,
+.compose-inline button {
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.channels-sidebar button.active,
+.compose-box button,
+.compose-row button,
+.compose-inline button {
+  background: var(--green-primary);
+  border-color: var(--green-primary);
+  color: #fff;
+}
+
+.compose-inline {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.channel-main {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+}
+
+.channel-main header h3 {
+  margin: 0;
+}
+
+.channel-main header p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.compose-box {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.compose-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr auto;
+  gap: 0.6rem;
+}
+
+.stream-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.stream-card {
+  padding: 0.8rem;
+}
+
+.stream-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.35rem;
+}
+
+.stream-card p {
+  margin: 0.2rem 0;
+  color: var(--text-secondary);
+}
+
+.communication-hint {
+  padding: 0.7rem 0.8rem;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 980px) {
+  .communication-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compose-row {
+    grid-template-columns: 1fr;
+  }
+}
