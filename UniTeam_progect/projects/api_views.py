@@ -1378,6 +1378,8 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
     def _can_edit_file(self, file_obj):
         if self.request.user.role == CustomUser.Role.ADMIN:
             return True
+        if self.request.user.role == CustomUser.Role.LECTURER and file_obj.project.supervisor_id == self.request.user.id:
+            return True
         membership = _project_membership(file_obj.project, self.request.user)
         if not membership:
             return False
@@ -1643,8 +1645,8 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         file_obj = self.get_object()
-        if not _member_is_leadership(file_obj.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
-            raise PermissionDenied('Only leaders and co-leaders can delete files')
+        if not self._can_edit_file(file_obj):
+            raise PermissionDenied('You do not have permission to delete this file')
         file_obj.is_deleted = True
         file_obj.deletion_timestamp = timezone.now()
         file_obj.save(update_fields=['is_deleted', 'deletion_timestamp'])
@@ -1731,8 +1733,18 @@ class ProjectTrashViewSet(viewsets.ModelViewSet):
     def restore(self, request, pk=None):
         trash_entry = self.get_object()
         file_obj = trash_entry.original_file
-        if not _member_is_leadership(file_obj.project, request.user) and request.user.role != CustomUser.Role.ADMIN:
-            raise PermissionDenied('Only project leaders can restore files')
+        can_restore = False
+        if request.user.role == CustomUser.Role.ADMIN:
+            can_restore = True
+        elif request.user.role == CustomUser.Role.LECTURER and file_obj.project.supervisor_id == request.user.id:
+            can_restore = True
+        elif _member_is_leadership(file_obj.project, request.user):
+            can_restore = True
+        elif file_obj.uploaded_by_id == request.user.id:
+            can_restore = True
+
+        if not can_restore:
+            raise PermissionDenied('You do not have permission to restore this file')
         file_obj.is_deleted = False
         file_obj.deletion_timestamp = None
         file_obj.save(update_fields=['is_deleted', 'deletion_timestamp'])

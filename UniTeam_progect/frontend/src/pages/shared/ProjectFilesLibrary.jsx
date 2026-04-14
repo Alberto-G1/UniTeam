@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ToastContainer';
 import { projectsAPI, projectFilesAPI, taskAPI } from '../../services/api';
 import Modal from '../../components/Modal';
+import ConfirmModal from '../../components/ConfirmModal';
 import './ProjectFilesLibrary.css';
 
 const tagOptions = ['DRAFT', 'FINAL', 'REFERENCE', 'ARCHIVE'];
@@ -71,6 +72,8 @@ export const ProjectFilesLibrary = () => {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [restoreConfirmTarget, setRestoreConfirmTarget] = useState(null);
   const [uploadForm, setUploadForm] = useState({
     file: null,
     display_name: '',
@@ -356,6 +359,7 @@ export const ProjectFilesLibrary = () => {
       await projectFilesAPI.deleteFile(selectedFile.id);
       await reloadProjectFiles();
       setSelectedFile(null);
+      setIsDeleteConfirmOpen(false);
       showToast('success', 'Moved to Trash', 'File has been moved to trash.');
     } catch (error) {
       showToast('error', 'Delete Failed', error.response?.data?.error || 'Could not delete file.');
@@ -366,6 +370,7 @@ export const ProjectFilesLibrary = () => {
     try {
       await projectFilesAPI.restoreTrash(trashId);
       await reloadProjectFiles();
+      setRestoreConfirmTarget(null);
       showToast('success', 'Restored', 'File has been restored from trash.');
     } catch (error) {
       showToast('error', 'Restore Failed', error.response?.data?.error || 'Could not restore file.');
@@ -519,7 +524,7 @@ export const ProjectFilesLibrary = () => {
                     <p>Deleted: {formatDate(entry.deletion_timestamp)}</p>
                     <p>Deletes on: {formatDate(entry.scheduled_purge_date)}</p>
                   </div>
-                  <button type="button" onClick={() => handleRestoreFile(entry.id)}>Restore</button>
+                  <button type="button" onClick={() => setRestoreConfirmTarget(entry)}>Restore</button>
                 </article>
               ))
               : filteredFiles.map((file) => (
@@ -570,7 +575,7 @@ export const ProjectFilesLibrary = () => {
               setVersionForm((prev) => ({ ...prev, tag: selectedFile.tag || 'DRAFT' }));
               setIsVersionModalOpen(true);
             }}>Upload New Version</button>
-            <button type="button" className="danger" onClick={handleDeleteFile}>Delete</button>
+            <button type="button" className="danger" onClick={() => setIsDeleteConfirmOpen(true)}>Delete</button>
           </div>
 
           <div className="detail-tabs">
@@ -697,6 +702,28 @@ export const ProjectFilesLibrary = () => {
           </label>
         </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteFile}
+        type="danger"
+        title="Delete file?"
+        message={selectedFile ? `"${selectedFile.display_name}" will be moved to trash and can be restored for 14 days.` : 'This file will be moved to trash and can be restored for 14 days.'}
+        confirmText="Move to Trash"
+        cancelText="Cancel"
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(restoreConfirmTarget)}
+        onClose={() => setRestoreConfirmTarget(null)}
+        onConfirm={() => handleRestoreFile(restoreConfirmTarget?.id)}
+        type="info"
+        title="Restore file?"
+        message={restoreConfirmTarget ? `"${restoreConfirmTarget.original_file?.display_name || 'This file'}" will be restored to the project library.` : 'This file will be restored to the project library.'}
+        confirmText="Restore"
+        cancelText="Cancel"
+      />
     </div>
   );
 };
