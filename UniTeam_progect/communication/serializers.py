@@ -161,12 +161,14 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
         fields = '__all__'
+        read_only_fields = ('user',)
 
 
 class ChannelNotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChannelNotificationPreference
         fields = '__all__'
+        read_only_fields = ('user',)
 
 
 class TaskCommentReactionSerializer(serializers.ModelSerializer):
