@@ -167,6 +167,44 @@
   font-size: 0.86rem;
 }
 
+.channel-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.reaction-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.reaction-row button {
+  min-width: 4.5rem;
+}
+
+.message-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.thread-replies {
+  margin-top: 0.7rem;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.7rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.thread-reply-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem;
+}
+
 @media (max-width: 980px) {
   .communication-grid {
     grid-template-columns: 1fr;

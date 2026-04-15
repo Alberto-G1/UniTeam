@@ -334,6 +334,8 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def react(self, request, pk=None):
         announcement = self.get_object()
+        if request.user.role == CustomUser.Role.LECTURER:
+            raise PermissionDenied('Lecturers can only read communication channels and announcements')
         if not _can_read_project(announcement.project, request.user):
             raise PermissionDenied('You cannot react to this announcement')
 
@@ -382,10 +384,13 @@ class MessageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Message.objects.select_related('channel', 'sender', 'parent_message').prefetch_related('attachments', 'reactions', 'task_references')
         channel_id = self.request.query_params.get('channel')
+        project_id = self.request.query_params.get('project')
         parent_id = self.request.query_params.get('parent')
 
         if channel_id:
             qs = qs.filter(channel_id=channel_id)
+        if project_id:
+            qs = qs.filter(channel__project_id=project_id)
         if parent_id == 'null':
             qs = qs.filter(parent_message__isnull=True)
         elif parent_id:
@@ -494,6 +499,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def react(self, request, pk=None):
         message = self.get_object()
+        if request.user.role == CustomUser.Role.LECTURER:
+            raise PermissionDenied('Lecturers can only read communication channels and announcements')
         if not _can_read_project(message.channel.project, request.user):
             raise PermissionDenied('You cannot react to this message')
         emoji = (request.data.get('emoji') or '').strip()

@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from projects.models import Project, TeamMembership
 from users.models import CustomUser
 
-from .models import Channel, MeetingSlot, Notification, NotificationPreference
+from .models import Channel, ChannelNotificationPreference, MeetingSlot, Notification, NotificationPreference
 
 
 class CommunicationAPITests(APITestCase):
@@ -267,6 +267,99 @@ class CommunicationAPITests(APITestCase):
                 related_object_id=poll_id,
             ).exists()
         )
+
+    def test_lecturer_is_read_only_for_reactions(self):
+        self.client.force_authenticate(user=self.owner)
+        announcement_resp = self.client.post(
+            '/api/communication/announcements/',
+            {'project': self.project.id, 'content': 'Official update'},
+            format='json',
+        )
+        self.assertEqual(announcement_resp.status_code, status.HTTP_201_CREATED)
+
+        channel = self._general_channel()
+        self.client.force_authenticate(user=self.member)
+        message_resp = self.client.post(
+            '/api/communication/channel-messages/',
+            {'channel': channel.id, 'content': 'Implementation note'},
+            format='json',
+        )
+        self.assertEqual(message_resp.status_code, status.HTTP_201_CREATED)
+
+        self.client.force_authenticate(user=self.lecturer)
+        announcement_react_resp = self.client.post(
+            f"/api/communication/announcements/{announcement_resp.data['id']}/react/",
+            {'emoji': ':thumbsup:'},
+            format='json',
+        )
+        self.assertEqual(announcement_react_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        message_react_resp = self.client.post(
+            f"/api/communication/channel-messages/{message_resp.data['id']}/react/",
+            {'emoji': ':thumbsup:'},
+            format='json',
+        )
+        self.assertEqual(message_react_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_message_list_is_project_scoped(self):
+        self.client.force_authenticate(user=self.owner)
+        other_project_resp = self.client.post(
+            '/api/projects/',
+            {
+                'title': 'Another Project',
+                'description': 'Isolation check',
+                'course_code': 'SE551',
+                'deadline': str(date.today() + timedelta(days=15)),
+                'supervisor_id': self.lecturer.id,
+            },
+            format='json',
+        )
+        self.assertEqual(other_project_resp.status_code, status.HTTP_201_CREATED)
+
+        other_project = Project.objects.get(id=other_project_resp.data['id'])
+        other_general = Channel.objects.get(project=other_project, slug='general')
+
+        message_resp = self.client.post(
+            '/api/communication/channel-messages/',
+            {'channel': other_general.id, 'content': 'Cross-project message'},
+            format='json',
+        )
+        self.assertEqual(message_resp.status_code, status.HTTP_201_CREATED)
+
+        scoped_list_resp = self.client.get('/api/communication/channel-messages/', {
+            'channel': other_general.id,
+            'project': self.project.id,
+        })
+        self.assertEqual(scoped_list_resp.status_code, status.HTTP_200_OK)
+        scoped_count = scoped_list_resp.data['count'] if isinstance(scoped_list_resp.data, dict) else len(scoped_list_resp.data)
+        self.assertEqual(scoped_count, 0)
+
+        matching_list_resp = self.client.get('/api/communication/channel-messages/', {
+            'channel': other_general.id,
+            'project': other_project.id,
+        })
+        self.assertEqual(matching_list_resp.status_code, status.HTTP_200_OK)
+        matching_count = matching_list_resp.data['count'] if isinstance(matching_list_resp.data, dict) else len(matching_list_resp.data)
+        self.assertEqual(matching_count, 1)
+
+    def test_channel_notification_preference_create_uses_authenticated_user(self):
+        channel = self._general_channel()
+        self.client.force_authenticate(user=self.member)
+
+        create_resp = self.client.post(
+            '/api/communication/channel-notification-preferences/',
+            {
+                'channel': channel.id,
+                'mode': 'MUTED',
+            },
+            format='json',
+        )
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+
+        pref = ChannelNotificationPreference.objects.get(id=create_resp.data['id'])
+        self.assertEqual(pref.user_id, self.member.id)
+        self.assertEqual(pref.channel_id, channel.id)
+        self.assertEqual(pref.mode, 'MUTED')
 
     @override_settings(ENABLE_EMAIL_NOTIFICATIONS=True)
     def test_digest_and_purge_jobs(self):

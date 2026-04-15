@@ -669,8 +669,13 @@ export const communicationAPI = {
     return response.data;
   },
 
-  listNotifications: async () => {
-    const response = await api.get('/communication/notifications/');
+  listNotifications: async (params = {}) => {
+    const response = await api.get('/communication/notifications/', { params });
+    return response.data;
+  },
+
+  markNotificationRead: async (id) => {
+    const response = await api.patch(`/communication/notifications/${id}/`, { is_read: true });
     return response.data;
   },
 
@@ -684,18 +689,28 @@ export const communicationAPI = {
     return response.data;
   },
 
-  upsertNotificationPreference: async (payload) => {
+  createNotificationPreference: async (payload) => {
     const response = await api.post('/communication/notification-preferences/', payload);
     return response.data;
   },
 
-  listChannelNotificationPreferences: async () => {
-    const response = await api.get('/communication/channel-notification-preferences/');
+  updateNotificationPreference: async (id, payload) => {
+    const response = await api.put(`/communication/notification-preferences/${id}/`, payload);
     return response.data;
   },
 
-  upsertChannelNotificationPreference: async (payload) => {
+  listChannelNotificationPreferences: async (params = {}) => {
+    const response = await api.get('/communication/channel-notification-preferences/', { params });
+    return response.data;
+  },
+
+  createChannelNotificationPreference: async (payload) => {
     const response = await api.post('/communication/channel-notification-preferences/', payload);
+    return response.data;
+  },
+
+  updateChannelNotificationPreference: async (id, payload) => {
+    const response = await api.put(`/communication/channel-notification-preferences/${id}/`, payload);
     return response.data;
   },
 };
