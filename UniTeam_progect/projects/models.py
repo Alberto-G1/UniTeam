@@ -451,3 +451,123 @@ class ProjectTrash(models.Model):
 
     def __str__(self):
         return f"Trash: {self.original_file.display_name}"
+
+
+class DashboardWidget(models.Model):
+    class WidgetType(models.TextChoices):
+        MY_PROJECTS = 'MY_PROJECTS', 'My Projects'
+        MY_TASKS = 'MY_TASKS', 'My Tasks'
+        RECENT_ACTIVITY = 'RECENT_ACTIVITY', 'Recent Activity'
+        CALENDAR = 'CALENDAR', 'Calendar'
+        NOTIFICATIONS = 'NOTIFICATIONS', 'Notifications'
+        PROJECT_HEALTH = 'PROJECT_HEALTH', 'Project Health'
+        TEAM_CONTRIBUTION = 'TEAM_CONTRIBUTION', 'Team Contribution'
+        WORKLOAD = 'WORKLOAD', 'Workload Distribution'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dashboard_widgets')
+    widget_type = models.CharField(max_length=40, choices=WidgetType.choices)
+    position = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+    configuration = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['position', 'id']
+        unique_together = ('user', 'widget_type')
+
+    def __str__(self):
+        return f"{self.user.username}: {self.widget_type}"
+
+
+class ProjectSnapshot(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='snapshots')
+    snapshot_date = models.DateField()
+    metrics = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-snapshot_date']
+        unique_together = ('project', 'snapshot_date')
+
+    def __str__(self):
+        return f"Snapshot {self.project.title} @ {self.snapshot_date}"
+
+
+class LecturerAlert(models.Model):
+    class AlertType(models.TextChoices):
+        LOW_PROGRESS = 'LOW_PROGRESS', 'Low Progress'
+        MANY_OVERDUE = 'MANY_OVERDUE', 'Many Overdue Tasks'
+        INACTIVE = 'INACTIVE', 'No Recent Activity'
+        BLOCKED_STALE = 'BLOCKED_STALE', 'Blocked Task Stale'
+        NO_FINAL_FILE = 'NO_FINAL_FILE', 'No Final File Near Deadline'
+
+    lecturer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lecturer_alerts')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='lecturer_alerts')
+    alert_type = models.CharField(max_length=40, choices=AlertType.choices)
+    alert_message = models.TextField()
+    triggered_at = models.DateTimeField(auto_now_add=True)
+    is_resolved = models.BooleanField(default=False)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-triggered_at']
+        unique_together = ('lecturer', 'project', 'alert_type', 'is_resolved')
+
+    def __str__(self):
+        return f"{self.project.title} - {self.alert_type}"
+
+
+class SubmissionChecklist(models.Model):
+    class ItemType(models.TextChoices):
+        FINAL_FILE = 'FINAL_FILE', 'Final File Exists'
+        TASKS_COMPLETE = 'TASKS_COMPLETE', 'Tasks Completed Or Closed'
+        TEAM_ACTIVE = 'TEAM_ACTIVE', 'All Members Recently Active'
+        DESCRIPTION_FILLED = 'DESCRIPTION_FILLED', 'Project Description Filled'
+        LECTURER_ASSIGNED = 'LECTURER_ASSIGNED', 'Lecturer Assigned'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='submission_checklist_items')
+    item_type = models.CharField(max_length=40, choices=ItemType.choices)
+    is_passed = models.BooleanField(default=False)
+    override_acknowledged = models.BooleanField(default=False)
+    override_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submission_checklist_overrides',
+    )
+    last_checked = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['item_type']
+        unique_together = ('project', 'item_type')
+
+    def __str__(self):
+        return f"{self.project.title} - {self.item_type}"
+
+
+class CalendarEvent(models.Model):
+    class EventType(models.TextChoices):
+        TASK_DEADLINE = 'TASK_DEADLINE', 'Task Deadline'
+        PROJECT_DEADLINE = 'PROJECT_DEADLINE', 'Project Deadline'
+        MEETING = 'MEETING', 'Meeting'
+        MILESTONE = 'MILESTONE', 'Milestone'
+        CUSTOM = 'CUSTOM', 'Custom'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='calendar_events')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='calendar_events')
+    title = models.CharField(max_length=200)
+    event_type = models.CharField(max_length=30, choices=EventType.choices)
+    related_object_id = models.PositiveBigIntegerField(null=True, blank=True)
+    start_datetime = models.DateTimeField()
+    end_datetime = models.DateTimeField()
+    is_visible_to_all_members = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['start_datetime', 'title']
+
+    def __str__(self):
+        return f"{self.project.title} - {self.title}"
