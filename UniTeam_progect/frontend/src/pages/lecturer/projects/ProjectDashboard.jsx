@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { projectsAPI } from '../../../services/api';
 import '../../student/projects/ProjectForms.css';
@@ -6,36 +6,28 @@ import '../../student/projects/ProjectForms.css';
 export const ProjectDashboard = () => {
   const { id } = useParams();
   const [project, setProject] = useState(null);
-  const [milestones, setMilestones] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
-  const [recentFiles, setRecentFiles] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
+    const loadProjectData = async () => {
+      try {
+        const [projectRes, analyticsRes, timelineRes] = await Promise.all([
+          projectsAPI.get(id),
+          projectsAPI.getProjectAnalytics(id),
+          projectsAPI.getProjectActivityTimeline(id, { type: 'ALL' }),
+        ]);
+        setProject(projectRes);
+        setAnalytics(analyticsRes || null);
+        setTimeline(Array.isArray(timelineRes) ? timelineRes : []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadProjectData();
   }, [id]);
-
-  const loadProjectData = async () => {
-    try {
-      const [projectRes, milestonesRes, teamRes] = await Promise.all([
-        projectsAPI.get(id),
-        projectsAPI.getMilestones(id),
-        projectsAPI.getTeam(id),
-      ]);
-
-      const recentFilesRes = await projectsAPI.getRecentFiles(id);
-
-      setProject(projectRes);
-      setMilestones(milestonesRes || []);
-      setTeamMembers(teamRes?.members || []);
-      setRecentFiles(Array.isArray(recentFilesRes) ? recentFilesRes : []);
-    } catch (err) {
-      setError('Failed to load project data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) return <div className="loading">Loading...</div>;
   if (!project) return <div className="error">Project not found</div>;
@@ -45,68 +37,73 @@ export const ProjectDashboard = () => {
       <div className="project-header surface">
         <div className="header-content">
           <h1>{project.title}</h1>
-          <p className="project-status">Status: {project.status}</p>
+          <p className="project-status">Read-only supervisor view</p>
         </div>
         <div className="header-actions">
           <Link to={`/lecturer/files?project=${id}`} className="btn btn-secondary">Open File Library</Link>
-          <span className="btn btn-secondary">Supervisor View</span>
+          <Link to={`/lecturer/calendar?project=${id}`} className="btn btn-secondary">Open Project Calendar</Link>
         </div>
       </div>
 
       <div className="project-content">
-        <div className="project-section surface">
-          <h2>Description</h2>
-          <p>{project.description}</p>
-        </div>
-
-        <div className="project-section surface">
-          <h2>Milestones ({milestones.length})</h2>
-          {milestones.length > 0 ? (
-            <div className="milestones-grid">
-              {milestones.map(m => (
-                <div key={m.id} className="milestone-card">
-                  <h3>{m.title}</h3>
-                  <p className={`status ${m.status.toLowerCase()}`}>{m.status}</p>
-                  <p className="due-date">Due: {new Date(m.due_date).toLocaleDateString()}</p>
-                </div>
-              ))}
+        {analytics?.project_health && (
+          <div className="project-section surface">
+            <h2>Project Health</h2>
+            <p>{analytics.project_health.interpretation}</p>
+            <div className="quick-stats-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem' }}>
+              <div className="quick-stat-card"><p className="quick-stat-label">Progress</p><p className="quick-stat-value">{analytics.project_health.overall_progress_percentage}%</p></div>
+              <div className="quick-stat-card"><p className="quick-stat-label">Days Remaining</p><p className="quick-stat-value">{analytics.project_health.time_remaining_days}</p></div>
+              <div className="quick-stat-card"><p className="quick-stat-label">Overdue</p><p className="quick-stat-value">{analytics.project_health.tasks_health.overdue}</p></div>
+              <div className="quick-stat-card"><p className="quick-stat-label">Blocked</p><p className="quick-stat-value">{analytics.project_health.tasks_health.blocked}</p></div>
             </div>
-          ) : (
-            <p>No milestones</p>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="project-section surface">
-          <h2>Team Members</h2>
-          {teamMembers.length > 0 ? (
+        {analytics?.team_contribution?.length > 0 && (
+          <div className="project-section surface">
+            <h2>Team Contribution</h2>
             <div className="team-grid">
-              {teamMembers.map(m => (
-                <div key={m.id} className="member-card">
-                  <h3>{m.user?.first_name} {m.user?.last_name}</h3>
-                  <p className="email">{m.user?.email}</p>
+              {analytics.team_contribution.map((item) => (
+                <div key={item.membership_id} className="member-card">
+                  <h3>{item.member?.first_name || item.member?.username}</h3>
+                  <p className="email">Assigned/Done/Overdue: {item.tasks_assigned}/{item.tasks_completed}/{item.tasks_overdue}</p>
+                  <p className="email">On-time: {item.on_time_completion_rate}%</p>
+                  <p className="email">Active Tasks: {item.active_tasks}</p>
+                  <p className="email">Health: {item.health_badge}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <p>No team members</p>
-          )}
-        </div>
+          </div>
+        )}
+
+        {analytics?.workload_distribution?.length > 0 && (
+          <div className="project-section surface">
+            <h2>Workload Distribution</h2>
+            <div className="team-grid">
+              {analytics.workload_distribution.map((row) => (
+                <div key={row.member?.id} className="member-card">
+                  <h3>{row.member?.first_name || row.member?.username}</h3>
+                  <p className="email">Done: {row.done}</p>
+                  <p className="email">In Progress: {row.in_progress}</p>
+                  <p className="email">To-Do: {row.todo}</p>
+                  <p className="email">Overdue: {row.overdue}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="project-section surface">
-          <h2>Recent Files</h2>
-          {recentFiles.length > 0 ? (
-            <div className="team-grid">
-              {recentFiles.map((file) => (
-                <div key={file.id} className="member-card">
-                  <h3>{file.display_name}</h3>
-                  <p className="email">{file.tag} · v{file.current_version_number} · {file.folder?.name || 'General'}</p>
-                  <p className="email">{file.uploaded_by?.username || 'Unknown'} · {file.current_version_file?.upload_timestamp ? new Date(file.current_version_file.upload_timestamp).toLocaleString() : 'N/A'}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>No recent file activity yet.</p>
-          )}
+          <h2>Project Activity Timeline</h2>
+          <div className="team-grid">
+            {timeline.slice(0, 30).map((item, index) => (
+              <div key={`${item.type}-${item.timestamp}-${index}`} className="member-card">
+                <h3>{item.type}</h3>
+                <p>{item.label}</p>
+                <p className="email">{new Date(item.timestamp).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

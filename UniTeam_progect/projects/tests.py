@@ -297,6 +297,39 @@ class ProjectPhase2APITests(APITestCase):
 			).exists()
 		)
 
+	def test_personal_dashboard_endpoint_returns_phase6_payload(self):
+		project = self._create_project(title='Dashboard Payload Project')
+
+		self._authenticate(self.student_leader)
+		task_resp = self.client.post('/api/tasks/', {
+			'project_id': project['id'],
+			'title': 'Dashboard task',
+			'description': 'Task for dashboard grouping',
+			'priority': 'HIGH',
+			'assigned_to_id': self.student_leader.id,
+			'deadline': str(timezone.now() + timedelta(days=1)),
+		}, format='json')
+		self.assertEqual(task_resp.status_code, status.HTTP_201_CREATED)
+
+		dashboard_resp = self.client.get('/api/projects/dashboard/personal/')
+		self.assertEqual(dashboard_resp.status_code, status.HTTP_200_OK)
+		self.assertIn('projects', dashboard_resp.data)
+		self.assertIn('tasks', dashboard_resp.data)
+		self.assertIn('activity_feed', dashboard_resp.data)
+
+	def test_lecturer_dashboard_endpoint_returns_comparison_rows(self):
+		self._create_project_with_payload({
+			'title': 'Lecturer Monitor Project',
+			'course_code': 'CS420',
+			'supervisor_id': self.lecturer.id,
+		})
+
+		self._authenticate(self.lecturer)
+		response = self.client.get('/api/projects/dashboard/lecturer/')
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertIn('comparison_rows', response.data)
+		self.assertGreaterEqual(len(response.data.get('comparison_rows', [])), 1)
+
 
 class ProjectFilesAPITests(APITestCase):
 	def setUp(self):
@@ -394,16 +427,27 @@ class ProjectFilesAPITests(APITestCase):
 	def test_submission_requires_final_file(self):
 		response = self.client.post(f'/api/projects/{self.project_id}/submit_project/')
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-		self.assertFalse(response.data.get('submission_checklist', {}).get('final_file_uploaded'))
+		checklist = response.data.get('submission_checklist', [])
+		final_item = next((item for item in checklist if item.get('item_type') == 'FINAL_FILE'), None)
+		self.assertIsNotNone(final_item)
+		self.assertFalse(final_item.get('is_passed'))
 
 		self._upload_base_file()
 		project_file = ProjectFile.objects.filter(project_id=self.project_id).first()
 		project_file.tag = 'FINAL'
 		project_file.save(update_fields=['tag'])
 
-		response_ok = self.client.post(f'/api/projects/{self.project_id}/submit_project/')
+		checklist_resp = self.client.get(f'/api/projects/{self.project_id}/submission_checklist/')
+		warnings = [item['item_type'] for item in checklist_resp.data.get('items', []) if not item.get('is_hard_block') and not item.get('is_passed')]
+
+		response_ok = self.client.post(f'/api/projects/{self.project_id}/submit_project/', {
+			'acknowledged_overrides': warnings,
+		}, format='json')
 		self.assertEqual(response_ok.status_code, status.HTTP_200_OK)
-		self.assertTrue(response_ok.data.get('submission_checklist', {}).get('final_file_uploaded'))
+		checklist_ok = response_ok.data.get('submission_checklist', [])
+		final_item_ok = next((item for item in checklist_ok if item.get('item_type') == 'FINAL_FILE'), None)
+		self.assertIsNotNone(final_item_ok)
+		self.assertTrue(final_item_ok.get('is_passed'))
 
 	def test_promote_task_attachment_to_library(self):
 		task_resp = self.client.post('/api/tasks/', {

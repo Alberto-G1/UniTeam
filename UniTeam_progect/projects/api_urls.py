@@ -5,7 +5,7 @@ from .api_views import (
     InvitationViewSet, ProjectTemplateViewSet, MilestoneTemplateViewSet,
     NotificationViewSet, SectionViewSet, TaskViewSet, TaskCommentViewSet, TaskAttachmentViewSet,
     FileFolderViewSet, ProjectFileViewSet, ProjectFileVersionViewSet, ProjectFileActivityLogViewSet,
-    ProjectTrashViewSet
+    ProjectTrashViewSet, CalendarEventViewSet
 )
 
 router = DefaultRouter()
@@ -25,6 +25,7 @@ router.register(r'project-files', ProjectFileViewSet, basename='projectfile')
 router.register(r'project-file-versions', ProjectFileVersionViewSet, basename='projectfileversion')
 router.register(r'project-file-activity', ProjectFileActivityLogViewSet, basename='projectfileactivity')
 router.register(r'project-trash', ProjectTrashViewSet, basename='projecttrash')
+router.register(r'calendar-events', CalendarEventViewSet, basename='calendarevent')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -1,0 +1,85 @@
+.phase6-lecturer-dashboard {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.phase6-lecturer-hero {
+  background: linear-gradient(110deg, #0c4a6e, #1d4ed8);
+  color: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.phase6-all-good {
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 0.7rem;
+  color: #166534;
+}
+
+.phase6-alerts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.7rem;
+}
+
+.phase6-alert-card {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  border-radius: 9px;
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.phase6-table-wrap {
+  overflow: auto;
+}
+
+.phase6-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 850px;
+}
+
+.phase6-table th,
+.phase6-table td {
+  border: 1px solid #dbe3f3;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.phase6-table th {
+  background: #f3f6ff;
+}
+
+.phase6-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+}
+
+.phase6-readiness-card {
+  border: 1px solid #dbe3f3;
+  border-radius: 10px;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.phase6-readiness-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.phase6-good {
+  color: #15803d;
+}
+
+.phase6-risk {
+  color: #b91c1c;
+}

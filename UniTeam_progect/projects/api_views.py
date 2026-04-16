@@ -2,6 +2,7 @@ import os
 import mimetypes
 import re
 from decimal import Decimal
+from datetime import timedelta, date, datetime, time
 
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
@@ -9,18 +10,19 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from django.apps import apps
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F, Count
 from django.utils import timezone
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
-from datetime import timedelta
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation, Notification,
     ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment,
     TaskComment, TaskActivityLog, TaskNotification, FileFolder, ProjectFile, ProjectFileVersion,
-    ProjectFileActivityLog, ProjectTrash
+    ProjectFileActivityLog, ProjectTrash, DashboardWidget, ProjectSnapshot,
+    LecturerAlert, SubmissionChecklist, CalendarEvent
 )
 from .serializers import (
     ProjectSerializer, TeamSerializer, TeamMembershipSerializer,
@@ -29,7 +31,8 @@ from .serializers import (
     MilestoneTemplateSerializer, SectionSerializer, TaskSerializer, SubTaskSerializer,
     TaskAttachmentSerializer, TaskCommentSerializer, TaskActivityLogSerializer, TaskNotificationSerializer,
     FileFolderSerializer, ProjectFileSerializer, ProjectFileVersionSerializer, ProjectFileActivityLogSerializer,
-    ProjectTrashSerializer
+    ProjectTrashSerializer, CalendarEventSerializer, LecturerAlertSerializer,
+    SubmissionChecklistSerializer
 )
 from users.models import CustomUser
 from users.serializers import UserSerializer
@@ -155,6 +158,323 @@ def _project_task_progress(project):
             weighted_total += Decimal(str(max(task.progress_percentage or 75, 75) / 100))
 
     return int(round((weighted_total / Decimal(str(total))) * Decimal('100')))
+
+
+def _project_days_remaining(project):
+    return (project.deadline - timezone.localdate()).days
+
+
+def _project_time_elapsed_percent(project):
+    start_date = timezone.localtime(project.created_at).date() if project.created_at else timezone.localdate()
+    total_days = max((project.deadline - start_date).days, 1)
+    elapsed_days = max((timezone.localdate() - start_date).days, 0)
+    return min(100, int(round((elapsed_days / total_days) * 100)))
+
+
+def _project_task_status_counts(project):
+    tasks = project.tasks.filter(is_cancelled=False)
+    return {
+        'TODO': tasks.filter(status=Task.Status.TODO).count(),
+        'IN_PROGRESS': tasks.filter(status=Task.Status.IN_PROGRESS).count(),
+        'UNDER_REVIEW': tasks.filter(status=Task.Status.UNDER_REVIEW).count(),
+        'DONE': tasks.filter(status=Task.Status.DONE).count(),
+        'BLOCKED': tasks.filter(status=Task.Status.BLOCKED).count(),
+        'CANCELLED': project.tasks.filter(status=Task.Status.CANCELLED).count(),
+    }
+
+
+def _latest_project_activity_at(project):
+    timestamps = [project.updated_at]
+    latest_task_activity = TaskActivityLog.objects.filter(task__project=project).order_by('-created_at').values_list('created_at', flat=True).first()
+    latest_file_activity = ProjectFileActivityLog.objects.filter(project=project).order_by('-created_at').values_list('created_at', flat=True).first()
+    if latest_task_activity:
+        timestamps.append(latest_task_activity)
+    if latest_file_activity:
+        timestamps.append(latest_file_activity)
+
+    Message = apps.get_model('communication', 'Message')
+    Announcement = apps.get_model('communication', 'Announcement')
+    MeetingPoll = apps.get_model('communication', 'MeetingPoll')
+
+    latest_message = Message.objects.filter(channel__project=project).order_by('-created_at').values_list('created_at', flat=True).first()
+    latest_announcement = Announcement.objects.filter(project=project).order_by('-created_at').values_list('created_at', flat=True).first()
+    latest_meeting = MeetingPoll.objects.filter(project=project).order_by('-created_at').values_list('created_at', flat=True).first()
+    if latest_message:
+        timestamps.append(latest_message)
+    if latest_announcement:
+        timestamps.append(latest_announcement)
+    if latest_meeting:
+        timestamps.append(latest_meeting)
+
+    return max([ts for ts in timestamps if ts], default=project.updated_at)
+
+
+def _project_section_breakdown(project):
+    sections = []
+    for section in project.sections.all().order_by('order', 'created_at'):
+        section_tasks = section.tasks.filter(is_cancelled=False)
+        total = section_tasks.count()
+        done = section_tasks.filter(status=Task.Status.DONE).count()
+        overdue = section_tasks.exclude(status=Task.Status.DONE).filter(deadline__lt=timezone.now()).count()
+        completion = int(round((done / total) * 100)) if total else 0
+        status_label = 'On Track'
+        if overdue > 0:
+            status_label = 'Overdue'
+        elif completion < 50 and total > 0:
+            status_label = 'At Risk'
+        sections.append({
+            'section_id': section.id,
+            'section_name': section.name,
+            'total_tasks': total,
+            'completed_tasks': done,
+            'completion_percentage': completion,
+            'section_deadline': section_tasks.order_by('-deadline').values_list('deadline', flat=True).first(),
+            'status': status_label,
+        })
+    return sections
+
+
+def _member_last_activity(project, member):
+    timestamps = [
+        TaskActivityLog.objects.filter(task__project=project, actor=member).order_by('-created_at').values_list('created_at', flat=True).first(),
+        ProjectFileActivityLog.objects.filter(project=project, actor=member).order_by('-created_at').values_list('created_at', flat=True).first(),
+    ]
+
+    Message = apps.get_model('communication', 'Message')
+    Announcement = apps.get_model('communication', 'Announcement')
+    timestamps.append(Message.objects.filter(channel__project=project, sender=member).order_by('-created_at').values_list('created_at', flat=True).first())
+    timestamps.append(Announcement.objects.filter(project=project, author=member).order_by('-created_at').values_list('created_at', flat=True).first())
+    return max([ts for ts in timestamps if ts], default=None)
+
+
+def _team_contribution(project):
+    contributions = []
+    memberships = TeamMembership.objects.filter(team=project.team).select_related('user')
+    for membership in memberships:
+        user = membership.user
+        assigned_tasks = project.tasks.filter(assigned_to=user, is_cancelled=False)
+        completed_tasks = assigned_tasks.filter(status=Task.Status.DONE)
+        overdue_tasks = assigned_tasks.exclude(status=Task.Status.DONE).filter(deadline__lt=timezone.now())
+        on_time_completed = completed_tasks.filter(completed_at__isnull=False, completed_at__lte=F('deadline')).count()
+        completed_count = completed_tasks.count()
+        on_time_rate = int(round((on_time_completed / completed_count) * 100)) if completed_count else 0
+        current_active = assigned_tasks.filter(status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]).count()
+        last_activity = _member_last_activity(project, user)
+        stale_days = None
+        if last_activity:
+            stale_days = (timezone.now() - last_activity).days
+
+        badge = 'Active'
+        if overdue_tasks.count() >= 2 or stale_days is None or stale_days >= 3:
+            badge = 'At Risk'
+        elif overdue_tasks.count() > 0 or stale_days == 2:
+            badge = 'Slow'
+
+        contributions.append({
+            'membership_id': membership.id,
+            'member': UserSerializer(user).data,
+            'role': membership.role,
+            'tasks_assigned': assigned_tasks.count(),
+            'tasks_completed': completed_count,
+            'tasks_overdue': overdue_tasks.count(),
+            'on_time_completion_rate': on_time_rate,
+            'active_tasks': current_active,
+            'last_activity': last_activity,
+            'health_badge': badge,
+        })
+    return contributions
+
+
+def _submission_checklist_payload(project):
+    all_tasks = project.tasks.filter(is_cancelled=False)
+    active_members = TeamMembership.objects.filter(team=project.team).select_related('user')
+    has_final_file = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
+    only_closable_statuses = all_tasks.exclude(status__in=[Task.Status.DONE, Task.Status.CANCELLED, Task.Status.UNDER_REVIEW]).count() == 0
+    description_filled = bool((project.description or '').strip())
+    lecturer_assigned = bool(project.supervisor_id)
+
+    now = timezone.now()
+    all_members_active = True
+    for membership in active_members:
+        last_activity = _member_last_activity(project, membership.user)
+        if not last_activity or (now - last_activity).days > 7:
+            all_members_active = False
+            break
+
+    return [
+        {
+            'item_type': SubmissionChecklist.ItemType.FINAL_FILE,
+            'label': 'At least one Final-tagged file exists in the file library',
+            'is_passed': has_final_file,
+            'is_hard_block': True,
+        },
+        {
+            'item_type': SubmissionChecklist.ItemType.TASKS_COMPLETE,
+            'label': 'All tasks are Done, Cancelled, or Under Review',
+            'is_passed': only_closable_statuses,
+            'is_hard_block': False,
+        },
+        {
+            'item_type': SubmissionChecklist.ItemType.TEAM_ACTIVE,
+            'label': 'All team members are active in the last 7 days',
+            'is_passed': all_members_active,
+            'is_hard_block': False,
+        },
+        {
+            'item_type': SubmissionChecklist.ItemType.DESCRIPTION_FILLED,
+            'label': 'Project description is filled in',
+            'is_passed': description_filled,
+            'is_hard_block': False,
+        },
+        {
+            'item_type': SubmissionChecklist.ItemType.LECTURER_ASSIGNED,
+            'label': 'Linked lecturer is assigned',
+            'is_passed': lecturer_assigned,
+            'is_hard_block': False,
+        },
+    ]
+
+
+def _upsert_submission_checklist(project, checklist_items, override_item_types=None, override_by=None):
+    override_item_types = set(override_item_types or [])
+    for item in checklist_items:
+        defaults = {
+            'is_passed': item['is_passed'],
+            'override_acknowledged': item['item_type'] in override_item_types,
+            'override_by': override_by if item['item_type'] in override_item_types else None,
+        }
+        SubmissionChecklist.objects.update_or_create(
+            project=project,
+            item_type=item['item_type'],
+            defaults=defaults,
+        )
+
+
+def _project_burndown_payload(project):
+    snapshots = list(project.snapshots.order_by('snapshot_date'))
+    total_tasks = project.tasks.filter(is_cancelled=False).count()
+    start_date = timezone.localtime(project.created_at).date() if project.created_at else timezone.localdate()
+    end_date = project.deadline
+    total_days = max((end_date - start_date).days, 1)
+
+    ideal_line = []
+    for offset in range(total_days + 1):
+        point_date = start_date + timedelta(days=offset)
+        remaining = max(total_tasks - ((total_tasks / total_days) * offset), 0)
+        ideal_line.append({'date': point_date, 'remaining': round(remaining, 2)})
+
+    if snapshots:
+        actual_line = [
+            {
+                'date': snap.snapshot_date,
+                'remaining': snap.metrics.get('remaining_tasks', 0),
+            }
+            for snap in snapshots
+        ]
+    else:
+        remaining = project.tasks.filter(is_cancelled=False).exclude(status=Task.Status.DONE).count()
+        actual_line = [{'date': timezone.localdate(), 'remaining': remaining}]
+
+    projection = []
+    if len(actual_line) >= 2:
+        first_point = actual_line[0]
+        last_point = actual_line[-1]
+        days_spent = max((last_point['date'] - first_point['date']).days, 1)
+        burn_rate = (first_point['remaining'] - last_point['remaining']) / days_spent
+        forecast_remaining = float(last_point['remaining'])
+        for offset in range(1, max((end_date - last_point['date']).days, 0) + 1):
+            day = last_point['date'] + timedelta(days=offset)
+            forecast_remaining = max(forecast_remaining - burn_rate, 0)
+            projection.append({'date': day, 'remaining': round(forecast_remaining, 2)})
+
+    return {
+        'ideal': ideal_line,
+        'actual': actual_line,
+        'projection': projection,
+    }
+
+
+def _project_activity_timeline(project, activity_type='ALL', start_date=None, end_date=None):
+    entries = []
+
+    if activity_type in ['ALL', 'TASKS']:
+        for log in TaskActivityLog.objects.filter(task__project=project).select_related('task', 'actor').order_by('-created_at')[:80]:
+            entries.append({
+                'type': 'TASK',
+                'timestamp': log.created_at,
+                'label': f"{log.actor.get_full_name() or log.actor.username if log.actor else 'System'} {log.get_action_type_display().lower()} task \"{log.task.title}\"",
+                'task_id': log.task_id,
+            })
+
+    if activity_type in ['ALL', 'FILES']:
+        for log in ProjectFileActivityLog.objects.filter(project=project).select_related('file', 'actor').order_by('-created_at')[:80]:
+            actor_name = log.actor.get_full_name() or log.actor.username if log.actor else 'System'
+            entries.append({
+                'type': 'FILE',
+                'timestamp': log.created_at,
+                'label': f"{actor_name} {log.get_action_type_display().lower()} \"{log.file.display_name}\"",
+                'file_id': log.file_id,
+            })
+
+    if activity_type in ['ALL', 'COMMUNICATION']:
+        Announcement = apps.get_model('communication', 'Announcement')
+        Message = apps.get_model('communication', 'Message')
+        MeetingPoll = apps.get_model('communication', 'MeetingPoll')
+
+        for announcement in Announcement.objects.filter(project=project).select_related('author').order_by('-created_at')[:40]:
+            entries.append({
+                'type': 'COMMUNICATION',
+                'timestamp': announcement.created_at,
+                'label': f"{announcement.author.get_full_name() or announcement.author.username} posted an announcement",
+                'announcement_id': announcement.id,
+            })
+        for message in Message.objects.filter(channel__project=project).select_related('sender').order_by('-created_at')[:60]:
+            entries.append({
+                'type': 'COMMUNICATION',
+                'timestamp': message.created_at,
+                'label': f"{message.sender.get_full_name() or message.sender.username} sent a channel message",
+                'message_id': message.id,
+            })
+        for poll in MeetingPoll.objects.filter(project=project).select_related('created_by').order_by('-created_at')[:30]:
+            entries.append({
+                'type': 'COMMUNICATION',
+                'timestamp': poll.created_at,
+                'label': f"{poll.created_by.get_full_name() or poll.created_by.username} created meeting poll \"{poll.title}\"",
+                'meeting_poll_id': poll.id,
+            })
+
+    if start_date:
+        entries = [entry for entry in entries if entry['timestamp'].date() >= start_date]
+    if end_date:
+        entries = [entry for entry in entries if entry['timestamp'].date() <= end_date]
+
+    entries.sort(key=lambda item: item['timestamp'], reverse=True)
+    return entries[:120]
+
+
+def _project_at_risk_conditions(project):
+    now = timezone.now()
+    progress = _project_task_progress(project)
+    elapsed = _project_time_elapsed_percent(project)
+    overdue_count = project.tasks.filter(is_cancelled=False).exclude(status=Task.Status.DONE).filter(deadline__lt=now).count()
+    latest_activity = _latest_project_activity_at(project)
+    inactive = latest_activity is None or (now - latest_activity) > timedelta(hours=48)
+    stale_blocked = project.tasks.filter(status=Task.Status.BLOCKED, updated_at__lte=now - timedelta(hours=24)).exists()
+    no_final_file_near_deadline = _project_days_remaining(project) < 3 and not project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
+
+    conditions = []
+    if progress < 30 and elapsed > 50:
+        conditions.append((LecturerAlert.AlertType.LOW_PROGRESS, 'Progress is below 30% with more than half of project time elapsed.'))
+    if overdue_count >= 3:
+        conditions.append((LecturerAlert.AlertType.MANY_OVERDUE, 'Project has three or more overdue tasks.'))
+    if inactive:
+        conditions.append((LecturerAlert.AlertType.INACTIVE, 'No activity has been recorded in the last 48 hours.'))
+    if stale_blocked:
+        conditions.append((LecturerAlert.AlertType.BLOCKED_STALE, 'A task has remained blocked for more than 24 hours.'))
+    if no_final_file_near_deadline:
+        conditions.append((LecturerAlert.AlertType.NO_FINAL_FILE, 'No final-tagged file exists with less than three days to deadline.'))
+
+    return conditions
 
 
 def _general_section(project):
@@ -358,16 +678,312 @@ class ProjectViewSet(viewsets.ModelViewSet):
         serializer = ProjectFileSerializer(files, many=True, context={'request': request})
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='dashboard/personal')
+    def personal_dashboard(self, request):
+        user = request.user
+
+        if user.role == CustomUser.Role.STUDENT:
+            memberships = TeamMembership.objects.filter(user=user).select_related('team__project')
+            projects = [membership.team.project for membership in memberships]
+        elif user.role == CustomUser.Role.LECTURER:
+            projects = list(Project.objects.filter(supervisor=user).select_related('supervisor'))
+        else:
+            projects = list(Project.objects.all().select_related('supervisor')[:20])
+
+        now = timezone.now()
+        end_due_soon = now + timedelta(days=3)
+        project_ids = [project.id for project in projects]
+
+        my_tasks_qs = Task.objects.filter(assigned_to=user, project_id__in=project_ids, is_cancelled=False).exclude(status=Task.Status.DONE)
+        overdue_tasks = my_tasks_qs.filter(deadline__lt=now).order_by('deadline')
+        due_soon_tasks = my_tasks_qs.filter(deadline__gte=now, deadline__lte=end_due_soon).order_by('deadline')
+        upcoming_tasks = my_tasks_qs.filter(deadline__gt=end_due_soon).order_by('deadline')
+        completed_tasks = Task.objects.filter(assigned_to=user, project_id__in=project_ids, status=Task.Status.DONE).order_by('-completed_at')[:20]
+
+        project_cards = []
+        for project in sorted(projects, key=lambda p: p.deadline):
+            membership = TeamMembership.objects.filter(team=project.team, user=user).first() if hasattr(project, 'team') else None
+            incomplete_assigned_count = Task.objects.filter(project=project, assigned_to=user, is_cancelled=False).exclude(status=Task.Status.DONE).count()
+            project_cards.append({
+                'id': project.id,
+                'title': project.title,
+                'course_code': project.course_code,
+                'role': membership.role if membership else ('SUPERVISOR' if project.supervisor_id == user.id else 'VIEWER'),
+                'progress_percentage': _project_task_progress(project),
+                'days_remaining': _project_days_remaining(project),
+                'deadline': project.deadline,
+                'deadline_status': 'RED' if _project_days_remaining(project) < 3 else ('AMBER' if _project_days_remaining(project) <= 7 else 'GREEN'),
+                'assigned_incomplete_count': incomplete_assigned_count,
+                'last_activity': _latest_project_activity_at(project),
+                'lifecycle_status': project.lifecycle_status,
+            })
+
+        activity_feed = []
+        for project in projects:
+            activity_feed.extend(_project_activity_timeline(project, activity_type='ALL')[:8])
+        activity_feed.sort(key=lambda item: item['timestamp'], reverse=True)
+
+        calendar_items = []
+        event_queryset = CalendarEvent.objects.filter(project_id__in=project_ids)
+        if user.role == CustomUser.Role.STUDENT:
+            event_queryset = event_queryset.filter(is_visible_to_all_members=True)
+        for event in event_queryset.order_by('start_datetime')[:120]:
+            calendar_items.append({
+                'id': event.id,
+                'project_id': event.project_id,
+                'title': event.title,
+                'event_type': event.event_type,
+                'start_datetime': event.start_datetime,
+                'end_datetime': event.end_datetime,
+            })
+
+        unread_notifications = Notification.objects.filter(recipient=user, read_at__isnull=True).select_related('project')[:5]
+
+        return Response({
+            'greeting_name': user.first_name or user.username,
+            'projects': project_cards,
+            'tasks': {
+                'overdue': TaskSerializer(overdue_tasks[:100], many=True, context={'request': request}).data,
+                'due_soon': TaskSerializer(due_soon_tasks[:100], many=True, context={'request': request}).data,
+                'upcoming': TaskSerializer(upcoming_tasks[:100], many=True, context={'request': request}).data,
+                'completed': TaskSerializer(completed_tasks, many=True, context={'request': request}).data,
+            },
+            'activity_feed': activity_feed[:20],
+            'calendar_items': calendar_items,
+            'notifications_preview': NotificationSerializer(unread_notifications, many=True).data,
+            'summary': {
+                'due_today_count': my_tasks_qs.filter(deadline__date=timezone.localdate()).count(),
+                'active_project_count': len(projects),
+                'overdue_count': overdue_tasks.count(),
+            },
+        })
+
+    @action(detail=False, methods=['get'], url_path='dashboard/lecturer')
+    def lecturer_dashboard(self, request):
+        if request.user.role != CustomUser.Role.LECTURER:
+            return Response({'error': 'Only lecturers can access this dashboard'}, status=status.HTTP_403_FORBIDDEN)
+
+        projects = Project.objects.filter(supervisor=request.user).prefetch_related('team__teammembership_set__user').order_by('course_code', 'deadline')
+        grouped = {}
+        comparison_rows = []
+        active_alert_ids = []
+
+        for project in projects:
+            course_code = project.course_code or 'UNASSIGNED'
+            grouped.setdefault(course_code, []).append(project.id)
+
+            statuses = _project_task_status_counts(project)
+            total_tasks = project.tasks.filter(is_cancelled=False).count()
+            done_tasks = statuses['DONE']
+            overdue_tasks = project.tasks.filter(is_cancelled=False).exclude(status=Task.Status.DONE).filter(deadline__lt=timezone.now()).count()
+            final_files = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).count()
+            latest_activity = _latest_project_activity_at(project)
+            progress = _project_task_progress(project)
+            member_count = TeamMembership.objects.filter(team=project.team).count()
+            comparison_rows.append({
+                'project_id': project.id,
+                'project_name': project.title,
+                'course_code': project.course_code,
+                'members_count': member_count,
+                'overall_progress_percentage': progress,
+                'tasks': {
+                    'total': total_tasks,
+                    'done': done_tasks,
+                    'overdue': overdue_tasks,
+                },
+                'files': {
+                    'total': project.project_files.filter(is_deleted=False).count(),
+                    'finals_uploaded': final_files,
+                },
+                'last_activity': latest_activity,
+                'submission_deadline': project.deadline,
+                'status': 'Submitted' if project.lifecycle_status == Project.LifecycleStatus.SUBMITTED else (
+                    'At Risk' if _project_at_risk_conditions(project) else ('Not Started' if progress == 0 else 'On Track')
+                ),
+                'lifecycle_status': project.lifecycle_status,
+            })
+
+            conditions = _project_at_risk_conditions(project)
+            for alert_type, message in conditions:
+                alert, _ = LecturerAlert.objects.get_or_create(
+                    lecturer=request.user,
+                    project=project,
+                    alert_type=alert_type,
+                    is_resolved=False,
+                    defaults={'alert_message': message},
+                )
+                if alert.alert_message != message:
+                    alert.alert_message = message
+                    alert.save(update_fields=['alert_message'])
+                active_alert_ids.append(alert.id)
+
+            LecturerAlert.objects.filter(
+                lecturer=request.user,
+                project=project,
+                is_resolved=False,
+            ).exclude(id__in=active_alert_ids).update(is_resolved=True, resolved_at=timezone.now())
+
+        readiness = []
+        for project in projects:
+            checks = _submission_checklist_payload(project)
+            readiness.append({
+                'project_id': project.id,
+                'project_name': project.title,
+                'checks': checks,
+                'is_submission_ready': all(item['is_passed'] for item in checks),
+            })
+
+        alerts = LecturerAlert.objects.filter(lecturer=request.user, is_resolved=False).select_related('project').order_by('-triggered_at')
+        grouped_payload = []
+        for course_code, project_ids in grouped.items():
+            grouped_payload.append({
+                'course_code': course_code,
+                'project_ids': project_ids,
+            })
+
+        return Response({
+            'courses': grouped_payload,
+            'comparison_rows': comparison_rows,
+            'alerts': LecturerAlertSerializer(alerts, many=True).data,
+            'submission_readiness': readiness,
+            'all_on_track': len(alerts) == 0,
+        })
+
+    @action(detail=True, methods=['get'], url_path='analytics')
+    def analytics(self, request, pk=None):
+        project = self.get_object()
+        statuses = _project_task_status_counts(project)
+        total_tasks = project.tasks.filter(is_cancelled=False).count()
+        days_remaining = _project_days_remaining(project)
+        progress = _project_task_progress(project)
+        time_elapsed = _project_time_elapsed_percent(project)
+        overdue = project.tasks.filter(is_cancelled=False).exclude(status=Task.Status.DONE).filter(deadline__lt=timezone.now()).count()
+        blocked = project.tasks.filter(status=Task.Status.BLOCKED).count()
+
+        contribution = _team_contribution(project)
+        team_health = 'All Active'
+        if any(item['health_badge'] == 'At Risk' for item in contribution):
+            team_health = 'Critical Issues'
+        elif any(item['health_badge'] == 'Slow' for item in contribution):
+            team_health = 'Some Behind'
+
+        workload = []
+        for item in contribution:
+            member_id = item['member']['id']
+            member_tasks = project.tasks.filter(assigned_to_id=member_id, is_cancelled=False)
+            workload.append({
+                'member': item['member'],
+                'done': member_tasks.filter(status=Task.Status.DONE).count(),
+                'in_progress': member_tasks.filter(status=Task.Status.IN_PROGRESS).count(),
+                'todo': member_tasks.filter(status=Task.Status.TODO).count(),
+                'overdue': member_tasks.exclude(status=Task.Status.DONE).filter(deadline__lt=timezone.now()).count(),
+            })
+
+        Message = apps.get_model('communication', 'Message')
+        Announcement = apps.get_model('communication', 'Announcement')
+        MeetingPoll = apps.get_model('communication', 'MeetingPoll')
+
+        channel_message_count_7d = Message.objects.filter(
+            channel__project=project,
+            created_at__gte=timezone.now() - timedelta(days=7),
+        ).count()
+        most_active_channel = (
+            Message.objects.filter(channel__project=project)
+            .values('channel__id', 'channel__slug')
+            .annotate(total=Count('id'))
+            .order_by('-total')
+            .first()
+        )
+
+        latest_announcement = Announcement.objects.filter(project=project).order_by('-created_at').first()
+        unread_announcement_warning = False
+        if latest_announcement:
+            unread_announcement_warning = TeamMembership.objects.filter(team=project.team).exclude(user=latest_announcement.author).exists()
+
+        communication_summary = {
+            'messages_last_7_days': channel_message_count_7d,
+            'most_active_channel': most_active_channel['channel__slug'] if most_active_channel else None,
+            'unread_announcements_warning': unread_announcement_warning,
+            'upcoming_confirmed_meetings': MeetingPoll.objects.filter(project=project, confirmed_slot__start_datetime__gte=timezone.now()).count(),
+        }
+
+        storage_used = _project_file_storage_usage(project)
+        latest_file = project.project_files.filter(is_deleted=False).order_by('-upload_timestamp').first()
+        file_summary = {
+            'uploaded_last_7_days': project.project_files.filter(is_deleted=False, upload_timestamp__gte=timezone.now() - timedelta(days=7)).count(),
+            'final_files_count': project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).count(),
+            'most_recent_file': ProjectFileSerializer(latest_file, context={'request': request}).data if latest_file else None,
+            'storage_used_bytes': storage_used,
+            'storage_quota_bytes': PROJECT_STORAGE_QUOTA_BYTES,
+        }
+
+        return Response({
+            'project_id': project.id,
+            'project_health': {
+                'overall_progress_percentage': progress,
+                'time_remaining_days': days_remaining,
+                'time_elapsed_percentage': time_elapsed,
+                'tasks_health': {
+                    'done': statuses['DONE'],
+                    'in_progress': statuses['IN_PROGRESS'],
+                    'overdue': overdue,
+                    'blocked': blocked,
+                },
+                'team_health': team_health,
+                'interpretation': f'Project is {progress}% complete with {max(days_remaining, 0)} day(s) remaining. {overdue} task(s) are overdue and {blocked} task(s) are blocked.',
+            },
+            'overview_widgets': {
+                'total_tasks': total_tasks,
+                'completed_tasks': statuses['DONE'],
+                'overdue_tasks': overdue,
+                'blocked_tasks': blocked,
+                'files_uploaded': project.project_files.filter(is_deleted=False).count(),
+                'days_to_deadline': days_remaining,
+            },
+            'task_progress_breakdown': statuses,
+            'burndown': _project_burndown_payload(project),
+            'section_progress': _project_section_breakdown(project),
+            'team_contribution': contribution,
+            'workload_distribution': workload,
+            'file_activity_summary': file_summary,
+            'communication_summary': communication_summary,
+        })
+
+    @action(detail=True, methods=['get'])
+    def activity_timeline(self, request, pk=None):
+        project = self.get_object()
+        activity_type = (request.query_params.get('type') or 'ALL').upper()
+        start_date_raw = request.query_params.get('start_date')
+        end_date_raw = request.query_params.get('end_date')
+
+        start_date = None
+        end_date = None
+        if start_date_raw:
+            try:
+                start_date = date.fromisoformat(start_date_raw)
+            except ValueError:
+                return Response({'error': 'Invalid start_date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        if end_date_raw:
+            try:
+                end_date = date.fromisoformat(end_date_raw)
+            except ValueError:
+                return Response({'error': 'Invalid end_date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(_project_activity_timeline(project, activity_type=activity_type, start_date=start_date, end_date=end_date))
+
     @action(detail=True, methods=['get'])
     def submission_checklist(self, request, pk=None):
         project = self.get_object()
-        has_final_file = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
-        checklist = {
-            'final_file_uploaded': has_final_file,
-            'final_file_label': 'At least one file tagged as Final exists in the File Library',
-            'all_required_items_complete': has_final_file,
-        }
-        return Response(checklist)
+        checklist_items = _submission_checklist_payload(project)
+        _upsert_submission_checklist(project, checklist_items)
+
+        serialized = SubmissionChecklistSerializer(project.submission_checklist_items.all(), many=True).data
+        return Response({
+            'items': checklist_items,
+            'records': serialized,
+            'final_file_uploaded': next((item['is_passed'] for item in checklist_items if item['item_type'] == SubmissionChecklist.ItemType.FINAL_FILE), False),
+            'all_required_items_complete': all(item['is_passed'] for item in checklist_items),
+        })
 
     @action(detail=False, methods=['get'])
     def search_by_course_code(self, request):
@@ -560,19 +1176,40 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if project.lifecycle_status != Project.LifecycleStatus.ACTIVE:
             return Response({'error': 'Only active projects can be submitted'}, status=status.HTTP_400_BAD_REQUEST)
 
-        has_final_file = project.project_files.filter(is_deleted=False, tag=ProjectFile.Tag.FINAL).exists()
-        if not has_final_file:
+        checklist_items = _submission_checklist_payload(project)
+        _upsert_submission_checklist(project, checklist_items)
+
+        final_file_item = next(item for item in checklist_items if item['item_type'] == SubmissionChecklist.ItemType.FINAL_FILE)
+        warning_items = [item for item in checklist_items if not item['is_hard_block'] and not item['is_passed']]
+        hard_block_items = [item for item in checklist_items if item['is_hard_block'] and not item['is_passed']]
+
+        if hard_block_items:
             return Response(
                 {
                     'error': 'Project submission requires at least one file tagged as Final in the File Library',
-                    'submission_checklist': {
-                        'final_file_uploaded': False,
-                        'final_file_label': 'At least one file tagged as Final exists in the File Library',
-                        'all_required_items_complete': False,
-                    },
+                    'submission_checklist': checklist_items,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        acknowledged_overrides = set(request.data.get('acknowledged_overrides') or [])
+        missing_acknowledgements = [item['item_type'] for item in warning_items if item['item_type'] not in acknowledged_overrides]
+        if missing_acknowledgements:
+            return Response(
+                {
+                    'error': 'Please acknowledge all checklist warnings before submitting',
+                    'missing_acknowledgements': missing_acknowledgements,
+                    'submission_checklist': checklist_items,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        _upsert_submission_checklist(
+            project,
+            checklist_items,
+            override_item_types=acknowledged_overrides,
+            override_by=request.user,
+        )
 
         project.lifecycle_status = Project.LifecycleStatus.SUBMITTED
         project.save(update_fields=['lifecycle_status', 'updated_at'])
@@ -597,11 +1234,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
             {
                 'message': 'Project submitted',
                 'lifecycle_status': project.lifecycle_status,
-                'submission_checklist': {
-                    'final_file_uploaded': True,
-                    'final_file_label': 'At least one file tagged as Final exists in the File Library',
-                    'all_required_items_complete': True,
-                },
+                'submission_checklist': checklist_items,
+                'final_file_uploaded': final_file_item['is_passed'],
+                'all_required_items_complete': all(item['is_passed'] for item in checklist_items),
             }
         )
 
@@ -1764,6 +2399,117 @@ class ProjectTrashViewSet(viewsets.ModelViewSet):
             project=file_obj.project,
         )
         return Response({'message': 'File restored'})
+
+
+class CalendarEventViewSet(viewsets.ModelViewSet):
+    serializer_class = CalendarEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = CalendarEvent.objects.select_related('project', 'created_by')
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        user = self.request.user
+        if user.role == CustomUser.Role.ADMIN:
+            return queryset
+        if user.role == CustomUser.Role.LECTURER:
+            return queryset.filter(project__supervisor=user)
+
+        member_project_ids = user.teammembership_set.values_list('team__project_id', flat=True)
+        return queryset.filter(project_id__in=member_project_ids)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        project_id = request.query_params.get('project')
+        scope = (request.query_params.get('scope') or 'personal').lower()
+
+        if project_id:
+            projects = Project.objects.filter(id=project_id)
+        else:
+            if request.user.role == CustomUser.Role.STUDENT:
+                projects = Project.objects.filter(team__teammembership__user=request.user).distinct()
+            elif request.user.role == CustomUser.Role.LECTURER:
+                projects = Project.objects.filter(supervisor=request.user)
+            else:
+                projects = Project.objects.all()
+
+        events = []
+        for project in projects:
+            if scope == 'project' and project_id and str(project.id) != str(project_id):
+                continue
+
+            for task in project.tasks.filter(is_cancelled=False):
+                events.append({
+                    'id': f'task-{task.id}',
+                    'project': project.id,
+                    'title': f'Task deadline: {task.title}',
+                    'event_type': CalendarEvent.EventType.TASK_DEADLINE,
+                    'related_object_id': task.id,
+                    'start_datetime': task.deadline.isoformat(),
+                    'end_datetime': task.deadline.isoformat(),
+                    'is_visible_to_all_members': True,
+                    'source': 'derived',
+                })
+
+            events.append({
+                'id': f'project-deadline-{project.id}',
+                'project': project.id,
+                'title': f'Project submission deadline: {project.title}',
+                'event_type': CalendarEvent.EventType.PROJECT_DEADLINE,
+                'related_object_id': project.id,
+                'start_datetime': timezone.make_aware(datetime.combine(project.deadline, time.min)).isoformat(),
+                'end_datetime': timezone.make_aware(datetime.combine(project.deadline, time.min)).isoformat(),
+                'is_visible_to_all_members': True,
+                'source': 'derived',
+            })
+
+            for milestone in project.milestones.all():
+                milestone_dt = timezone.make_aware(datetime.combine(milestone.due_date, time.min))
+                events.append({
+                    'id': f'milestone-{milestone.id}',
+                    'project': project.id,
+                    'title': f'Milestone: {milestone.title}',
+                    'event_type': CalendarEvent.EventType.MILESTONE,
+                    'related_object_id': milestone.id,
+                    'start_datetime': milestone_dt.isoformat(),
+                    'end_datetime': milestone_dt.isoformat(),
+                    'is_visible_to_all_members': True,
+                    'source': 'derived',
+                })
+
+        MeetingPoll = apps.get_model('communication', 'MeetingPoll')
+        for poll in MeetingPoll.objects.filter(project__in=projects, confirmed_slot__isnull=False).select_related('confirmed_slot', 'project'):
+            events.append({
+                'id': f'meeting-{poll.id}',
+                'project': poll.project_id,
+                'title': f'Confirmed meeting: {poll.title}',
+                'event_type': CalendarEvent.EventType.MEETING,
+                'related_object_id': poll.id,
+                'start_datetime': poll.confirmed_slot.start_datetime.isoformat(),
+                'end_datetime': poll.confirmed_slot.end_datetime.isoformat(),
+                'is_visible_to_all_members': True,
+                'source': 'derived',
+            })
+
+        custom_events = CalendarEventSerializer(queryset, many=True).data
+        for event in custom_events:
+            event['source'] = 'custom'
+
+        combined = custom_events + events
+        combined.sort(key=lambda item: item['start_datetime'])
+        return Response(combined)
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data['project']
+        membership = _project_membership(project, self.request.user)
+        if self.request.user.role != CustomUser.Role.ADMIN:
+            if not membership or membership.role not in [Team.Role.LEADER, Team.Role.CO_LEADER]:
+                raise PermissionDenied('Only leaders and co-leaders can create custom calendar events')
+        if serializer.validated_data.get('event_type') != CalendarEvent.EventType.CUSTOM:
+            raise ValidationError('Only custom calendar events can be created manually')
+        serializer.save(created_by=self.request.user)
 
 
 class InvitationViewSet(viewsets.ModelViewSet):

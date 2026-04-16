@@ -17,6 +17,8 @@ export const ProjectDashboard = () => {
   const [projectInvitations, setProjectInvitations] = useState([]);
   const [recentFiles, setRecentFiles] = useState([]);
   const [submissionChecklist, setSubmissionChecklist] = useState(null);
+  const [projectAnalytics, setProjectAnalytics] = useState(null);
+  const [projectTimeline, setProjectTimeline] = useState([]);
   const [invitationFilter, setInvitationFilter] = useState('ALL');
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
@@ -95,12 +97,16 @@ export const ProjectDashboard = () => {
       const members = teamRes?.members || [];
       setTeamMembers(members);
 
-      const [recentFilesRes, checklistRes] = await Promise.all([
+      const [recentFilesRes, checklistRes, analyticsRes, timelineRes] = await Promise.all([
         projectsAPI.getRecentFiles(id),
         projectsAPI.getSubmissionChecklist(id),
+        projectsAPI.getProjectAnalytics(id),
+        projectsAPI.getProjectActivityTimeline(id, { type: 'ALL' }),
       ]);
       setRecentFiles(Array.isArray(recentFilesRes) ? recentFilesRes : []);
       setSubmissionChecklist(checklistRes || null);
+      setProjectAnalytics(analyticsRes || null);
+      setProjectTimeline(Array.isArray(timelineRes) ? timelineRes : []);
 
       const requesterMembership = members.find((member) => member.user?.id === user?.id);
       if (requesterMembership && ['LEADER', 'CO_LEADER'].includes(requesterMembership.role)) {
@@ -412,6 +418,31 @@ export const ProjectDashboard = () => {
       </div>
 
       <div className="project-content">
+        {projectAnalytics?.project_health && (
+          <div className="project-section surface">
+            <h2>Project Health Bar</h2>
+            <div className="quick-stats-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem' }}>
+              <div className="quick-stat-card">
+                <p className="quick-stat-label">Overall Progress</p>
+                <p className="quick-stat-value">{projectAnalytics.project_health.overall_progress_percentage}%</p>
+              </div>
+              <div className="quick-stat-card">
+                <p className="quick-stat-label">Time Remaining</p>
+                <p className="quick-stat-value">{projectAnalytics.project_health.time_remaining_days}d</p>
+              </div>
+              <div className="quick-stat-card">
+                <p className="quick-stat-label">Tasks Health</p>
+                <p className="quick-stat-value">{projectAnalytics.project_health.tasks_health.done} done / {projectAnalytics.project_health.tasks_health.overdue} overdue</p>
+              </div>
+              <div className="quick-stat-card">
+                <p className="quick-stat-label">Team Health</p>
+                <p className="quick-stat-value">{projectAnalytics.project_health.team_health}</p>
+              </div>
+            </div>
+            <p style={{ marginTop: '0.75rem' }}>{projectAnalytics.project_health.interpretation}</p>
+          </div>
+        )}
+
         <div className="project-section surface">
           <h2>Quick Stats</h2>
           <div className="quick-stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
@@ -429,6 +460,52 @@ export const ProjectDashboard = () => {
             </div>
           </div>
         </div>
+
+        {projectAnalytics?.task_progress_breakdown && (
+          <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
+            <h2>Task Progress Breakdown</h2>
+            <div className="quick-stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
+              {Object.entries(projectAnalytics.task_progress_breakdown).map(([key, value]) => (
+                <div key={key} className="quick-stat-card">
+                  <p className="quick-stat-label">{key.replaceAll('_', ' ')}</p>
+                  <p className="quick-stat-value">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {projectAnalytics?.team_contribution?.length > 0 && isLeader && (
+          <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
+            <h2>Team Contribution Panel</h2>
+            <div className="team-grid">
+              {projectAnalytics.team_contribution.map((row) => (
+                <div key={row.membership_id} className="member-card">
+                  <h3>{row.member?.first_name || row.member?.username}</h3>
+                  <p className="email">Assigned: {row.tasks_assigned} · Done: {row.tasks_completed} · Overdue: {row.tasks_overdue}</p>
+                  <p className="email">On-time rate: {row.on_time_completion_rate}%</p>
+                  <p className="email">Active tasks: {row.active_tasks}</p>
+                  <p className="email">Badge: {row.health_badge}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {projectTimeline.length > 0 && (
+          <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
+            <h2>Recent Activity Timeline</h2>
+            <div className="team-grid">
+              {projectTimeline.slice(0, 20).map((item, index) => (
+                <div key={`${item.type}-${item.timestamp}-${index}`} className="member-card">
+                  <h3>{item.type}</h3>
+                  <p>{item.label}</p>
+                  <p className="email">{new Date(item.timestamp).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="project-section surface" style={{ paddingBottom: '1.5rem' }}>
           <h2>Submission Checklist</h2>

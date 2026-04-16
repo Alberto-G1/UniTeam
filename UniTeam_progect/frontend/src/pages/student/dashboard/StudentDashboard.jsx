@@ -1,338 +1,243 @@
-// src/pages/student/dashboard/StudentDashboard.jsx - COMPLETELY REDESIGNED
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { projectsAPI, invitationsAPI } from '../../../services/api';
+import { projectsAPI } from '../../../services/api';
 import { useToast } from '../../../components/ToastContainer';
-import StatCard from '../../../components/StatCard';
-import ProgressBar from '../../../components/ProgressBar';
-import Alert from '../../../components/Alert';
+import { useAuth } from '../../../context/AuthContext';
 import './StudentDashboard.css';
+
+const dateFormatter = new Intl.DateTimeFormat('en-NZ', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const overdueDays = (deadline) => {
+  if (!deadline) return 0;
+  const ms = Date.now() - new Date(deadline).getTime();
+  return ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : 0;
+};
+
+const asList = (payload) => (Array.isArray(payload) ? payload : payload?.results || []);
 
 export const StudentDashboard = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [projects, setProjects] = useState([]);
-  const [invitations, setInvitations] = useState([]);
+
+  const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalProjects: 0,
-    completedTasks: 0,
-    pendingTasks: 0,
-    teamMembers: 0
-  });
+  const [projectSort, setProjectSort] = useState('urgency');
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [activityProjectFilter, setActivityProjectFilter] = useState('ALL');
+  const [calendarView, setCalendarView] = useState('week');
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadDashboard = async () => {
       try {
-        const [projectsData, invitationsData] = await Promise.all([
-          projectsAPI.list(),
-          invitationsAPI.list(),
-        ]);
-        
-        const projectsList = Array.isArray(projectsData) ? projectsData : projectsData.results || [];
-        const invitationsList = Array.isArray(invitationsData) ? invitationsData : invitationsData.results || [];
-        
-        setProjects(projectsList);
-        setInvitations(invitationsList.filter(inv => inv.status === 'PENDING'));
-        
-        // Calculate stats
-        setStats({
-          totalProjects: projectsList.length,
-          completedTasks: 12, // Placeholder - would come from API
-          pendingTasks: 8, // Placeholder - would come from API
-          teamMembers: 5 // Placeholder - would come from API
-        });
+        const data = await projectsAPI.getPersonalDashboard();
+        setPayload(data);
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        showToast('error', 'Error', 'Failed to load dashboard data');
+        showToast('error', 'Dashboard', 'Unable to load your personal dashboard right now.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    loadDashboard();
   }, [showToast]);
 
+  const projects = asList(payload?.projects);
+  const tasks = payload?.tasks || { overdue: [], due_soon: [], upcoming: [], completed: [] };
+
+  const sortedProjects = useMemo(() => {
+    const next = [...projects];
+    if (projectSort === 'alpha') {
+      return next.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    }
+    if (projectSort === 'recent') {
+      return next.sort((a, b) => new Date(b.last_activity || 0) - new Date(a.last_activity || 0));
+    }
+    return next.sort((a, b) => (a.days_remaining ?? 9999) - (b.days_remaining ?? 9999));
+  }, [projects, projectSort]);
+
+  const filteredActivity = useMemo(() => {
+    const feed = asList(payload?.activity_feed);
+    if (activityProjectFilter === 'ALL') return feed;
+    const projectId = Number(activityProjectFilter);
+    return feed.filter((item) => Number(item.project_id) === projectId);
+  }, [payload?.activity_feed, activityProjectFilter]);
+
+  const urgencyLine = payload?.summary
+    ? `You have ${payload.summary.due_today_count} task(s) due today across ${payload.summary.active_project_count} project(s).`
+    : 'Your personal project command center is loading.';
+
   if (loading) {
-    return (
-      <div className="student-dashboard">
-        <div className="loading-container">
-          <div className="spinner"></div>
-        </div>
-      </div>
-    );
+    return <div className="phase6-loading">Loading dashboard...</div>;
   }
 
   return (
-    <div className="student-dashboard">
-      {/* Welcome Section */}
-      <div className="welcome-section">
-        <div className="welcome-content">
-          <h1>Welcome back, {user?.first_name || user?.username}!</h1>
-          <p>Here's what's happening with your academic journey today.</p>
+    <div className="phase6-dashboard">
+      <header className="phase6-hero">
+        <h1>{getGreeting()}, {payload?.greeting_name || user?.first_name || user?.username}</h1>
+        <p>{urgencyLine}</p>
+      </header>
+
+      <section className="phase6-panel">
+        <div className="phase6-panel-head">
+          <h2>My Projects</h2>
+          <select value={projectSort} onChange={(event) => setProjectSort(event.target.value)}>
+            <option value="urgency">Sort: Deadline urgency</option>
+            <option value="recent">Sort: Recent activity</option>
+            <option value="alpha">Sort: Alphabetical</option>
+          </select>
         </div>
-        <div className="date-display">
-          <i className="fa-regular fa-calendar"></i>
-          <span>{new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}</span>
+        <div className="phase6-cards-grid">
+          {sortedProjects.map((project) => (
+            <article key={project.id} className="phase6-project-card">
+              <div className="phase6-card-top">
+                <h3>{project.title}</h3>
+                <span className={`phase6-deadline-${(project.deadline_status || 'GREEN').toLowerCase()}`}>
+                  {project.days_remaining < 0 ? `${Math.abs(project.days_remaining)}d overdue` : `${project.days_remaining}d left`}
+                </span>
+              </div>
+              <p>{project.course_code || 'No course code'}</p>
+              <p>Role: {project.role}</p>
+              <div className="phase6-ring-wrap">
+                <div className="phase6-ring">{project.progress_percentage}%</div>
+                <div>
+                  <p>Incomplete assigned tasks: {project.assigned_incomplete_count}</p>
+                  <p>Updated: {project.last_activity ? dateFormatter.format(new Date(project.last_activity)) : 'N/A'}</p>
+                </div>
+              </div>
+              <Link to={`/student/projects/${project.id}`} className="phase6-open-btn">Open Project</Link>
+            </article>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <StatCard
-          type="green"
-          icon={<i className="fa-solid fa-diagram-project"></i>}
-          value={stats.totalProjects}
-          label="Active Projects"
-          trend="up"
-          trendValue="2 new"
-        />
-        <StatCard
-          type="teal"
-          icon={<i className="fa-solid fa-check-circle"></i>}
-          value={stats.completedTasks}
-          label="Completed Tasks"
-          trend="up"
-          trendValue="+4"
-        />
-        <StatCard
-          type="purple"
-          icon={<i className="fa-solid fa-clock"></i>}
-          value={stats.pendingTasks}
-          label="Pending Tasks"
-          trend="down"
-          trendValue="-2"
-        />
-        <StatCard
-          type="gold"
-          icon={<i className="fa-solid fa-users"></i>}
-          value={stats.teamMembers}
-          label="Team Members"
-          trend="up"
-          trendValue="+1"
-        />
-      </div>
-
-      {/* Pending Invitations Alert */}
-      {invitations.length > 0 && (
-        <Alert
-          type="info"
-          title={`You have ${invitations.length} pending invitation(s)`}
-          message="You've been invited to join new projects. Check your invitations to collaborate with your team."
-          onClose={() => {}}
-        />
-      )}
-
-      {/* Main Content Grid */}
-      <div className="dashboard-grid">
-        {/* My Projects Section */}
-        <div className="dashboard-card projects-card">
-          <div className="card-header">
-            <div className="card-header-left">
-              <i className="fa-solid fa-folder-open"></i>
-              <h2>My Projects</h2>
-            </div>
-            <Link to="/student/projects/create" className="btn-primary-sm">
-              <i className="fa-solid fa-plus"></i>
-              New Project
-            </Link>
-          </div>
-          
-          <div className="card-body">
-            {projects.length === 0 ? (
-              <div className="empty-state-small">
-                <i className="fa-regular fa-folder-open"></i>
-                <p>No projects yet</p>
-                <Link to="/student/projects/create" className="btn-outline-sm">
-                  Create your first project
-                </Link>
-              </div>
-            ) : (
-              <div className="projects-list">
-                {projects.slice(0, 3).map((project) => (
-                  <Link
-                    key={project.id}
-                    to={`/student/projects/${project.id}`}
-                    className="project-item"
-                  >
-                    <div className="project-info">
-                      <h3>{project.title}</h3>
-                      <p className="project-description">
-                        {project.description?.substring(0, 80)}...
-                      </p>
-                      <div className="project-meta">
-                        <span className="meta-deadline">
-                          <i className="fa-regular fa-calendar"></i>
-                          Due: {new Date(project.deadline).toLocaleDateString()}
-                        </span>
-                        <span className="meta-progress">65% Complete</span>
-                      </div>
-                    </div>
-                    <div className="project-progress">
-                      <div className="progress-track">
-                        <div className="progress-fill" style={{ width: '65%' }}></div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {projects.length > 3 && (
-            <div className="card-footer">
-              <Link to="/student/projects" className="view-all-link">
-                View all projects <i className="fa-solid fa-arrow-right"></i>
+      <section className="phase6-two-col">
+        <div className="phase6-panel">
+          <h2>My Tasks</h2>
+          <div className="phase6-task-group phase6-overdue">
+            <h3>Overdue</h3>
+            {asList(tasks.overdue).map((task) => (
+              <Link key={task.id} to={`/student/projects/${task.project?.id}/tasks/${task.id}`} className="phase6-task-item">
+                <strong>{task.title}</strong>
+                <span>{task.project?.title}</span>
+                <span>{overdueDays(task.deadline)} day(s) overdue</span>
               </Link>
+            ))}
+            {asList(tasks.overdue).length === 0 && <p>No overdue tasks.</p>}
+          </div>
+
+          <div className="phase6-task-group phase6-due-soon">
+            <h3>Due Soon</h3>
+            {asList(tasks.due_soon).map((task) => (
+              <Link key={task.id} to={`/student/projects/${task.project?.id}/tasks/${task.id}`} className="phase6-task-item">
+                <strong>{task.title}</strong>
+                <span>{task.project?.title}</span>
+                <span>Due {dateFormatter.format(new Date(task.deadline))}</span>
+              </Link>
+            ))}
+            {asList(tasks.due_soon).length === 0 && <p>No tasks due in the next 3 days.</p>}
+          </div>
+
+          <div className="phase6-task-group">
+            <h3>Upcoming</h3>
+            {asList(tasks.upcoming).map((task) => (
+              <Link key={task.id} to={`/student/projects/${task.project?.id}/tasks/${task.id}`} className="phase6-task-item">
+                <strong>{task.title}</strong>
+                <span>{task.project?.title}</span>
+                <span>Due {dateFormatter.format(new Date(task.deadline))}</span>
+              </Link>
+            ))}
+            {asList(tasks.upcoming).length === 0 && <p>No upcoming tasks.</p>}
+          </div>
+
+          <button type="button" className="phase6-link-btn" onClick={() => setShowCompleted((prev) => !prev)}>
+            {showCompleted ? 'Hide completed tasks' : 'View completed tasks'}
+          </button>
+          {showCompleted && (
+            <div className="phase6-task-group">
+              {asList(tasks.completed).map((task) => (
+                <div key={task.id} className="phase6-task-item phase6-completed">
+                  <strong>{task.title}</strong>
+                  <span>{task.project?.title}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Recent Activity Section */}
-        <div className="dashboard-card activity-card">
-          <div className="card-header">
-            <div className="card-header-left">
-              <i className="fa-solid fa-chart-line"></i>
-              <h2>Recent Activity</h2>
-            </div>
+        <div className="phase6-panel">
+          <div className="phase6-panel-head">
+            <h2>Recent Activity</h2>
+            <select value={activityProjectFilter} onChange={(event) => setActivityProjectFilter(event.target.value)}>
+              <option value="ALL">All projects</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>{project.title}</option>
+              ))}
+            </select>
           </div>
-          
-          <div className="card-body">
-            <div className="activity-timeline">
-              <div className="activity-item">
-                <div className="activity-icon green">
-                  <i className="fa-solid fa-check"></i>
-                </div>
-                <div className="activity-details">
-                  <p>Completed task "Research Paper Outline"</p>
-                  <span className="activity-time">2 hours ago</span>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon purple">
-                  <i className="fa-solid fa-users"></i>
-                </div>
-                <div className="activity-details">
-                  <p>New team member joined "AI Research" project</p>
-                  <span className="activity-time">Yesterday</span>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon gold">
-                  <i className="fa-solid fa-calendar"></i>
-                </div>
-                <div className="activity-details">
-                  <p>Deadline approaching for "Data Analysis"</p>
-                  <span className="activity-time">2 days ago</span>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon blue">
-                  <i className="fa-solid fa-comment"></i>
-                </div>
-                <div className="activity-details">
-                  <p>New comment on "Group Presentation"</p>
-                  <span className="activity-time">3 days ago</span>
-                </div>
-              </div>
-            </div>
+          <div className="phase6-activity-list">
+            {filteredActivity.map((activity, index) => (
+              <article key={`${activity.type}-${activity.timestamp}-${index}`} className="phase6-activity-item">
+                <p>{activity.label}</p>
+                <small>{dateFormatter.format(new Date(activity.timestamp))}</small>
+              </article>
+            ))}
+            {filteredActivity.length === 0 && <p>No activity in this filter.</p>}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Bottom Grid */}
-      <div className="bottom-grid">
-        {/* Upcoming Deadlines */}
-        <div className="dashboard-card deadlines-card">
-          <div className="card-header">
-            <div className="card-header-left">
-              <i className="fa-solid fa-calendar-check"></i>
-              <h2>Upcoming Deadlines</h2>
-            </div>
-            <Link to="/student/calendar" className="card-link">View Calendar â†’</Link>
-          </div>
-          
-          <div className="card-body">
-            <div className="deadlines-list">
-              <div className="deadline-item urgent">
-                <div className="deadline-date">
-                  <span className="date-day">15</span>
-                  <span className="date-month">APR</span>
-                </div>
-                <div className="deadline-info">
-                  <h4>Final Dissertation Draft</h4>
-                  <p>Computer Science Department</p>
-                </div>
-                <div className="deadline-badge">Due Tomorrow</div>
-              </div>
-              <div className="deadline-item">
-                <div className="deadline-date">
-                  <span className="date-day">20</span>
-                  <span className="date-month">APR</span>
-                </div>
-                <div className="deadline-info">
-                  <h4>Data Analysis Report</h4>
-                  <p>Statistics Project</p>
-                </div>
-                <div className="deadline-badge">5 days left</div>
-              </div>
-              <div className="deadline-item">
-                <div className="deadline-date">
-                  <span className="date-day">25</span>
-                  <span className="date-month">APR</span>
-                </div>
-                <div className="deadline-info">
-                  <h4>Group Presentation</h4>
-                  <p>Business Management</p>
-                </div>
-                <div className="deadline-badge">10 days left</div>
-              </div>
+      <section className="phase6-two-col">
+        <div className="phase6-panel">
+          <div className="phase6-panel-head">
+            <h2>Upcoming Deadlines Calendar</h2>
+            <div className="phase6-toggle-group">
+              <button type="button" onClick={() => setCalendarView('week')} className={calendarView === 'week' ? 'active' : ''}>Week</button>
+              <button type="button" onClick={() => setCalendarView('month')} className={calendarView === 'month' ? 'active' : ''}>Month</button>
             </div>
           </div>
+          <div className="phase6-calendar-list">
+            {asList(payload?.calendar_items)
+              .slice(0, calendarView === 'week' ? 12 : 24)
+              .map((event) => (
+                <article key={`${event.event_type}-${event.id}`} className="phase6-calendar-item">
+                  <strong>{event.title}</strong>
+                  <span>{dateFormatter.format(new Date(event.start_datetime))}</span>
+                </article>
+              ))}
+          </div>
+          <Link to="/student/calendar" className="phase6-link-btn">Open full calendar</Link>
         </div>
 
-        {/* Recent Announcements */}
-        <div className="dashboard-card announcements-card">
-          <div className="card-header">
-            <div className="card-header-left">
-              <i className="fa-solid fa-bullhorn"></i>
-              <h2>Announcements</h2>
-            </div>
+        <div className="phase6-panel">
+          <div className="phase6-panel-head">
+            <h2>Unread Notifications</h2>
+            <Link to="/student/notifications" className="phase6-link-btn">View all</Link>
           </div>
-          
-          <div className="card-body">
-            <div className="announcements-list">
-              <div className="announcement-item">
-                <div className="announcement-badge">New</div>
-                <div className="announcement-content">
-                  <p>Project submission deadline extended to April 30th</p>
-                  <span className="announcement-time">2 hours ago</span>
-                </div>
-              </div>
-              <div className="announcement-item">
-                <div className="announcement-badge">Update</div>
-                <div className="announcement-content">
-                  <p>New project template available for research proposals</p>
-                  <span className="announcement-time">Yesterday</span>
-                </div>
-              </div>
-              <div className="announcement-item">
-                <div className="announcement-badge">Info</div>
-                <div className="announcement-content">
-                  <p>Workshop on Academic Writing - Register by Friday</p>
-                  <span className="announcement-time">3 days ago</span>
-                </div>
-              </div>
-            </div>
+          <div className="phase6-activity-list">
+            {asList(payload?.notifications_preview).map((note) => (
+              <article key={note.id} className="phase6-activity-item">
+                <p>{note.title}</p>
+                <small>{note.project_title || 'General'} · {dateFormatter.format(new Date(note.created_at))}</small>
+              </article>
+            ))}
+            {asList(payload?.notifications_preview).length === 0 && <p>You're all caught up.</p>}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
+
+export default StudentDashboard;

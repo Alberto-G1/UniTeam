@@ -3,7 +3,8 @@ from django.utils import timezone
 from .models import (
     Project, Team, TeamMembership, Milestone, Invitation, Notification,
     ProjectTemplate, MilestoneTemplate, Section, Task, SubTask, TaskAttachment, TaskComment, TaskActivityLog, TaskNotification,
-    FileFolder, ProjectFile, ProjectFileVersion, ProjectFileActivityLog, ProjectTrash
+    FileFolder, ProjectFile, ProjectFileVersion, ProjectFileActivityLog, ProjectTrash,
+    DashboardWidget, ProjectSnapshot, LecturerAlert, SubmissionChecklist, CalendarEvent
 )
 from users.serializers import UserSerializer
 from users.models import CustomUser
@@ -495,3 +496,47 @@ class ProjectTemplateCreateSerializer(serializers.ModelSerializer):
             )
         
         return template
+
+
+class DashboardWidgetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DashboardWidget
+        fields = ['id', 'user', 'widget_type', 'position', 'is_visible', 'configuration', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+
+class ProjectSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectSnapshot
+        fields = ['id', 'project', 'snapshot_date', 'metrics', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class LecturerAlertSerializer(serializers.ModelSerializer):
+    project = ProjectSerializer(read_only=True)
+
+    class Meta:
+        model = LecturerAlert
+        fields = ['id', 'lecturer', 'project', 'alert_type', 'alert_message', 'triggered_at', 'is_resolved', 'resolved_at']
+        read_only_fields = ['id', 'lecturer', 'triggered_at', 'resolved_at']
+
+
+class SubmissionChecklistSerializer(serializers.ModelSerializer):
+    override_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = SubmissionChecklist
+        fields = ['id', 'project', 'item_type', 'is_passed', 'override_acknowledged', 'override_by', 'last_checked']
+        read_only_fields = ['id', 'last_checked']
+
+
+class CalendarEventSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = CalendarEvent
+        fields = [
+            'id', 'project', 'created_by', 'title', 'event_type', 'related_object_id',
+            'start_datetime', 'end_datetime', 'is_visible_to_all_members', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']

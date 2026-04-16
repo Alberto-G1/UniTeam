@@ -120,6 +120,26 @@ export const projectsAPI = {
     return response.data;
   },
 
+  getPersonalDashboard: async () => {
+    const response = await api.get('/projects/dashboard/personal/');
+    return response.data;
+  },
+
+  getLecturerDashboard: async () => {
+    const response = await api.get('/projects/dashboard/lecturer/');
+    return response.data;
+  },
+
+  getProjectAnalytics: async (id) => {
+    const response = await api.get(`/projects/${id}/analytics/`);
+    return response.data;
+  },
+
+  getProjectActivityTimeline: async (id, params = {}) => {
+    const response = await api.get(`/projects/${id}/activity_timeline/`, { params });
+    return response.data;
+  },
+
   getSubmissionChecklist: async (id) => {
     const response = await api.get(`/projects/${id}/submission_checklist/`);
     return response.data;
@@ -480,6 +500,28 @@ export const teamMembershipsAPI = {
 
   delete: async (id) => {
     const response = await api.delete(`/team-memberships/${id}/`);
+    return response.data;
+  },
+};
+
+export const calendarEventsAPI = {
+  list: async (params = {}) => {
+    const response = await api.get('/calendar-events/', { params });
+    return response.data;
+  },
+
+  create: async (payload) => {
+    const response = await api.post('/calendar-events/', payload);
+    return response.data;
+  },
+
+  update: async (id, payload) => {
+    const response = await api.put(`/calendar-events/${id}/`, payload);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/calendar-events/${id}/`);
     return response.data;
   },
 };

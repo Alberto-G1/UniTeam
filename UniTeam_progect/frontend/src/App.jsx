@@ -47,6 +47,7 @@ import AdminProfileEdit from './pages/admin/profile/AdminProfileEdit';
 import EditUser from './pages/admin/users/EditUser';
 import PendingLecturers from './pages/admin/dashboard/PendingLecturers';
 import Notifications from './pages/shared/Notifications';
+import FullCalendarView from './pages/shared/FullCalendarView';
 import NotFound from './pages/shared/NotFound';
 
 import './App.css';
@@ -124,6 +125,7 @@ function App() {
               <Route path="communication" element={<CommunicationWorkspace />} />
               <Route path="invitations" element={<Invitations />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="calendar" element={<FullCalendarView />} />
               <Route path="profile" element={<StudentProfile />} />
               <Route path="profile/edit" element={<StudentProfileEdit />} />
             </Route>
@@ -150,6 +152,7 @@ function App() {
               <Route path="templates/:id" element={<TemplateDetails />} />
               <Route path="templates/:id/edit" element={<TemplateForm />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="calendar" element={<FullCalendarView />} />
               <Route path="profile" element={<LecturerProfile />} />
               <Route path="profile/edit" element={<LecturerProfileEdit />} />
             </Route>
