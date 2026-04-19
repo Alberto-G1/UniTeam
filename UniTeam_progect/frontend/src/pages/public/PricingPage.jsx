@@ -1,6 +1,13 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const PricingPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Pricing"
+        description="Review UniTeam pricing options for community, department, and institution use."
+        path="/pricing"
+      />
       <h1>Pricing</h1>
       <p>Use these starter tiers as placeholders until your final commercial plan is defined.</p>
       <div className="public-grid">

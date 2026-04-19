@@ -1,6 +1,13 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const TermsPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Terms of Service"
+        description="UniTeam terms of service for public platform usage."
+        path="/terms"
+      />
       <h1>Terms of Service</h1>
       <p>This is a placeholder terms page for your public website launch.</p>
       <p>Replace this text with your approved terms before launch.</p>

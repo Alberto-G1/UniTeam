@@ -17,6 +17,7 @@ export const PublicLayout = () => {
           <NavLink to="/" end>Home</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/services">Services</NavLink>
+          <NavLink to="/news">News</NavLink>
           <NavLink to="/team">The Team</NavLink>
           <NavLink to="/faq">FAQ</NavLink>
           <NavLink to="/contact">Contact</NavLink>
@@ -47,6 +48,7 @@ export const PublicLayout = () => {
           <Link to="/services">Services</Link>
           <Link to="/features">Features</Link>
           <Link to="/pricing">Pricing</Link>
+          <Link to="/news">News</Link>
           <Link to="/careers">Careers</Link>
           <Link to="/contact">Contact</Link>
           <Link to="/privacy">Privacy</Link>

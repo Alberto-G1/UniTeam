@@ -61,6 +61,8 @@ import PricingPage from './pages/public/PricingPage';
 import CareersPage from './pages/public/CareersPage';
 import PrivacyPage from './pages/public/PrivacyPage';
 import TermsPage from './pages/public/TermsPage';
+import NewsPage from './pages/public/NewsPage';
+import NewsDetailPage from './pages/public/NewsDetailPage';
 
 import './App.css';
 
@@ -113,6 +115,8 @@ function App() {
               <Route path="features" element={<FeaturesPage />} />
               <Route path="pricing" element={<PricingPage />} />
               <Route path="careers" element={<CareersPage />} />
+              <Route path="news" element={<NewsPage />} />
+              <Route path="news/:slug" element={<NewsDetailPage />} />
               <Route path="privacy" element={<PrivacyPage />} />
               <Route path="terms" element={<TermsPage />} />
             </Route>

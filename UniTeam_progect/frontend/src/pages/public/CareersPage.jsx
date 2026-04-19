@@ -1,3 +1,5 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const roles = [
   'Frontend Engineer (React)',
   'Backend Engineer (Django)',
@@ -8,6 +10,11 @@ const roles = [
 const CareersPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Careers"
+        description="Explore open roles and careers at UniTeam."
+        path="/careers"
+      />
       <h1>Careers</h1>
       <p>Join the team building student collaboration infrastructure.</p>
       <div className="public-list">

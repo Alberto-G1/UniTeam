@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 const AUTH_BASE_URL = 'http://localhost:8000/api/auth';
+const PUBLIC_BASE_URL = 'http://localhost:8000/api/public';
 
 // Create axios instance
 const api = axios.create({
@@ -74,6 +75,24 @@ export const authAPI = {
 
   getCurrentUser: async () => {
     const response = await api.get(`${AUTH_BASE_URL}/me/`);
+    return response.data;
+  },
+};
+
+// Public website API
+export const publicAPI = {
+  submitContact: async (payload) => {
+    const response = await axios.post(`${PUBLIC_BASE_URL}/contact/`, payload);
+    return response.data;
+  },
+
+  listNews: async (params = {}) => {
+    const response = await axios.get(`${PUBLIC_BASE_URL}/news/`, { params });
+    return response.data;
+  },
+
+  getNewsBySlug: async (slug) => {
+    const response = await axios.get(`${PUBLIC_BASE_URL}/news/${slug}/`);
     return response.data;
   },
 };
