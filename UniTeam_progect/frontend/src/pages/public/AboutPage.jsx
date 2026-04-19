@@ -1,6 +1,13 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const AboutPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="About"
+        description="Learn about UniTeam's mission and how it supports university project collaboration."
+        path="/about"
+      />
       <h1>About UniTeam</h1>
       <p>UniTeam is designed for academic project delivery. It brings structure, visibility, and accountability to student team work.</p>
       <div className="public-grid">

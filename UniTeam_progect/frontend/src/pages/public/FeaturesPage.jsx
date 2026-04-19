@@ -1,3 +1,5 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const features = [
   'Role-based dashboards with personal and project insights',
   'Task board with sections, priorities, and progress tracking',
@@ -10,6 +12,11 @@ const features = [
 const FeaturesPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Features"
+        description="See UniTeam platform features for project planning, collaboration, and delivery."
+        path="/features"
+      />
       <h1>Platform Features</h1>
       <div className="public-list">
         {features.map((feature) => (

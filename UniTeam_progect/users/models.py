@@ -1,7 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+from django.utils.text import slugify
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
+import uuid
 
 # --- Through Models for TaggableManager ---
 class CourseTag(TaggedItemBase):
@@ -71,3 +74,68 @@ class AdminProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Admin Profile"
+
+
+class ContactTicket(models.Model):
+    class InquiryType(models.TextChoices):
+        GENERAL = 'GENERAL', 'General'
+        ONBOARDING = 'ONBOARDING', 'Institution onboarding'
+        SUPPORT = 'SUPPORT', 'Technical support'
+        PARTNERSHIP = 'PARTNERSHIP', 'Partnership'
+
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', 'Open'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        RESOLVED = 'RESOLVED', 'Resolved'
+        CLOSED = 'CLOSED', 'Closed'
+
+    reference = models.CharField(max_length=24, unique=True, editable=False)
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    inquiry_type = models.CharField(max_length=20, choices=InquiryType.choices, default=InquiryType.GENERAL)
+    subject = models.CharField(max_length=180)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = f"UT-{uuid.uuid4().hex[:10].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.reference} - {self.subject}"
+
+
+class PublicAnnouncement(models.Model):
+    title = models.CharField(max_length=220)
+    slug = models.SlugField(max_length=240, unique=True, blank=True)
+    excerpt = models.CharField(max_length=320, blank=True)
+    content = models.TextField()
+    cover_image = models.ImageField(upload_to='public/news/', null=True, blank=True)
+    is_published = models.BooleanField(default=False)
+    published_at = models.DateTimeField(default=timezone.now)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='public_announcements')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-published_at', '-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)[:220] or 'news-item'
+            slug = base_slug
+            counter = 2
+            while PublicAnnouncement.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug[:200]}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title

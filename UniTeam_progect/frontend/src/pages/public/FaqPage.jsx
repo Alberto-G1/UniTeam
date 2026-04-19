@@ -1,3 +1,5 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const faqs = [
   { q: 'Can non-students use UniTeam?', a: 'Yes. UniTeam is now open as a public platform with role-based access.' },
   { q: 'Do lecturers need approval?', a: 'Yes, lecturer approval remains enforced by the backend authentication policy.' },
@@ -8,6 +10,11 @@ const faqs = [
 const FaqPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="FAQ"
+        description="Frequently asked questions about UniTeam access, approvals, and collaboration features."
+        path="/faq"
+      />
       <h1>Frequently Asked Questions</h1>
       <div className="public-list">
         {faqs.map((item) => (

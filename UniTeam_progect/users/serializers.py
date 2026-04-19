@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, StudentProfile, LecturerProfile, AdminProfile
+from .models import CustomUser, StudentProfile, LecturerProfile, AdminProfile, ContactTicket, PublicAnnouncement
 from taggit.serializers import TagListSerializerField, TaggitSerializer
 
 
@@ -86,3 +86,29 @@ class LecturerProfileUpdateSerializer(TaggitSerializer, serializers.ModelSeriali
     class Meta:
         model = LecturerProfile
         fields = ['department', 'courses_taught', 'office_location', 'research_areas']
+
+
+class ContactTicketCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactTicket
+        fields = ['name', 'email', 'inquiry_type', 'subject', 'message']
+
+
+class ContactTicketPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactTicket
+        fields = ['reference', 'status', 'created_at']
+
+
+class PublicAnnouncementSerializer(serializers.ModelSerializer):
+    cover_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PublicAnnouncement
+        fields = ['id', 'title', 'slug', 'excerpt', 'content', 'cover_image_url', 'published_at']
+
+    def get_cover_image_url(self, obj):
+        if not obj.cover_image:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url

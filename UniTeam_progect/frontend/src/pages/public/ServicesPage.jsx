@@ -1,6 +1,13 @@
+import SeoMeta from '../../components/SeoMeta';
+
 const ServicesPage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Services"
+        description="Explore UniTeam services for students, lecturers, and institutions."
+        path="/services"
+      />
       <h1>Services</h1>
       <div className="public-grid">
         <article className="public-card">

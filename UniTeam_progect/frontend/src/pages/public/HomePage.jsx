@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
+import SeoMeta from '../../components/SeoMeta';
 
 const HomePage = () => {
   return (
     <section className="public-page">
+      <SeoMeta
+        title="Home"
+        description="UniTeam is the open project collaboration platform for students, lecturers, and university teams."
+        path="/"
+      />
       <div className="public-hero">
         <h1>Open Project Collaboration for University Teams</h1>
         <p>UniTeam helps students, lecturers, and admins coordinate tasks, milestones, files, meetings, and submissions in one system.</p>
