@@ -37,7 +37,7 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   return children;
