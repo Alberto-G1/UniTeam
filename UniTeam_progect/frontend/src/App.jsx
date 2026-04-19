@@ -8,6 +8,7 @@ import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import { StudentLayout } from './layouts/StudentLayout';
 import { LecturerLayout } from './layouts/LecturerLayout';
 import { AdminLayout } from './layouts/AdminLayout';
+import PublicLayout from './layouts/PublicLayout';
 
 // Auth Pages
 import { Login } from './pages/auth/Login';
@@ -49,6 +50,17 @@ import PendingLecturers from './pages/admin/dashboard/PendingLecturers';
 import Notifications from './pages/shared/Notifications';
 import FullCalendarView from './pages/shared/FullCalendarView';
 import NotFound from './pages/shared/NotFound';
+import HomePage from './pages/public/HomePage';
+import AboutPage from './pages/public/AboutPage';
+import ServicesPage from './pages/public/ServicesPage';
+import TeamPage from './pages/public/TeamPage';
+import FaqPage from './pages/public/FaqPage';
+import ContactPage from './pages/public/ContactPage';
+import FeaturesPage from './pages/public/FeaturesPage';
+import PricingPage from './pages/public/PricingPage';
+import CareersPage from './pages/public/CareersPage';
+import PrivacyPage from './pages/public/PrivacyPage';
+import TermsPage from './pages/public/TermsPage';
 
 import './App.css';
 
@@ -90,9 +102,24 @@ function App() {
               }
             />
 
-            {/* Root - Redirect to role-based dashboard */}
+            {/* Public Website */}
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="team" element={<TeamPage />} />
+              <Route path="faq" element={<FaqPage />} />
+              <Route path="contact" element={<ContactPage />} />
+              <Route path="features" element={<FeaturesPage />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="careers" element={<CareersPage />} />
+              <Route path="privacy" element={<PrivacyPage />} />
+              <Route path="terms" element={<TermsPage />} />
+            </Route>
+
+            {/* App Root - Redirect to role-based dashboard */}
             <Route
-              path="/"
+              path="/app"
               element={
                 <ProtectedRoute>
                   <DashboardRouter />

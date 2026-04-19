@@ -1,0 +1,161 @@
+.public-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 10%, #e5f4ff 0, transparent 35%),
+    radial-gradient(circle at 90% 15%, #fff4da 0, transparent 38%),
+    #f8fbff;
+  color: #0b2534;
+}
+
+.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(8px);
+  background: rgba(248, 251, 255, 0.88);
+  border-bottom: 1px solid #dce6f3;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 1.2rem;
+}
+
+.public-brand {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.brand-link {
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-decoration: none;
+  color: #0b2534;
+}
+
+.public-brand span {
+  font-size: 0.78rem;
+  color: #3d5563;
+}
+
+.public-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.public-nav a {
+  text-decoration: none;
+  color: #1d3e53;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+}
+
+.public-nav a.active {
+  background: #dceefd;
+  color: #0f4a72;
+}
+
+.public-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.public-btn {
+  text-decoration: none;
+  border: 1px solid #0f4a72;
+  color: #fff;
+  background: #0f4a72;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+}
+
+.public-btn.ghost {
+  color: #0f4a72;
+  background: #fff;
+}
+
+.public-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.public-footer {
+  border-top: 1px solid #dce6f3;
+  margin-top: 2rem;
+  padding: 1rem 1.2rem 1.4rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.public-footer-links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.public-footer-links a {
+  text-decoration: none;
+  color: #1d3e53;
+}
+
+.public-page {
+  background: #fff;
+  border: 1px solid #dce6f3;
+  border-radius: 16px;
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.public-hero {
+  background: linear-gradient(120deg, #0f4a72, #137487);
+  color: #fff;
+  border-radius: 16px;
+  padding: 1.6rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.public-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.public-card {
+  border: 1px solid #dce6f3;
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: #fff;
+}
+
+.public-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.public-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.public-form input,
+.public-form textarea,
+.public-form select {
+  width: 100%;
+  border: 1px solid #bfd0e4;
+  border-radius: 10px;
+  padding: 0.55rem;
+}
+
+@media (max-width: 900px) {
+  .public-header {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
