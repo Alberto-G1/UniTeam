@@ -28,6 +28,7 @@ urlpatterns = [
     # API endpoints
     path('api/auth/', include('users.api_urls')),
     path('api/public/', include('users.public_api_urls')),
+    path('api/public-content/', include('public_fro.api_urls')),
     path('api/', include('projects.api_urls')),
     path('api/communication/', include('communication.api_urls')),
     path('', RedirectView.as_view(pattern_name='login', permanent=False)),

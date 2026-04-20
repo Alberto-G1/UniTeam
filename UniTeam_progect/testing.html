@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniTeam — Academic Collaboration Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════ VARIABLES */
+:root {
+  --teal:#0B6E72; --teal-dark:#085A5E; --teal-mid:#0F8F96; --teal-light:#22C4CA;
+  --teal-tint:rgba(11,110,114,0.09); --teal-tint2:rgba(11,110,114,0.18);
+  --orange:#D4621A; --orange-light:#E8782A; --orange-tint:rgba(212,98,26,0.10);
+  --brown:#3B2621; --brown-mid:#6B4035; --brown-light:#9C7B6E;
+  --cream:#F0E8D8; --cream-dark:#E8D8C4; --peach:#E8B99A; --grey:#B8ADA8; --grey-light:#D8D0CA;
+  --page-bg:#FFFFFF; --section-alt:#F8F9FA; --section-cream:#FAF6F0;
+  --white:#FFFFFF; --text-dark:#2A1A16; --text-mid:#5A3E35; --text-muted:#9C7B6E;
+  --card-bg:#FFFFFF; --card-border:rgba(184,173,168,0.22);
+  --nav-bg:rgba(255,255,255,0.95); --nav-border:rgba(184,173,168,0.20);
+  --nav-h:72px; --radius:14px; --radius-lg:24px;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+  --shadow-sm:0 2px 12px rgba(59,38,33,0.07);
+  --shadow-md:0 6px 28px rgba(59,38,33,0.11);
+  --shadow-lg:0 16px 60px rgba(59,38,33,0.14);
+  --shadow-teal:0 8px 32px rgba(11,110,114,0.25);
+  --footer-bg:#085A5E; --footer-text:rgba(200,240,240,0.55);
+  --footer-title:rgba(200,240,240,0.35); --footer-copy:rgba(200,240,240,0.35);
+  --footer-border:rgba(255,255,255,0.10); --footer-social-bg:rgba(255,255,255,0.07);
+  --footer-social-border:rgba(255,255,255,0.12); --footer-social-color:rgba(200,240,240,0.55);
+}
+[data-theme="dark"]{
+  --page-bg:#0E0A08; --section-alt:#140E0B; --section-cream:#180F0C;
+  --white:#1C1210; --card-bg:#1C1210; --card-border:rgba(212,98,26,0.12);
+  --text-dark:#F0E8D8; --text-mid:#C9A48A; --text-muted:#7A5848;
+  --nav-bg:rgba(14,10,8,0.92); --nav-border:rgba(212,98,26,0.12);
+  --cream:#1C1210; --cream-dark:#251612; --grey-light:rgba(184,173,168,0.15);
+  --shadow-sm:0 2px 12px rgba(0,0,0,0.35); --shadow-md:0 6px 28px rgba(0,0,0,0.45);
+  --shadow-lg:0 16px 60px rgba(0,0,0,0.55); --shadow-teal:0 8px 32px rgba(11,110,114,0.30);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--page-bg);color:var(--text-dark);overflow-x:hidden;transition:background .3s,color .3s;}
+::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--teal-tint2);border-radius:10px;}
+
+/* ═══ PAGE TRANSITIONS */
+.page{display:none;animation:pageIn .45s cubic-bezier(0.4,0,0.2,1) both;}
+.page.active{display:block;}
+@keyframes pageIn{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+
+/* ═══ NAVBAR */
+.navbar{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;background:var(--nav-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--nav-border);transition:all var(--transition);}
+.navbar.scrolled{box-shadow:var(--shadow-sm);}
+.nav-inner{max-width:1280px;margin:0 auto;height:100%;display:flex;align-items:center;padding:0 32px;gap:0;}
+.nav-brand{text-decoration:none;flex-shrink:0;margin-right:48px;cursor:pointer;}
+.nav-brand-name{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--teal);letter-spacing:-0.5px;line-height:1;}
+.nav-brand-sub{font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:0.03em;margin-top:2px;}
+.nav-links{display:flex;align-items:center;gap:4px;list-style:none;flex:1;justify-content:center;}
+.nav-links a{display:inline-flex;align-items:center;padding:7px 16px;border-radius:24px;font-size:14px;font-weight:500;color:var(--text-mid);text-decoration:none;transition:all var(--transition);cursor:pointer;}
+.nav-links a:hover{color:var(--teal);background:var(--teal-tint);}
+.nav-links a.active{background:var(--teal-tint2);color:var(--teal);font-weight:700;}
+.nav-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:48px;}
+.btn-login{padding:9px 22px;border-radius:24px;border:1.5px solid var(--grey-light);background:transparent;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text-dark);cursor:pointer;transition:all var(--transition);}
+.btn-login:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-tint);}
+.btn-started{padding:10px 24px;border-radius:24px;border:none;background:var(--teal);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:all var(--transition);box-shadow:0 4px 16px rgba(11,110,114,0.30);}
+.btn-started:hover{background:var(--teal-mid);transform:translateY(-1px);box-shadow:0 6px 22px rgba(11,110,114,0.40);}
+/* Dark mode toggle */
+.theme-btn{width:36px;height:36px;border-radius:10px;background:var(--teal-tint);border:1px solid var(--teal-tint2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--teal);transition:all var(--transition);}
+.theme-btn:hover{background:var(--teal);color:#fff;}
+.theme-btn svg{width:16px;height:16px;}
+/* Hamburger */
+.nav-hamburger{display:none;width:38px;height:38px;border-radius:10px;background:var(--teal-tint);border:1px solid var(--teal-tint2);cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px;margin-left:12px;position:relative;}
+.hb-bar{width:18px;height:2px;background:var(--teal);border-radius:2px;transition:all .3s cubic-bezier(0.4,0,0.2,1);transform-origin:center;}
+.nav-hamburger.open .hb-bar:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
+.nav-hamburger.open .hb-bar:nth-child(2){opacity:0;transform:scaleX(0);}
+.nav-hamburger.open .hb-bar:nth-child(3){transform:rotate(-45deg) translate(5px,-5px);}
+
+/* Mobile drawer */
+.mobile-nav{position:fixed;top:var(--nav-h);left:0;right:0;background:var(--card-bg);border-bottom:1px solid var(--card-border);box-shadow:var(--shadow-md);z-index:999;padding:16px 24px 24px;transform:translateY(-110%);opacity:0;transition:all .32s cubic-bezier(0.4,0,0.2,1);pointer-events:none;}
+.mobile-nav.open{transform:translateY(0);opacity:1;pointer-events:all;}
+.mobile-nav-links{list-style:none;display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+.mobile-nav-links a{display:block;padding:11px 16px;border-radius:10px;font-size:15px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all var(--transition);}
+.mobile-nav-links a:hover,.mobile-nav-links a.active{background:var(--teal-tint);color:var(--teal);}
+.mobile-nav-actions{display:flex;flex-direction:column;gap:10px;}
+.mobile-nav-actions button{width:100%;justify-content:center;}
+
+/* ═══ SHARED */
+.section{padding:96px 32px;}
+.section-sm{padding:64px 32px;}
+.container{max-width:1200px;margin:0 auto;}
+.container-narrow{max-width:820px;margin:0 auto;}
+.section-tag{display:inline-flex;align-items:center;gap:7px;background:var(--teal-tint);border:1px solid var(--teal-tint2);border-radius:24px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--teal);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:18px;}
+.section-tag.orange{background:var(--orange-tint);border-color:rgba(212,98,26,0.22);color:var(--orange);}
+.section-tag.orange::before{background:var(--orange-light);}
+.section-tag.brown{background:rgba(86,84,73,0.10);border-color:rgba(86,84,73,0.20);color:var(--brown-mid);}
+.section-tag.brown::before{background:var(--brown-light);}
+.section-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal-light);}
+.section-title{font-family:'Sora',sans-serif;font-size:clamp(30px,3.8vw,50px);font-weight:800;color:var(--text-dark);letter-spacing:-1.5px;line-height:1.1;}
+.section-title .accent{color:var(--teal);}
+.section-title .accent-o{color:var(--orange);}
+.section-body{font-size:17px;color:var(--text-muted);line-height:1.75;margin-top:16px;max-width:580px;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all var(--transition);text-decoration:none;}
+.btn svg{width:16px;height:16px;}
+.btn-primary{background:var(--teal);color:#fff;box-shadow:var(--shadow-teal);}
+.btn-primary:hover{background:var(--teal-mid);transform:translateY(-2px);box-shadow:0 12px 36px rgba(11,110,114,0.35);}
+.btn-secondary{background:var(--card-bg);color:var(--text-dark);border:1.5px solid var(--grey-light);box-shadow:var(--shadow-sm);}
+.btn-secondary:hover{border-color:var(--teal);color:var(--teal);transform:translateY(-1px);}
+.btn-orange{background:var(--orange);color:#fff;box-shadow:0 8px 28px rgba(212,98,26,0.30);}
+.btn-orange:hover{background:var(--orange-light);transform:translateY(-2px);}
+.btn-white{background:#fff;color:var(--teal);box-shadow:0 4px 20px rgba(0,0,0,0.15);}
+.btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.20);}
+.btn-outline-white{background:transparent;color:#fff;border:2px solid rgba(255,255,255,0.4);}
+.btn-outline-white:hover{border-color:#fff;background:rgba(255,255,255,0.10);}
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:all var(--transition);overflow:hidden;}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--teal-tint2);}
+
+/* ═══ REVEAL ANIMATIONS */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s cubic-bezier(0.4,0,0.2,1);}
+.reveal.visible{opacity:1;transform:translateY(0);}
+.reveal-left{opacity:0;transform:translateX(-30px);transition:opacity .65s ease,transform .65s cubic-bezier(0.4,0,0.2,1);}
+.reveal-left.visible{opacity:1;transform:translateX(0);}
+.reveal-right{opacity:0;transform:translateX(30px);transition:opacity .65s ease,transform .65s cubic-bezier(0.4,0,0.2,1);}
+.reveal-right.visible{opacity:1;transform:translateX(0);}
+.reveal-delay-1{transition-delay:.1s;} .reveal-delay-2{transition-delay:.2s;}
+.reveal-delay-3{transition-delay:.3s;} .reveal-delay-4{transition-delay:.4s;}
+.reveal-delay-5{transition-delay:.5s;}
+
+/* ═══════════════════════════════════════════
+   HERO — FULL SCREEN SLIDESHOW
+═══════════════════════════════════════════ */
+.hero{position:relative;min-height:100vh;padding-top:var(--nav-h);display:flex;align-items:center;overflow:hidden;}
+
+/* Slideshow background */
+.hero-slides{position:absolute;inset:0;z-index:0;}
+.hero-slide{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;background-size:cover;background-position:center;}
+.hero-slide.active{opacity:1;}
+/* Overlay — very subtle left-side shadow for text readability, images shine fully */
+.hero-slides::after{content:'';position:absolute;inset:0;background:linear-gradient(to right, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.18) 45%, rgba(0,0,0,0.04) 100%);z-index:1;}
+
+/* Slide images via CSS (uses real Unsplash URLs for universities/students) */
+.hero-slide:nth-child(1){background-image:url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1600&q=80');}
+.hero-slide:nth-child(2){background-image:url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&q=80');}
+.hero-slide:nth-child(3){background-image:url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1600&q=80');}
+.hero-slide:nth-child(4){background-image:url('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&q=80');}
+.hero-slide:nth-child(5){background-image:url('https://images.unsplash.com/photo-1519452575417-564c1401ecc0?w=1600&q=80');}
+
+/* Slide indicators */
+.hero-indicators{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10;}
+.hero-dot{width:8px;height:8px;border-radius:4px;background:rgba(255,255,255,0.35);cursor:pointer;transition:all .4s ease;border:none;}
+.hero-dot.active{width:28px;background:#fff;}
+
+.hero-inner{position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;width:100%;}
+
+.hero-text{animation:fadeUp .8s ease both;}
+.hero-text-backdrop{position:absolute;left:-20px;top:-20px;bottom:-20px;width:55%;background:linear-gradient(to right,rgba(0,0,0,0.35) 0%,transparent 100%);border-radius:20px;pointer-events:none;z-index:0;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.20);border-radius:24px;padding:8px 16px 8px 8px;margin-bottom:28px;backdrop-filter:blur(8px);}
+.hero-badge-dot{width:28px;height:28px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;}
+.hero-badge-dot svg{width:14px;height:14px;}
+.hero-badge-text{font-size:12px;font-weight:700;color:rgba(255,255,255,0.90);letter-spacing:0.03em;}
+.hero-headline{font-family:'Sora',sans-serif;font-size:clamp(36px,4.2vw,60px);font-weight:800;color:#fff;letter-spacing:-2px;line-height:1.06;margin-bottom:22px;text-shadow:0 2px 20px rgba(0,0,0,0.45);}
+.hero-headline .hl-teal{color:var(--teal-light);}
+.hero-headline .hl-orange{color:#F5A060;}
+.hero-sub{font-size:17px;color:rgba(255,255,255,0.94);line-height:1.75;max-width:500px;margin-bottom:38px;text-shadow:0 1px 8px rgba(0,0,0,0.30);}
+.hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.hero-stats{display:flex;gap:32px;margin-top:48px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.12);}
+.hero-stat-value{font-family:'Sora',sans-serif;font-size:28px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1;}
+.hero-stat-label{font-size:12px;color:rgba(255,255,255,0.75);margin-top:4px;font-weight:500;}
+
+/* Hero dashboard card */
+.hero-visual{animation:fadeUp .8s .15s ease both;}
+.hero-card-main{background:rgba(255,255,255,0.10);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,0.30);}
+[data-theme="dark"] .hero-card-main{background:rgba(28,18,16,0.75);}
+.hero-card-header{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.10);}
+.hero-card-avatar{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--teal),var(--teal-mid));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;box-shadow:0 4px 14px rgba(11,110,114,0.40);}
+.hero-card-title{font-size:14px;font-weight:800;color:#fff;}
+.hero-card-sub{font-size:11px;color:rgba(240,232,216,0.55);margin-top:2px;}
+.hero-card-badge{margin-left:auto;background:rgba(11,110,114,0.30);color:var(--teal-light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;}
+.hero-prog-top{display:flex;justify-content:space-between;margin-bottom:6px;}
+.hero-prog-name{font-size:12.5px;font-weight:600;color:rgba(240,232,216,0.85);}
+.hero-prog-pct{font-size:11px;font-weight:700;color:rgba(240,232,216,0.50);font-family:'DM Mono',monospace;}
+.hero-prog-track{height:7px;background:rgba(255,255,255,0.10);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.hero-prog-fill{height:100%;border-radius:10px;animation:fillAnim 1.5s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes fillAnim{from{width:0 !important;}}
+.hero-mini-card{position:absolute;background:rgba(255,255,255,0.12);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.18);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow-md);z-index:3;animation:floatA 6s ease-in-out infinite;}
+[data-theme="dark"] .hero-mini-card{background:rgba(28,18,16,0.80);}
+.hero-mini-card.card-a{top:-20px;right:-30px;}
+.hero-mini-card.card-b{bottom:-20px;left:-30px;animation-delay:2s;}
+.mini-card-label{font-size:10px;color:rgba(240,232,216,0.55);font-weight:500;}
+.mini-card-value{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-1px;margin-top:2px;}
+.mini-card-sub{font-size:10px;color:var(--teal-light);font-weight:700;margin-top:2px;}
+@keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+/* ═══ MARQUEE (Trusted by) */
+.marquee-section{background:var(--section-cream);border-top:1px solid var(--card-border);border-bottom:1px solid var(--card-border);padding:0;overflow:hidden;}
+.marquee-label{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.10em;text-transform:uppercase;padding:20px 0 8px;}
+.marquee-track{display:flex;width:max-content;animation:marqueeScroll 36s linear infinite;}
+.marquee-track:hover{animation-play-state:paused;}
+.marquee-item{display:flex;align-items:center;gap:10px;padding:14px 36px;white-space:nowrap;border-right:1px solid var(--card-border);}
+.marquee-logo-box{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;}
+.marquee-name{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:var(--text-muted);}
+@keyframes marqueeScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ═══ FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.feature-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:32px 28px;box-shadow:var(--shadow-sm);transition:all var(--transition);position:relative;overflow:hidden;}
+.feature-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--teal-tint2);}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity var(--transition);}
+.feature-card:hover::before{opacity:1;}
+.fc1::before{background:linear-gradient(90deg,var(--teal),var(--teal-light));}
+.fc2::before{background:linear-gradient(90deg,var(--orange),var(--orange-light));}
+.fc3::before{background:linear-gradient(90deg,#9C7B6E,var(--peach));}
+.fc4::before{background:linear-gradient(90deg,var(--teal-dark),var(--teal));}
+.fc5::before{background:linear-gradient(90deg,var(--orange-light),var(--peach));}
+.fc6::before{background:linear-gradient(90deg,var(--brown-mid),var(--brown-light));}
+.feature-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.feature-icon svg{width:22px;height:22px;}
+.fi-teal{background:var(--teal-tint);color:var(--teal);}
+.fi-orange{background:var(--orange-tint);color:var(--orange);}
+.fi-brown{background:rgba(59,38,33,0.07);color:var(--brown);}
+.feature-title{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;color:var(--text-dark);margin-bottom:10px;letter-spacing:-0.3px;}
+.feature-desc{font-size:14px;color:var(--text-muted);line-height:1.7;}
+
+/* ═══ HOW IT WORKS */
+.how-bg{background:var(--brown);position:relative;overflow:hidden;}
+.how-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(11,110,114,0.18) 0%,transparent 70%);pointer-events:none;}
+.how-bg .section-title{color:var(--cream);}
+.how-bg .section-body{color:rgba(232,185,154,0.70);}
+.how-bg .section-tag{background:rgba(240,232,216,0.08);border-color:rgba(240,232,216,0.15);color:var(--cream);}
+.how-bg .section-tag::before{background:var(--teal-light);}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:60px;position:relative;z-index:1;}
+.steps-grid::before{content:'';position:absolute;top:38px;left:calc(12.5% + 20px);right:calc(12.5% + 20px);height:1px;background:linear-gradient(90deg,transparent,rgba(11,110,114,0.5),rgba(11,110,114,0.5),transparent);z-index:0;}
+.step-card{text-align:center;position:relative;z-index:1;}
+.step-number{width:56px;height:56px;border-radius:50%;background:rgba(240,232,216,0.08);border:2px solid rgba(240,232,216,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--cream);transition:all var(--transition);}
+.step-card:hover .step-number{background:var(--teal);border-color:var(--teal-mid);box-shadow:0 0 28px rgba(11,110,114,0.40);}
+.step-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:var(--cream);margin-bottom:8px;}
+.step-desc{font-size:13px;color:rgba(232,185,154,0.65);line-height:1.65;}
+
+/* ═══ TESTIMONIALS */
+.testimonials-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.testimonial-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:30px 26px;box-shadow:var(--shadow-sm);transition:all var(--transition);}
+.testimonial-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+.testimonial-card.featured{background:var(--teal);border-color:var(--teal-dark);box-shadow:var(--shadow-teal);}
+.testi-stars{color:var(--orange);font-size:14px;margin-bottom:14px;letter-spacing:2px;}
+.testimonial-card.featured .testi-stars{color:rgba(240,232,216,0.90);}
+.testi-quote{font-size:15px;line-height:1.72;color:var(--text-mid);margin-bottom:22px;font-style:italic;}
+.testimonial-card.featured .testi-quote{color:rgba(240,232,216,0.88);}
+.testi-author{display:flex;align-items:center;gap:12px;}
+.testi-avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+.testi-name{font-size:13px;font-weight:700;color:var(--text-dark);}
+.testi-role{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.testimonial-card.featured .testi-name{color:#fff;}
+.testimonial-card.featured .testi-role{color:rgba(240,232,216,0.65);}
+
+/* ═══ CTA BAND */
+.cta-band{background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 50%,var(--teal-mid) 100%);position:relative;overflow:hidden;text-align:center;padding:96px 32px;}
+.cta-band.orange{background:linear-gradient(135deg,var(--brown) 0%,var(--orange) 55%,var(--orange-light) 100%);}
+.cta-band.brown{background:linear-gradient(135deg,#1A1613 0%,var(--brown) 50%,#565449 100%);}
+.cta-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 100% at 50% 50%,rgba(240,232,216,0.05) 0%,transparent 70%);}
+.cta-band .section-title{color:#fff;position:relative;z-index:1;}
+.cta-band .section-body{color:rgba(240,232,216,0.75);margin:0 auto;max-width:560px;position:relative;z-index:1;}
+.cta-band-actions{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:38px;position:relative;z-index:1;flex-wrap:wrap;}
+
+/* ═══ PAGE HERO */
+.page-hero{padding-top:calc(var(--nav-h) + 72px);padding-bottom:72px;text-align:center;position:relative;overflow:hidden;background:var(--page-bg);}
+.page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 20% 50%,rgba(11,110,114,0.07) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 50%,rgba(212,98,26,0.07) 0%,transparent 70%);pointer-events:none;}
+.page-hero .section-title,.page-hero .section-body{position:relative;z-index:1;}
+.page-hero .section-body{margin:0 auto;}
+
+/* ═══ ABOUT */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;}
+.about-visual-card{background:var(--card-bg);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow-lg);border:1px solid var(--card-border);position:relative;}
+.about-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;}
+.about-stat{background:var(--section-alt);border:1px solid var(--card-border);border-radius:14px;padding:18px;text-align:center;}
+.about-stat-val{font-family:'Sora',sans-serif;font-size:26px;font-weight:800;color:var(--teal);letter-spacing:-1px;}
+.about-stat-lbl{font-size:11px;color:var(--text-muted);margin-top:4px;font-weight:500;}
+.values-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px;}
+.value-item{display:flex;gap:14px;padding:18px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;transition:all var(--transition);}
+.value-item:hover{border-color:var(--teal-tint2);box-shadow:var(--shadow-sm);}
+.value-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.value-icon svg{width:17px;height:17px;}
+.value-title{font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:4px;}
+.value-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+/* Mission/Vision */
+.mvg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;}
+.mvg-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:32px 26px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:all var(--transition);}
+.mvg-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+.mvg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+.mvg-card.mission::before{background:linear-gradient(90deg,var(--teal),var(--teal-light));}
+.mvg-card.vision::before{background:linear-gradient(90deg,var(--orange),var(--peach));}
+.mvg-card.goal::before{background:linear-gradient(90deg,var(--brown-mid),var(--brown-light));}
+.mvg-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.mvg-icon svg{width:26px;height:26px;}
+.mvg-tag{font-size:10px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;margin-bottom:10px;}
+.mvg-card.mission .mvg-tag{color:var(--teal);}
+.mvg-card.vision .mvg-tag{color:var(--orange);}
+.mvg-card.goal .mvg-tag{color:var(--brown-mid);}
+.mvg-title{font-family:'Sora',sans-serif;font-size:18px;font-weight:800;color:var(--text-dark);margin-bottom:12px;letter-spacing:-0.3px;}
+.mvg-body{font-size:14px;color:var(--text-muted);line-height:1.75;}
+
+/* Objectives */
+.objectives-list{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:40px;}
+.objective-item{display:flex;gap:14px;padding:18px 20px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;box-shadow:var(--shadow-sm);transition:all var(--transition);}
+.objective-item:hover{border-color:var(--teal-tint2);transform:translateY(-2px);}
+.obj-num{width:32px;height:32px;border-radius:8px;background:var(--teal-tint);color:var(--teal);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+.obj-title{font-size:13.5px;font-weight:700;color:var(--text-dark);margin-bottom:4px;}
+.obj-desc{font-size:12.5px;color:var(--text-muted);line-height:1.55;}
+
+/* Timeline */
+.timeline{position:relative;padding-left:32px;margin-top:40px;}
+.timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--teal),var(--orange));}
+.timeline-item{position:relative;padding-bottom:32px;}
+.timeline-item:last-child{padding-bottom:0;}
+.timeline-dot{position:absolute;left:-28px;top:4px;width:16px;height:16px;border-radius:50%;border:3px solid var(--teal);background:var(--page-bg);}
+.timeline-year{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.05em;margin-bottom:4px;}
+.timeline-title{font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:4px;}
+.timeline-desc{font-size:13px;color:var(--text-muted);line-height:1.55;}
+
+/* ═══ TEAM HIERARCHY */
+.hierarchy-wrap{margin-top:60px;}
+.hierarchy-level{margin-bottom:48px;}
+.hierarchy-level-label{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.hl-line{flex:1;height:1px;background:var(--card-border);}
+.hl-text{font-size:11px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;}
+.hierarchy-row{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
+.hierarchy-row.ceo-row{justify-content:center;}
+
+.team-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:24px 20px;text-align:center;box-shadow:var(--shadow-sm);transition:all var(--transition);cursor:pointer;position:relative;overflow:hidden;width:200px;flex-shrink:0;}
+.team-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity var(--transition);}
+.team-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-md);border-color:var(--teal-tint2);}
+.team-card:hover::before{opacity:1;}
+.team-card::before{background:linear-gradient(90deg,var(--teal),var(--teal-light));}
+.team-card.ceo-card{width:240px;border-color:var(--teal-tint2);}
+.team-card.ceo-card::before{opacity:1;}
+.team-avatar{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:#fff;margin:0 auto 14px;box-shadow:var(--shadow-sm);}
+.team-card.ceo-card .team-avatar{width:80px;height:80px;border-radius:22px;}
+.team-name{font-family:'Sora',sans-serif;font-size:14px;font-weight:800;color:var(--text-dark);letter-spacing:-0.2px;}
+.team-role{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.team-dept{display:inline-block;background:var(--teal-tint);color:var(--teal);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin-top:10px;}
+.team-card-view{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:12px;padding-top:12px;border-top:1px solid var(--card-border);font-size:11px;font-weight:700;color:var(--teal);opacity:0;transform:translateY(4px);transition:all var(--transition);}
+.team-card:hover .team-card-view{opacity:1;transform:translateY(0);}
+.team-card-view svg{width:12px;height:12px;}
+
+/* Team detail modal */
+.team-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:all .25s;}
+.team-modal-overlay.open{opacity:1;visibility:visible;}
+.team-modal{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);width:100%;max-width:560px;box-shadow:0 24px 80px rgba(0,0,0,0.30);transform:translateY(24px) scale(0.97);transition:transform .28s cubic-bezier(0.34,1.2,0.64,1);overflow:hidden;}
+.team-modal-overlay.open .team-modal{transform:translateY(0) scale(1);}
+.team-modal-header{background:linear-gradient(135deg,var(--teal-dark),var(--teal));padding:32px;position:relative;overflow:hidden;}
+.team-modal-header::before{content:'';position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.07);}
+.team-modal-avatar{width:80px;height:80px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:24px;font-weight:800;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,0.25);margin-bottom:16px;border:3px solid rgba(255,255,255,0.25);}
+.team-modal-name{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+.team-modal-role{font-size:14px;color:rgba(240,232,216,0.75);margin-top:4px;}
+.team-modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:all var(--transition);}
+.team-modal-close:hover{background:rgba(255,255,255,0.22);}
+.team-modal-close svg{width:14px;height:14px;}
+.team-modal-body{padding:28px;}
+.team-modal-section{margin-bottom:22px;}
+.team-modal-section:last-child{margin-bottom:0;}
+.team-modal-section-title{font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;}
+.team-modal-bio{font-size:14px;color:var(--text-mid);line-height:1.75;}
+.team-modal-tags{display:flex;flex-wrap:wrap;gap:8px;}
+.team-modal-tag{background:var(--teal-tint);color:var(--teal);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;}
+.team-modal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.tms{background:var(--section-alt);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--card-border);}
+.tms-val{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--teal);letter-spacing:-0.5px;}
+.tms-lbl{font-size:10px;color:var(--text-muted);margin-top:3px;font-weight:500;}
+.team-modal-contact{display:flex;gap:10px;}
+.tmc-btn{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid var(--card-border);background:transparent;color:var(--text-mid);transition:all var(--transition);display:flex;align-items:center;justify-content:center;gap:6px;}
+.tmc-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-tint);}
+.tmc-btn svg{width:14px;height:14px;}
+
+/* ═══ SERVICES */
+.services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:56px;}
+.service-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:36px 32px;box-shadow:var(--shadow-sm);transition:all var(--transition);position:relative;overflow:hidden;}
+.service-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+.service-card::after{content:'';position:absolute;bottom:0;right:0;width:120px;height:120px;border-radius:50%;opacity:0.06;transition:opacity var(--transition);}
+.service-card:hover::after{opacity:0.12;}
+.sc1::after{background:var(--teal);} .sc2::after{background:var(--orange-light);}
+.sc3::after{background:var(--brown);} .sc4::after{background:var(--teal-mid);}
+.service-icon{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;}
+.service-icon svg{width:26px;height:26px;}
+.service-title{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--text-dark);margin-bottom:12px;letter-spacing:-0.4px;}
+.service-desc{font-size:15px;color:var(--text-muted);line-height:1.75;margin-bottom:22px;}
+.service-features{display:flex;flex-direction:column;gap:8px;}
+.service-feat{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-mid);font-weight:500;}
+.service-feat::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+
+/* ═══ PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.pricing-card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:var(--radius-lg);padding:36px 28px;box-shadow:var(--shadow-sm);transition:all var(--transition);position:relative;}
+.pricing-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+.pricing-card.featured{background:var(--teal);border-color:var(--teal-dark);box-shadow:var(--shadow-teal);transform:scale(1.03);}
+.pricing-card.featured:hover{transform:scale(1.03) translateY(-4px);}
+.pricing-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;border-radius:20px;padding:4px 14px;font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;box-shadow:0 4px 12px rgba(212,98,26,0.35);}
+.pricing-plan{font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;}
+.pricing-card.featured .pricing-plan{color:rgba(240,232,216,0.65);}
+.pricing-price{font-family:'Sora',sans-serif;font-size:44px;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;margin-bottom:4px;}
+.pricing-card.featured .pricing-price{color:#fff;}
+.pricing-period{font-size:13px;color:var(--text-muted);margin-bottom:24px;}
+.pricing-card.featured .pricing-period{color:rgba(240,232,216,0.65);}
+.pricing-divider{height:1px;background:var(--card-border);margin-bottom:22px;}
+.pricing-card.featured .pricing-divider{background:rgba(255,255,255,0.15);}
+.pricing-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px;}
+.pricing-features li{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--text-mid);font-weight:500;}
+.pricing-card.featured .pricing-features li{color:rgba(240,232,216,0.88);}
+.pf-check{width:18px;height:18px;border-radius:5px;background:var(--teal-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pf-check svg{width:10px;height:10px;color:var(--teal);}
+.pricing-card.featured .pf-check{background:rgba(255,255,255,0.18);}
+.pricing-card.featured .pf-check svg{color:#fff;}
+.btn-plan{width:100%;justify-content:center;border-radius:14px;}
+.btn-plan-white{background:#fff;color:var(--teal);}
+.btn-plan-white:hover{background:var(--cream);}
+
+/* ═══ CONTACT */
+.contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:60px;align-items:start;}
+.contact-detail{display:flex;align-items:flex-start;gap:16px;padding:20px 0;border-bottom:1px solid var(--card-border);}
+.contact-detail:last-child{border-bottom:none;}
+.contact-detail-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-detail-icon svg{width:20px;height:20px;}
+.contact-detail-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;}
+.contact-detail-val{font-size:15px;font-weight:600;color:var(--text-dark);}
+.contact-form-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:40px;box-shadow:var(--shadow-md);}
+.form-group{margin-bottom:20px;}
+.form-label{display:block;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:7px;letter-spacing:0.02em;}
+.form-input{width:100%;background:var(--section-alt);border:1.5px solid var(--card-border);border-radius:12px;padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-dark);outline:none;transition:all var(--transition);}
+.form-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
+.form-input::placeholder{color:var(--text-muted);}
+.form-textarea{resize:vertical;min-height:120px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* ═══ FAQ */
+.faq-list{margin-top:56px;max-width:760px;margin-left:auto;margin-right:auto;display:flex;flex-direction:column;gap:12px;}
+.faq-item{background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:all var(--transition);}
+.faq-item.open{border-color:var(--teal-tint2);}
+.faq-question{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;cursor:pointer;transition:background var(--transition);}
+.faq-question:hover{background:var(--teal-tint);}
+.faq-q-text{font-size:15px;font-weight:700;color:var(--text-dark);}
+.faq-icon{width:28px;height:28px;border-radius:8px;background:var(--teal-tint);color:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform var(--transition);}
+.faq-item.open .faq-icon{transform:rotate(180deg);background:var(--teal);color:#fff;}
+.faq-icon svg{width:14px;height:14px;}
+.faq-answer{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.faq-item.open .faq-answer{max-height:200px;}
+.faq-answer-inner{padding:0 24px 20px;font-size:14px;color:var(--text-muted);line-height:1.75;}
+
+/* ═══ NEWS */
+.news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:56px;}
+.news-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);transition:all var(--transition);}
+.news-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+.news-img{height:180px;display:flex;align-items:center;justify-content:center;font-size:42px;position:relative;overflow:hidden;}
+.news-body{padding:24px;}
+.news-tag{display:inline-block;background:var(--teal-tint);color:var(--teal);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;}
+.news-tag.orange{background:var(--orange-tint);color:var(--orange);}
+.news-tag.brown{background:rgba(59,38,33,0.07);color:var(--brown-mid);}
+.news-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:var(--text-dark);line-height:1.35;margin-bottom:10px;letter-spacing:-0.3px;}
+.news-excerpt{font-size:13px;color:var(--text-muted);line-height:1.65;margin-bottom:16px;}
+.news-meta{display:flex;align-items:center;gap:12px;}
+.news-author-dot{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;}
+.news-author-name{font-size:12px;font-weight:700;color:var(--text-dark);}
+.news-date{font-size:11px;color:var(--text-muted);}
+.news-read-more{margin-left:auto;font-size:12px;font-weight:700;color:var(--teal);text-decoration:none;display:flex;align-items:center;gap:4px;}
+
+/* ═══ FOOTER */
+footer{background:var(--footer-bg);position:relative;overflow:hidden;transition:background .3s;}
+footer::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(11,110,114,0.12) 0%,transparent 70%);}
+.footer-inner{max-width:1200px;margin:0 auto;padding:72px 32px 40px;}
+.footer-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:56px;}
+.footer-brand-name{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+.footer-brand-sub{font-size:12px;color:var(--footer-text);margin-top:4px;}
+.footer-brand-desc{font-size:14px;color:var(--footer-text);line-height:1.7;margin-top:16px;max-width:260px;}
+.footer-socials{display:flex;gap:8px;margin-top:20px;}
+.social-btn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;color:var(--footer-text);cursor:pointer;transition:all var(--transition);font-size:14px;}
+.social-btn:hover{background:var(--teal);border-color:var(--teal);color:#fff;}
+.footer-col-title{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--footer-title);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:16px;}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.footer-links a{font-size:14px;color:var(--footer-text);text-decoration:none;transition:color var(--transition);cursor:pointer;}
+.footer-links a:hover{color:var(--orange-light);}
+.footer-bottom{border-top:1px solid var(--footer-border);padding-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.footer-copy{font-size:13px;color:var(--footer-muted);}
+.footer-bottom-links{display:flex;gap:24px;}
+.footer-bottom-links a{font-size:12px;color:var(--footer-muted);text-decoration:none;cursor:pointer;transition:color var(--transition);}
+.footer-bottom-links a:hover{color:var(--orange-light);}
+
+/* ═══ TOAST */
+.toast-wrap{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:14px 20px 14px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-lg);z-index:3000;opacity:0;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);min-width:300px;pointer-events:none;}
+.toast-wrap.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:all;}
+.toast-icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.toast-title{font-size:13px;font-weight:800;color:var(--text-dark);}
+.toast-msg-txt{font-size:12px;color:var(--text-muted);margin-top:2px;}
+
+/* ═══ RESPONSIVE */
+@media(max-width:1100px){
+  .hero-inner{grid-template-columns:1fr;gap:48px;}
+  .hero-visual{max-width:520px;}
+  .features-grid{grid-template-columns:repeat(2,1fr);}
+  .steps-grid{grid-template-columns:repeat(2,1fr);}
+  .steps-grid::before{display:none;}
+  .footer-top{grid-template-columns:1fr 1fr;}
+  .mvg-grid{grid-template-columns:1fr;}
+  .hierarchy-row{gap:12px;}
+  .team-card{width:170px;}
+}
+@media(max-width:900px){
+  .nav-links,.nav-actions{display:none;}
+  .nav-hamburger{display:flex;}
+  .testimonials-grid{grid-template-columns:1fr;}
+  .about-grid{grid-template-columns:1fr;}
+  .contact-grid{grid-template-columns:1fr;}
+  .news-grid{grid-template-columns:repeat(2,1fr);}
+  .pricing-grid{grid-template-columns:1fr;}
+  .pricing-card.featured{transform:scale(1);}
+  .services-grid{grid-template-columns:1fr;}
+  .objectives-list{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .section{padding:64px 20px;}
+  .features-grid{grid-template-columns:1fr;}
+  .news-grid{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .footer-top{grid-template-columns:1fr;gap:32px;}
+  .footer-bottom{flex-direction:column;text-align:center;}
+  .hero-stats{flex-wrap:wrap;gap:20px;}
+  .about-stat-row{grid-template-columns:1fr 1fr;}
+  .team-card{width:calc(50% - 10px);}
+  .hierarchy-row{gap:8px;}
+  .mvg-grid{grid-template-columns:1fr;}
+  .team-modal-stats{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a class="nav-brand" onclick="showPage('home')">
+      <div class="nav-brand-name">UniTeam</div>
+      <div class="nav-brand-sub">Academic Collaboration Platform</div>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a class="active" onclick="navGo('home',this)">Home</a></li>
+      <li><a onclick="navGo('about',this)">About</a></li>
+      <li><a onclick="navGo('services',this)">Services</a></li>
+      <li><a onclick="navGo('news',this)">News</a></li>
+      <li><a onclick="navGo('team',this)">The Team</a></li>
+      <li><a onclick="navGo('faq',this)">FAQ</a></li>
+      <li><a onclick="navGo('contact',this)">Contact</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="btn-login" onclick="window.open('studyflow-dashboard.html','_self')">Login</button>
+      <button class="btn-started" onclick="navGo('contact')">Get Started</button>
+    </div>
+    <button class="nav-hamburger" id="hamburger" onclick="toggleMobile()" aria-label="Menu">
+      <span class="hb-bar"></span><span class="hb-bar"></span><span class="hb-bar"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Drawer -->
+<div class="mobile-nav" id="mobileNav">
+  <ul class="mobile-nav-links">
+    <li><a onclick="navGo('home'); closeMobile()">Home</a></li>
+    <li><a onclick="navGo('about'); closeMobile()">About</a></li>
+    <li><a onclick="navGo('services'); closeMobile()">Services</a></li>
+    <li><a onclick="navGo('news'); closeMobile()">News</a></li>
+    <li><a onclick="navGo('team'); closeMobile()">The Team</a></li>
+    <li><a onclick="navGo('faq'); closeMobile()">FAQ</a></li>
+    <li><a onclick="navGo('contact'); closeMobile()">Contact</a></li>
+  </ul>
+  <div class="mobile-nav-actions">
+    <button class="btn btn-secondary btn-plan" onclick="window.open('studyflow-dashboard.html','_self')">Login</button>
+    <button class="btn btn-primary btn-plan" onclick="navGo('contact'); closeMobile()">Get Started →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     HOME PAGE
+══════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- Hero Slideshow -->
+  <section class="hero">
+    <div class="hero-slides" id="heroSlides">
+      <div class="hero-slide active"></div>
+      <div class="hero-slide"></div>
+      <div class="hero-slide"></div>
+      <div class="hero-slide"></div>
+      <div class="hero-slide"></div>
+    </div>
+    <div class="hero-indicators" id="heroDots">
+      <button class="hero-dot active" onclick="goSlide(0)"></button>
+      <button class="hero-dot" onclick="goSlide(1)"></button>
+      <button class="hero-dot" onclick="goSlide(2)"></button>
+      <button class="hero-dot" onclick="goSlide(3)"></button>
+      <button class="hero-dot" onclick="goSlide(4)"></button>
+    </div>
+
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+          <span class="hero-badge-text">Open Project Collaboration</span>
+        </div>
+        <h1 class="hero-headline">Where University<br><span class="hl-teal">Teams</span> Get<br><span class="hl-orange">Things Done</span></h1>
+        <p class="hero-sub">UniTeam helps students, lecturers, and admins coordinate tasks, milestones, files, meetings, and submissions — all in one unified system.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="navGo('contact')">Create Free Account <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+          <button class="btn btn-outline-white" onclick="navGo('services')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>See How It Works</button>
+        </div>
+        <div class="hero-stats">
+          <div><div class="hero-stat-value">12,400+</div><div class="hero-stat-label">Active Students</div></div>
+          <div><div class="hero-stat-value">340+</div><div class="hero-stat-label">Universities</div></div>
+          <div><div class="hero-stat-value">98%</div><div class="hero-stat-label">Satisfaction Rate</div></div>
+        </div>
+      </div>
+
+      <div class="hero-visual" style="position:relative;">
+        <div class="hero-mini-card card-a"><div class="mini-card-label">Tasks Complete</div><div class="mini-card-value">86%</div><div class="mini-card-sub">↑ 12% this week</div></div>
+        <div class="hero-card-main">
+          <div class="hero-card-header">
+            <div class="hero-card-avatar">UT</div>
+            <div><div class="hero-card-title">Dissertation Project</div><div class="hero-card-sub">Computer Science · Year 3</div></div>
+            <span class="hero-card-badge">Active</span>
+          </div>
+          <div>
+            <div class="hero-prog-top"><span class="hero-prog-name">Literature Review</span><span class="hero-prog-pct">92%</span></div>
+            <div class="hero-prog-track"><div class="hero-prog-fill" style="width:92%;background:linear-gradient(90deg,#0B6E72,#22C4CA);animation-delay:.2s;"></div></div>
+          </div>
+          <div>
+            <div class="hero-prog-top"><span class="hero-prog-name">Methodology Chapter</span><span class="hero-prog-pct">68%</span></div>
+            <div class="hero-prog-track"><div class="hero-prog-fill" style="width:68%;background:linear-gradient(90deg,#D4621A,#E8782A);animation-delay:.4s;"></div></div>
+          </div>
+          <div>
+            <div class="hero-prog-top"><span class="hero-prog-name">Data Collection</span><span class="hero-prog-pct">45%</span></div>
+            <div class="hero-prog-track"><div class="hero-prog-fill" style="width:45%;background:linear-gradient(90deg,#3B2621,#6B4035);animation-delay:.6s;"></div></div>
+          </div>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;">
+              <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#0B6E72,#0F8F96);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,0.2);">JS</div>
+              <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#D4621A,#E8782A);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,0.2);margin-left:-6px;">AM</div>
+              <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#3B2621,#6B4035);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,0.2);margin-left:-6px;">KO</div>
+            </div>
+            <span style="font-size:12px;color:rgba(240,232,216,0.50);">Due: Apr 1, 2026</span>
+            <button style="background:rgba(11,110,114,0.25);border:none;color:var(--teal-light);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">Open →</button>
+          </div>
+        </div>
+        <div class="hero-mini-card card-b"><div class="mini-card-label">Team Members</div><div class="mini-card-value" style="color:#F5A060;">7</div><div class="mini-card-sub" style="color:#F5A060;">3 online now</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Marquee: Trusted By -->
+  <div class="marquee-section">
+    <div class="marquee-label">Trusted by leading universities & institutions</div>
+    <div style="padding-bottom:18px;overflow:hidden;">
+      <div class="marquee-track" id="marqueeTrack">
+        <!-- Items duplicated for seamless loop (filled by JS) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="section" style="background:var(--page-bg);">
+    <div class="container">
+      <div style="text-align:center;max-width:600px;margin:0 auto;" class="reveal">
+        <div class="section-tag">Everything You Need</div>
+        <h2 class="section-title">Built for <span class="accent">academic</span> collaboration</h2>
+        <p class="section-body" style="margin:0 auto;">From individual assignments to multi-team dissertations — UniTeam adapts to every academic workflow.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card fc1 reveal reveal-delay-1"><div class="feature-icon fi-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><h3 class="feature-title">Task Management</h3><p class="feature-desc">Assign, track, and complete academic tasks with deadlines, priorities, and status tracking built for university workflows.</p></div>
+        <div class="feature-card fc2 reveal reveal-delay-2"><div class="feature-icon fi-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><h3 class="feature-title">Milestone Tracking</h3><p class="feature-desc">Break projects into phases. Set milestones, track progress, and visualise your project timeline clearly.</p></div>
+        <div class="feature-card fc3 reveal reveal-delay-3"><div class="feature-icon" style="background:rgba(232,185,154,0.18);color:var(--brown-mid);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3 class="feature-title">File Management</h3><p class="feature-desc">Upload, organise, and version control all your project files. Never lose a document again with cloud-backed storage.</p></div>
+        <div class="feature-card fc4 reveal reveal-delay-1"><div class="feature-icon fi-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3 class="feature-title">Team Collaboration</h3><p class="feature-desc">Bring students, lecturers, and supervisors together with roles, permissions, and real-time notifications.</p></div>
+        <div class="feature-card fc5 reveal reveal-delay-2"><div class="feature-icon fi-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3 class="feature-title">Meetings & Chat</h3><p class="feature-desc">Schedule meetings, share agendas, and keep project discussions organised in dedicated team channels.</p></div>
+        <div class="feature-card fc6 reveal reveal-delay-3"><div class="feature-icon fi-brown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3 class="feature-title">Progress Analytics</h3><p class="feature-desc">Visual dashboards, completion rates, and deadline analytics help everyone stay informed and proactive.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works — dark brown bg -->
+  <section class="section how-bg">
+    <div class="container">
+      <div style="text-align:center;max-width:560px;margin:0 auto;" class="reveal">
+        <div class="section-tag">Simple Process</div>
+        <h2 class="section-title">Up and running in <span style="color:var(--teal-light);">minutes</span></h2>
+        <p class="section-body">Four simple steps and your team is collaborating.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card reveal reveal-delay-1"><div class="step-number">01</div><h3 class="step-title">Create Your Account</h3><p class="step-desc">Sign up with your university email. Students, lecturers and admins each have tailored onboarding.</p></div>
+        <div class="step-card reveal reveal-delay-2"><div class="step-number">02</div><h3 class="step-title">Set Up a Project</h3><p class="step-desc">Create a project, define milestones, and set submission deadlines in under two minutes.</p></div>
+        <div class="step-card reveal reveal-delay-3"><div class="step-number">03</div><h3 class="step-title">Invite Your Team</h3><p class="step-desc">Add teammates by email or share an invite link. Assign roles and permissions instantly.</p></div>
+        <div class="step-card reveal reveal-delay-4"><div class="step-number">04</div><h3 class="step-title">Collaborate & Submit</h3><p class="step-desc">Work together, track progress in real time, and submit deliverables directly through UniTeam.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials — white bg -->
+  <section class="section" style="background:var(--page-bg);">
+    <div class="container">
+      <div style="text-align:center;max-width:560px;margin:0 auto;" class="reveal">
+        <div class="section-tag">Student Stories</div>
+        <h2 class="section-title">Loved by <span class="accent">thousands</span></h2>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card reveal reveal-delay-1"><div class="testi-stars">★★★★★</div><p class="testi-quote">"UniTeam transformed how our group handled the final-year dissertation. We finished two weeks ahead of schedule."</p><div class="testi-author"><div class="testi-avatar" style="background:linear-gradient(135deg,#0B6E72,#0F8F96);">AM</div><div><div class="testi-name">Amara Mensah</div><div class="testi-role">BSc Computer Science, Year 4</div></div></div></div>
+        <div class="testimonial-card featured reveal reveal-delay-2"><div class="testi-stars">★★★★★</div><p class="testi-quote">"As a lecturer supervising 12 groups, UniTeam gives me a bird's-eye view of every project. I can spot issues before they escalate."</p><div class="testi-author"><div class="testi-avatar" style="background:rgba(255,255,255,0.20);color:#fff;">Dr</div><div><div class="testi-name">Dr. Lydia Nakato</div><div class="testi-role">Senior Lecturer, Statistics</div></div></div></div>
+        <div class="testimonial-card reveal reveal-delay-3"><div class="testi-stars">★★★★★</div><p class="testi-quote">"The file management and submission tracking saved me hours each week. I actually enjoy group projects now."</p><div class="testi-author"><div class="testi-avatar" style="background:linear-gradient(135deg,#D4621A,#E8782A);">KO</div><div><div class="testi-name">Kofi Owusu</div><div class="testi-role">MSc Data Science, Year 1</div></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Band -->
+  <div class="cta-band">
+    <div class="container"><h2 class="section-title">Ready to transform your<br>academic projects?</h2><p class="section-body">Join over 12,000 students already collaborating smarter.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('contact')">Create Free Account →</button><button class="btn btn-outline-white" onclick="navGo('services')">Explore Features</button></div></div>
+  </div>
+
+  <div id="home-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ABOUT PAGE
+══════════════════════════════════════ -->
+<div id="page-about" class="page">
+  <div class="page-hero section-sm">
+    <div class="container-narrow">
+      <div class="section-tag">Our Story</div>
+      <h1 class="section-title">Built by students, <span class="accent">for students</span></h1>
+      <p class="section-body">UniTeam started as a frustrated group project in a university computer lab. Today, it powers academic collaboration across hundreds of universities.</p>
+    </div>
+  </div>
+
+  <!-- Who We Are -->
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="about-grid">
+        <div class="reveal-left">
+          <div class="section-tag">Who We Are</div>
+          <h2 class="section-title" style="font-size:36px;">A platform that <span class="accent">understands</span> academic life</h2>
+          <p class="section-body">We know what it's like to juggle five subjects, group assignments, submission portals, and supervisor feedback all at once. UniTeam was designed to eliminate the chaos — not add to it.</p>
+          <div class="values-grid" style="margin-top:32px;">
+            <div class="value-item"><div class="value-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="value-title">Trust & Privacy</div><div class="value-desc">Student data is encrypted and never shared with third parties.</div></div></div>
+            <div class="value-item"><div class="value-icon" style="background:var(--orange-tint);color:var(--orange);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="value-title">Speed & Simplicity</div><div class="value-desc">Onboarding takes minutes. No training required.</div></div></div>
+            <div class="value-item"><div class="value-icon" style="background:rgba(59,38,33,0.07);color:var(--brown);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="value-title">Inclusive Access</div><div class="value-desc">Works on every device, even with limited bandwidth.</div></div></div>
+            <div class="value-item"><div class="value-icon" style="background:rgba(232,185,154,0.18);color:var(--brown-mid);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="value-title">Continuous Growth</div><div class="value-desc">New features shipped every month, driven by user feedback.</div></div></div>
+          </div>
+        </div>
+        <div class="reveal-right">
+          <div class="about-visual-card">
+            <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;color:var(--text-dark);margin-bottom:20px;">UniTeam by the numbers</div>
+            <div class="about-stat-row">
+              <div class="about-stat"><div class="about-stat-val">12,400+</div><div class="about-stat-lbl">Active Users</div></div>
+              <div class="about-stat"><div class="about-stat-val" style="color:var(--orange);">340+</div><div class="about-stat-lbl">Universities</div></div>
+              <div class="about-stat"><div class="about-stat-val">98%</div><div class="about-stat-lbl">Satisfaction</div></div>
+              <div class="about-stat"><div class="about-stat-val" style="color:var(--orange);">2M+</div><div class="about-stat-lbl">Tasks Created</div></div>
+            </div>
+            <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--card-border);">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:14px;">Monthly User Growth</div>
+              <div style="display:flex;gap:6px;align-items:flex-end;height:60px;">
+                <div style="flex:1;background:var(--teal-tint);border-radius:4px 4px 0 0;height:40%;"></div>
+                <div style="flex:1;background:var(--teal-tint);border-radius:4px 4px 0 0;height:55%;"></div>
+                <div style="flex:1;background:var(--teal-tint);border-radius:4px 4px 0 0;height:50%;"></div>
+                <div style="flex:1;background:var(--teal-tint);border-radius:4px 4px 0 0;height:72%;"></div>
+                <div style="flex:1;background:var(--teal-tint);border-radius:4px 4px 0 0;height:65%;"></div>
+                <div style="flex:1;background:linear-gradient(180deg,#0B6E72,#0F8F96);border-radius:4px 4px 0 0;height:100%;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;top:-16px;right:-16px;background:var(--orange);color:#fff;border-radius:14px;padding:12px 18px;box-shadow:0 8px 24px rgba(212,98,26,0.30);z-index:2;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.05em;">FOUNDED</div>
+            <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;letter-spacing:-1px;">2022</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission / Vision / Goal -->
+  <section class="section" style="background:var(--section-alt);">
+    <div class="container">
+      <div style="text-align:center;" class="reveal">
+        <div class="section-tag orange">Our Foundation</div>
+        <h2 class="section-title">Mission, Vision &amp; <span class="accent-o">Goal</span></h2>
+        <p class="section-body" style="margin:0 auto;">The beliefs and ambitions that drive every decision we make at UniTeam.</p>
+      </div>
+      <div class="mvg-grid">
+        <div class="mvg-card mission reveal reveal-delay-1">
+          <div class="mvg-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="mvg-tag">Mission</div>
+          <h3 class="mvg-title">To democratise academic collaboration</h3>
+          <p class="mvg-body">We exist to give every university student — regardless of location, device, or connectivity — access to professional-grade project management tools that make academic teamwork seamless, transparent, and effective.</p>
+        </div>
+        <div class="mvg-card vision reveal reveal-delay-2">
+          <div class="mvg-icon" style="background:var(--orange-tint);color:var(--orange);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div class="mvg-tag">Vision</div>
+          <h3 class="mvg-title">A future where no student is left behind</h3>
+          <p class="mvg-body">We envision a global academic ecosystem where every student and educator operates with full visibility, meaningful accountability, and the confidence that their collaborative work is supported by intelligent, intuitive technology.</p>
+        </div>
+        <div class="mvg-card goal reveal reveal-delay-3">
+          <div class="mvg-icon" style="background:rgba(59,38,33,0.07);color:var(--brown-mid);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+          <div class="mvg-tag">Main Goal</div>
+          <h3 class="mvg-title">Serve 1 million students by 2028</h3>
+          <p class="mvg-body">Our primary goal is to be the default collaboration platform for universities across Africa and the diaspora — reaching 1 million active users, partnering with 1,000 institutions, and reducing missed submission rates by 40%.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Specific Objectives -->
+  <section class="section" style="background:var(--page-bg);">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-tag brown">Strategic Objectives</div>
+        <h2 class="section-title">Specific <span class="accent-o">Objectives</span></h2>
+        <p class="section-body">Concrete, measurable targets that guide our product and growth strategy.</p>
+      </div>
+      <div class="objectives-list">
+        <div class="objective-item reveal reveal-delay-1"><div class="obj-num">01</div><div><div class="obj-title">Expand University Partnerships</div><div class="obj-desc">Partner with 500 new institutions across Sub-Saharan Africa, the UK diaspora, and Southeast Asia by end of 2026.</div></div></div>
+        <div class="objective-item reveal reveal-delay-2"><div class="obj-num">02</div><div><div class="obj-title">Launch Offline-First Mobile App</div><div class="obj-desc">Release a fully offline-capable mobile app to support students in low-connectivity environments by Q3 2026.</div></div></div>
+        <div class="objective-item reveal reveal-delay-1"><div class="obj-num">03</div><div><div class="obj-title">AI-Powered Deadline Predictions</div><div class="obj-desc">Deploy machine-learning-driven risk alerts that predict submission delays 48 hours in advance with 85%+ accuracy.</div></div></div>
+        <div class="objective-item reveal reveal-delay-2"><div class="obj-num">04</div><div><div class="obj-title">LMS Integration Suite</div><div class="obj-desc">Achieve certified integrations with Moodle, Blackboard, Canvas, and Google Classroom for seamless institutional adoption.</div></div></div>
+        <div class="objective-item reveal reveal-delay-1"><div class="obj-num">05</div><div><div class="obj-title">Reduce Submission Miss Rates</div><div class="obj-desc">Demonstrate a measurable 40% reduction in missed deadlines among university cohorts actively using UniTeam vs control groups.</div></div></div>
+        <div class="objective-item reveal reveal-delay-2"><div class="obj-num">06</div><div><div class="obj-title">Build Open API Ecosystem</div><div class="obj-desc">Launch a public developer API and partner marketplace, allowing universities to build custom extensions on top of UniTeam.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Our Journey (Timeline) -->
+  <section class="section" style="background:var(--section-alt);">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;">
+        <div class="reveal-left">
+          <div class="section-tag orange">Our Journey</div>
+          <h2 class="section-title" style="font-size:36px;">From a <span class="accent-o">dorm room</span> to 340 universities</h2>
+          <p class="section-body">Every great platform starts with a real problem. Here's how we got here.</p>
+          <div class="timeline">
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-year">2022 · Q1</div><div class="timeline-title">The Idea</div><div class="timeline-desc">Three computer science students frustrated by group project chaos build the first prototype during a 72-hour hackathon.</div></div>
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-year">2022 · Q3</div><div class="timeline-title">First University Pilot</div><div class="timeline-desc">Makerere University adopts UniTeam as a pilot tool for 200 Year 3 students. Satisfaction score: 94%.</div></div>
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-year">2023 · Q2</div><div class="timeline-title">Seed Funding</div><div class="timeline-desc">Raised $800K in seed funding from AfriTech Ventures and two angel investors to scale the platform.</div></div>
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-year">2024</div><div class="timeline-title">Pan-African Expansion</div><div class="timeline-desc">Expanded to 80 universities across Uganda, Ghana, Nigeria, Kenya, and South Africa. Team grows to 14 people.</div></div>
+            <div class="timeline-item"><div class="timeline-dot" style="border-color:var(--orange);"></div><div class="timeline-year">2026 · Now</div><div class="timeline-title">340+ Universities & Counting</div><div class="timeline-desc">UniTeam v2.0 launches with advanced analytics, AI features, and mobile apps. 12,400+ active students.</div></div>
+          </div>
+        </div>
+        <div class="reveal-right">
+          <div class="section-tag">Our Values</div>
+          <h2 class="section-title" style="font-size:36px;">What we <span class="accent">stand for</span></h2>
+          <p class="section-body">These are not just words on a wall. They drive how we build, hire, and serve.</p>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:28px;">
+            <div style="display:flex;gap:16px;padding:18px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:var(--teal-tint);color:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:4px;">Student-First</div><div style="font-size:13px;color:var(--text-muted);line-height:1.55;">Every feature decision starts with the question: does this genuinely help a student succeed?</div></div>
+            </div>
+            <div style="display:flex;gap:16px;padding:18px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:var(--orange-tint);color:var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:4px;">Radical Transparency</div><div style="font-size:13px;color:var(--text-muted);line-height:1.55;">We share our roadmap, our mistakes, and our metrics publicly. No smoke and mirrors.</div></div>
+            </div>
+            <div style="display:flex;gap:16px;padding:18px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,38,33,0.07);color:var(--brown-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:4px;">Joy in the Work</div><div style="font-size:13px;color:var(--text-muted);line-height:1.55;">Academic tools can be delightful. We obsess over design and experience so using UniTeam feels good.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-band orange"><div class="container"><h2 class="section-title">Ready to collaborate <br>more effectively?</h2><p class="section-body">Discover how UniTeam helps university teams succeed, together.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('contact')">Get Started Free →</button><button class="btn btn-outline-white" onclick="navGo('services')">Explore Features</button></div></div></div>
+  <div id="about-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SERVICES PAGE
+══════════════════════════════════════ -->
+<div id="page-services" class="page">
+  <div class="page-hero section-sm">
+    <div class="container-narrow">
+      <div class="section-tag">What We Offer</div>
+      <h1 class="section-title">Every tool your <span class="accent">team needs</span></h1>
+      <p class="section-body">UniTeam bundles everything academic teams need into one clean, connected platform.</p>
+    </div>
+  </div>
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="services-grid">
+        <div class="service-card sc1 reveal"><div class="service-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><h3 class="service-title">Task & Project Management</h3><p class="service-desc">Create projects, assign tasks, set deadlines, and track progress with a visual dashboard built for academic timelines.</p><div class="service-features"><div class="service-feat">Kanban & list views</div><div class="service-feat">Deadline reminders & alerts</div><div class="service-feat">Sub-tasks & dependencies</div><div class="service-feat">Priority tagging</div></div></div>
+        <div class="service-card sc2 reveal reveal-delay-1"><div class="service-icon" style="background:var(--orange-tint);color:var(--orange);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3 class="service-title">Team Collaboration</h3><p class="service-desc">Invite students, lecturers, and supervisors to shared workspaces with granular role-based permissions.</p><div class="service-features"><div class="service-feat">Role-based access control</div><div class="service-feat">Real-time comments & mentions</div><div class="service-feat">Activity feed & history</div><div class="service-feat">Team messaging channels</div></div></div>
+        <div class="service-card sc3 reveal"><div class="service-icon" style="background:rgba(59,38,33,0.07);color:var(--brown);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><h3 class="service-title">File & Submission Management</h3><p class="service-desc">A structured file system for every project. Upload drafts, receive feedback, and submit final work — all in one place.</p><div class="service-features"><div class="service-feat">Versioned document history</div><div class="service-feat">In-line annotations & comments</div><div class="service-feat">Submission receipts & timestamps</div><div class="service-feat">Plagiarism check integration</div></div></div>
+        <div class="service-card sc4 reveal reveal-delay-1"><div class="service-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3 class="service-title">Analytics & Reporting</h3><p class="service-desc">Lecturers and admins get powerful dashboards to track project health, participation, and compliance across all groups.</p><div class="service-features"><div class="service-feat">Per-project completion metrics</div><div class="service-feat">Individual contribution reports</div><div class="service-feat">Deadline compliance overview</div><div class="service-feat">Exportable PDF/CSV reports</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section" style="background:var(--section-alt);">
+    <div class="container">
+      <div style="text-align:center;" class="reveal"><div class="section-tag orange">Pricing Plans</div><h2 class="section-title">Simple, <span class="accent-o">transparent</span> pricing</h2><p class="section-body" style="margin:0 auto;">Start free and scale as your team grows. No hidden fees, ever.</p></div>
+      <div class="pricing-grid">
+        <div class="pricing-card reveal reveal-delay-1"><div class="pricing-plan">Starter</div><div class="pricing-price">Free</div><div class="pricing-period">Forever, no credit card needed</div><div class="pricing-divider"></div><ul class="pricing-features"><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Up to 3 projects</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>5 team members</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>500MB file storage</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Basic analytics</li></ul><button class="btn btn-secondary btn-plan" onclick="navGo('contact')">Get Started Free</button></div>
+        <div class="pricing-card featured reveal reveal-delay-2"><div class="pricing-badge">Most Popular</div><div class="pricing-plan">Pro</div><div class="pricing-price">$9</div><div class="pricing-period">per user / month, billed annually</div><div class="pricing-divider"></div><ul class="pricing-features"><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Unlimited projects</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Unlimited team members</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>20GB file storage</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Advanced analytics</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Priority support</li></ul><button class="btn btn-plan-white btn-plan" onclick="navGo('contact')">Start Pro Trial</button></div>
+        <div class="pricing-card reveal reveal-delay-3"><div class="pricing-plan">Institution</div><div class="pricing-price">$49</div><div class="pricing-period">per department / month</div><div class="pricing-divider"></div><ul class="pricing-features"><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Everything in Pro</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>SSO / LMS integration</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Dedicated account manager</li><li><div class="pf-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Custom reporting</li></ul><button class="btn btn-primary btn-plan" onclick="navGo('contact')">Contact Sales</button></div>
+      </div>
+    </div>
+  </section>
+  <div class="cta-band"><div class="container"><h2 class="section-title">Start collaborating<br>smarter today</h2><p class="section-body">Join 12,400+ students already using UniTeam to hit every deadline.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('contact')">Create Free Account →</button><button class="btn btn-outline-white" onclick="navGo('contact')">Contact Sales</button></div></div></div>
+  <div id="services-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     NEWS PAGE
+══════════════════════════════════════ -->
+<div id="page-news" class="page">
+  <div class="page-hero section-sm"><div class="container-narrow"><div class="section-tag orange">Latest Updates</div><h1 class="section-title">News & <span class="accent">Announcements</span></h1><p class="section-body">Stay up to date with UniTeam product updates, university partnerships, and insights.</p></div></div>
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="news-grid">
+        <div class="news-card reveal"><div class="news-img" style="background:linear-gradient(135deg,rgba(11,110,114,0.12),rgba(11,110,114,0.04));">📢</div><div class="news-body"><span class="news-tag">Product Update</span><h3 class="news-title">UniTeam v2.0 Launches With New Analytics Dashboard</h3><p class="news-excerpt">Our biggest release yet — redesigned dashboards, enhanced reporting, and a brand-new mobile app.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#0B6E72,#0F8F96);">JN</div><div><div class="news-author-name">James Nkrumah</div><div class="news-date">March 15, 2026</div></div><a class="news-read-more">Read →</a></div></div></div>
+        <div class="news-card reveal reveal-delay-1"><div class="news-img" style="background:linear-gradient(135deg,rgba(212,98,26,0.10),rgba(212,98,26,0.04));">🎓</div><div class="news-body"><span class="news-tag orange">Partnership</span><h3 class="news-title">UniTeam Partners With 50 New Universities Across East Africa</h3><p class="news-excerpt">We're thrilled to welcome institutions from Kenya, Tanzania, Uganda, and Rwanda to the UniTeam network.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#D4621A,#E8782A);">FO</div><div><div class="news-author-name">Fatima Owusu</div><div class="news-date">Feb 28, 2026</div></div><a class="news-read-more">Read →</a></div></div></div>
+        <div class="news-card reveal reveal-delay-2"><div class="news-img" style="background:linear-gradient(135deg,rgba(59,38,33,0.08),rgba(59,38,33,0.03));">🔬</div><div class="news-body"><span class="news-tag brown">Research</span><h3 class="news-title">Students Using UniTeam Submit 23% Earlier Than Average</h3><p class="news-excerpt">A new independent study from Makerere University found that UniTeam teams consistently beat submission deadlines.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#3B2621,#6B4035);">TM</div><div><div class="news-author-name">Tunde Makinde</div><div class="news-date">Feb 10, 2026</div></div><a class="news-read-more">Read →</a></div></div></div>
+        <div class="news-card reveal"><div class="news-img" style="background:linear-gradient(135deg,rgba(11,110,114,0.10),rgba(232,185,154,0.10));">💡</div><div class="news-body"><span class="news-tag">Feature</span><h3 class="news-title">Introducing Smart Deadline Reminders Powered by AI</h3><p class="news-excerpt">UniTeam now predicts which tasks are at risk based on your team's historical patterns.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#0B6E72,#0F8F96);">AL</div><div><div class="news-author-name">Aisha Lawal</div><div class="news-date">Jan 22, 2026</div></div><a class="news-read-more">Read →</a></div></div></div>
+        <div class="news-card reveal reveal-delay-1"><div class="news-img" style="background:linear-gradient(135deg,rgba(212,98,26,0.08),rgba(240,232,216,0.15));">🏆</div><div class="news-body"><span class="news-tag orange">Award</span><h3 class="news-title">UniTeam Wins EdTech Innovation Award at AfricaTech Summit</h3><p class="news-excerpt">We're honoured to receive recognition for our contributions to accessible academic technology.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#D4621A,#E8782A);">JN</div><div><div class="news-author-name">James Nkrumah</div><div class="news-date">Jan 8, 2026</div></div><a class="news-read-more">Read →</a></div></div></div>
+        <div class="news-card reveal reveal-delay-2"><div class="news-img" style="background:linear-gradient(135deg,rgba(59,38,33,0.06),rgba(184,173,168,0.12));">📱</div><div class="news-body"><span class="news-tag">Product Update</span><h3 class="news-title">Mobile App Now Available for iOS and Android</h3><p class="news-excerpt">Manage your projects, check deadlines, and collaborate with your team from anywhere.</p><div class="news-meta"><div class="news-author-dot" style="background:linear-gradient(135deg,#3B2621,#6B4035);">TM</div><div><div class="news-author-name">Tunde Makinde</div><div class="news-date">Dec 18, 2025</div></div><a class="news-read-more">Read →</a></div></div></div>
+      </div>
+    </div>
+  </section>
+  <div class="cta-band brown"><div class="container"><h2 class="section-title">Stay in the <br>loop with UniTeam</h2><p class="section-body">Get the latest updates, feature releases, and partnership news delivered to you.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('contact')">Subscribe to Updates →</button><button class="btn btn-outline-white" onclick="navGo('about')">About Us</button></div></div></div>
+  <div id="news-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TEAM PAGE (Hierarchy + Detail Modal)
+══════════════════════════════════════ -->
+<div id="page-team" class="page">
+  <div class="page-hero section-sm"><div class="container-narrow"><div class="section-tag">The People</div><h1 class="section-title">Meet the <span class="accent">team</span> behind UniTeam</h1><p class="section-body">A diverse team of builders, designers, and educators united by one mission: better tools for every student.</p></div></div>
+
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="reveal" style="text-align:center;margin-bottom:8px;"><div class="section-tag" style="margin:0 auto 0;">Organisational Hierarchy</div></div>
+      <div class="hierarchy-wrap" id="teamHierarchy">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-band"><div class="container"><h2 class="section-title">Want to join our team?</h2><p class="section-body">We're always looking for passionate people.</p><div class="cta-band-actions"><button class="btn btn-white">View Open Roles →</button></div></div></div>
+  <div id="team-footer"></div>
+</div>
+
+<!-- Team Detail Modal -->
+<div class="team-modal-overlay" id="teamModal" onclick="closeTeamModal(event)">
+  <div class="team-modal" id="teamModalContent"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FAQ PAGE
+══════════════════════════════════════ -->
+<div id="page-faq" class="page">
+  <div class="page-hero section-sm"><div class="container-narrow"><div class="section-tag brown">Common Questions</div><h1 class="section-title">Frequently Asked <span class="accent">Questions</span></h1><p class="section-body">Everything you need to know about UniTeam. Can't find it? <span style="color:var(--teal);cursor:pointer;font-weight:700;" onclick="navGo('contact')">Reach out.</span></p></div></div>
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="faq-list">
+        <div class="faq-item reveal" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">What is UniTeam and who is it for?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">UniTeam is a collaborative project management platform built specifically for university environments. It's designed for students working on group assignments and dissertations, lecturers supervising multiple projects, and admins managing departmental submissions.</div></div></div>
+        <div class="faq-item reveal reveal-delay-1" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">Is UniTeam free to use?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">Yes! UniTeam offers a free Starter plan that includes up to 3 projects, 5 team members, and 500MB storage — no credit card required. Paid Pro and Institution plans unlock unlimited projects, advanced analytics, and more.</div></div></div>
+        <div class="faq-item reveal reveal-delay-2" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">Can my lecturer or supervisor access my projects?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">Absolutely. You can invite your lecturer or supervisor with a Supervisor role, giving them read-only or comment access to monitor progress and leave feedback without being able to edit your work.</div></div></div>
+        <div class="faq-item reveal" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">Does UniTeam integrate with Moodle, Blackboard, or Turnitin?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">Yes — our Institution plan includes LMS integrations with Moodle, Blackboard, and Canvas. Turnitin integration is available on all paid plans, allowing direct submission for plagiarism checks from within UniTeam.</div></div></div>
+        <div class="faq-item reveal reveal-delay-1" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">How secure is my data on UniTeam?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">All data is encrypted at rest (AES-256) and in transit (TLS 1.3). We are GDPR compliant and never sell or share student data with third parties.</div></div></div>
+        <div class="faq-item reveal reveal-delay-2" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">Can I use UniTeam on my phone?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">Yes. UniTeam has native iOS and Android apps. The web app is also fully responsive and works great on mobile browsers, optimised for low-bandwidth environments.</div></div></div>
+        <div class="faq-item reveal" onclick="toggleFaq(this)"><div class="faq-question"><span class="faq-q-text">How do I get my university set up on UniTeam?</span><div class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="faq-answer"><div class="faq-answer-inner">Contact our institutional sales team via the Contact page. We'll set up a demo, create a pilot programme for one department, and provide full onboarding support at no cost during the trial.</div></div></div>
+      </div>
+    </div>
+  </section>
+  <div class="cta-band" style="padding:72px 32px;"><div class="container"><h2 class="section-title" style="font-size:36px;">Still have questions?</h2><p class="section-body">Our team is happy to help.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('contact')">Contact Us →</button></div></div></div>
+  <div id="faq-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CONTACT PAGE
+══════════════════════════════════════ -->
+<div id="page-contact" class="page">
+  <div class="page-hero section-sm"><div class="container-narrow"><div class="section-tag">Get In Touch</div><h1 class="section-title">We'd love to <span class="accent">hear from you</span></h1><p class="section-body">Whether you're a student, lecturer, or university admin — we're ready to help you get started.</p></div></div>
+  <section class="section" style="background:var(--page-bg);padding-top:24px;">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="reveal-left">
+          <div class="section-tag">Contact Info</div>
+          <h2 class="section-title" style="font-size:32px;">Let's start a <span class="accent">conversation</span></h2>
+          <p class="section-body">Fill in the form or reach out directly. We typically respond within 2 business hours.</p>
+          <div style="margin-top:32px;">
+            <div class="contact-detail"><div class="contact-detail-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div><div class="contact-detail-label">Email</div><div class="contact-detail-val">hello@uniteam.app</div></div></div>
+            <div class="contact-detail"><div class="contact-detail-icon" style="background:var(--orange-tint);color:var(--orange);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.4 2 2 0 0 1 3.6 2.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l.94-.94a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div><div><div class="contact-detail-label">Phone</div><div class="contact-detail-val">+256 700 123 456</div></div></div>
+            <div class="contact-detail"><div class="contact-detail-icon" style="background:rgba(59,38,33,0.07);color:var(--brown);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="contact-detail-label">Office</div><div class="contact-detail-val">Kampala Innovation Hub, Uganda</div></div></div>
+            <div class="contact-detail"><div class="contact-detail-icon" style="background:var(--teal-tint);color:var(--teal);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="contact-detail-label">Response Time</div><div class="contact-detail-val">Within 2 business hours</div></div></div>
+          </div>
+        </div>
+        <div class="contact-form-card reveal-right">
+          <h3 style="font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--text-dark);margin-bottom:6px;letter-spacing:-0.4px;">Send Us a Message</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;">We'll get back to you faster than your group chat.</p>
+          <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" type="text" placeholder="John"></div><div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" type="text" placeholder="Smith"></div></div>
+          <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" type="email" placeholder="john@university.edu"></div>
+          <div class="form-group"><label class="form-label">I am a...</label><select class="form-input" style="cursor:pointer;"><option value="">Select your role...</option><option>Student</option><option>Lecturer / Supervisor</option><option>University Administrator</option><option>Other</option></select></div>
+          <div class="form-group"><label class="form-label">Message *</label><textarea class="form-input form-textarea" placeholder="Tell us how we can help..."></textarea></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;border-radius:14px;padding:14px;" onclick="submitContact(this)">Send Message <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="cta-band orange" style="padding:72px 32px;"><div class="container"><h2 class="section-title">Not ready to reach out?<br><span style="color:rgba(255,255,255,0.75);font-size:0.75em;">That's okay.</span></h2><p class="section-body">Browse our FAQ or explore our features first — we'll be here when you're ready.</p><div class="cta-band-actions"><button class="btn btn-white" onclick="navGo('faq')">Browse FAQ →</button><button class="btn btn-outline-white" onclick="navGo('services')">Explore Services</button></div></div></div>
+  <div id="contact-footer"></div>
+</div>
+
+<!-- ══════ SHARED FOOTER TEMPLATE ══════ -->
+<template id="footerTpl">
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <div class="footer-brand-name">UniTeam</div>
+          <div class="footer-brand-sub">Academic Collaboration Platform</div>
+          <p class="footer-brand-desc">Helping university teams coordinate, collaborate, and submit — all in one place.</p>
+          <div class="footer-socials">
+            <div class="social-btn">𝕏</div><div class="social-btn">in</div>
+            <div class="social-btn">f</div><div class="social-btn">▶</div>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Platform</div>
+          <ul class="footer-links">
+            <li><a onclick="navGo('services')">Features</a></li>
+            <li><a onclick="navGo('services')">Pricing</a></li>
+            <li><a>Integrations</a></li>
+            <li><a>API Docs</a></li>
+            <li><a>Security</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul class="footer-links">
+            <li><a onclick="navGo('about')">About Us</a></li>
+            <li><a onclick="navGo('team')">The Team</a></li>
+            <li><a onclick="navGo('news')">News</a></li>
+            <li><a>Careers</a></li>
+            <li><a onclick="navGo('contact')">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Support</div>
+          <ul class="footer-links">
+            <li><a onclick="navGo('faq')">FAQ</a></li>
+            <li><a>Help Centre</a></li>
+            <li><a>Community</a></li>
+            <li><a>Status</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 UniTeam. All rights reserved.</div>
+        <div class="footer-bottom-links">
+          <a>Privacy Policy</a><a>Terms of Service</a><a>Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast">
+  <div class="toast-icon-wrap" id="toastIconWrap"></div>
+  <div><div class="toast-title" id="toastTitle"></div><div class="toast-msg-txt" id="toastMsg"></div></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+const teamData = [
+  // Level 0: CEO
+  { id:1, initials:'JN', name:'James Nkrumah', role:'CEO & Co-Founder', dept:'Executive', level:0, grad:['#0B6E72','#0F8F96'],
+    bio:'James co-founded UniTeam after struggling with group project coordination during his final year at Makerere University. He leads product vision and university partnerships. Former software engineering intern at Google Africa.',
+    skills:['Product Strategy','University Partnerships','Fundraising','Public Speaking'],
+    stats:[{val:'340+',lbl:'Uni Partners'},{val:'$800K',lbl:'Funds Raised'},{val:'4 yrs',lbl:'At UniTeam'}],
+    email:'j.nkrumah@uniteam.app', linkedin:'linkedin.com/in/james-nkrumah' },
+  // Level 1: C-suite
+  { id:2, initials:'AL', name:'Aisha Lawal', role:'CTO & Co-Founder', dept:'Engineering', level:1, grad:['#D4621A','#E8782A'],
+    bio:'Aisha architected UniTeam from a hackathon prototype to a platform serving 12,400+ users. She leads all engineering decisions, infrastructure, and technical hiring. MSc Computer Science from University of Lagos.',
+    skills:['System Architecture','Node.js','React','DevOps','Team Leadership'],
+    stats:[{val:'99.9%',lbl:'Uptime'},{val:'14',lbl:'Engineers Led'},{val:'4 yrs',lbl:'At UniTeam'}],
+    email:'a.lawal@uniteam.app', linkedin:'linkedin.com/in/aisha-lawal' },
+  { id:3, initials:'TM', name:'Tunde Makinde', role:'Head of Design', dept:'Design', level:1, grad:['#3B2621','#6B4035'],
+    bio:'Tunde shapes the visual language and user experience of UniTeam. He previously led design at a fintech startup and holds a BA in Graphic Communication from KNUST. Passionate about accessible, Africa-first design.',
+    skills:['UI/UX Design','Figma','Design Systems','User Research','Accessibility'],
+    stats:[{val:'v2.0',lbl:'Latest Release'},{val:'98%',lbl:'CSAT Score'},{val:'3 yrs',lbl:'At UniTeam'}],
+    email:'t.makinde@uniteam.app', linkedin:'linkedin.com/in/tunde-makinde' },
+  { id:4, initials:'FO', name:'Fatima Owusu', role:'Head of Growth', dept:'Marketing', level:1, grad:['#B8ADA8','#9C7B6E'],
+    bio:'Fatima drives UniTeam\'s university acquisition and retention strategy. She grew the user base from 500 to 12,400 in 18 months through community-led growth and strategic partnerships. MBA from Lagos Business School.',
+    skills:['Growth Marketing','Community Building','Partnership Strategy','Analytics','Content'],
+    stats:[{val:'12.4K',lbl:'Users Grown'},{val:'340+',lbl:'Uni Partners'},{val:'2 yrs',lbl:'At UniTeam'}],
+    email:'f.owusu@uniteam.app', linkedin:'linkedin.com/in/fatima-owusu' },
+  // Level 2: Managers/Leads
+  { id:5, initials:'KA', name:'Kwame Asante', role:'Backend Lead', dept:'Engineering', level:2, grad:['#0B6E72','#22C4CA'],
+    bio:'Kwame leads the backend engineering team, responsible for UniTeam\'s API, database architecture, and integrations. BSc Computer Science from University of Ghana.',
+    skills:['Node.js','PostgreSQL','Redis','API Design','Microservices'],
+    stats:[{val:'50ms',lbl:'Avg Response'},{val:'2M+',lbl:'API Calls/Day'},{val:'2 yrs',lbl:'At UniTeam'}],
+    email:'k.asante@uniteam.app', linkedin:'linkedin.com/in/kwame-asante' },
+  { id:6, initials:'ZB', name:'Zara Bello', role:'Frontend Lead', dept:'Engineering', level:2, grad:['#E8B99A','#D4621A'],
+    bio:'Zara leads the frontend team building UniTeam\'s web and mobile interfaces. Expert in React and performance optimisation for low-bandwidth environments. BEng from University of Ibadan.',
+    skills:['React','TypeScript','React Native','Performance','Accessibility'],
+    stats:[{val:'<1s',lbl:'Load Time'},{val:'iOS+Android',lbl:'Platforms'},{val:'1.5 yrs',lbl:'At UniTeam'}],
+    email:'z.bello@uniteam.app', linkedin:'linkedin.com/in/zara-bello' },
+  { id:7, initials:'DB', name:'David Boateng', role:'Lead Product Designer', dept:'Design', level:2, grad:['#D4621A','#F0BC5E'],
+    bio:'David owns UniTeam\'s design system and leads day-to-day product design. He\'s obsessed with micro-interactions and turning complex workflows into simple, beautiful interfaces. Certified UX Professional.',
+    skills:['Product Design','Figma','Prototyping','Motion Design','Design Systems'],
+    stats:[{val:'200+',lbl:'Screens Designed'},{val:'1 DS',lbl:'Design System'},{val:'2 yrs',lbl:'At UniTeam'}],
+    email:'d.boateng@uniteam.app', linkedin:'linkedin.com/in/david-boateng' },
+  { id:8, initials:'PO', name:'Peter Osei', role:'Product Manager', dept:'Product', level:2, grad:['#B8ADA8','#D4621A'],
+    bio:'Peter manages UniTeam\'s product roadmap, user research cycles, and feature prioritisation. He bridges engineering and design to ship features that genuinely matter to students. BSc from UCT.',
+    skills:['Product Roadmapping','User Research','Agile/Scrum','Data Analysis','Stakeholder Mgmt'],
+    stats:[{val:'24',lbl:'Features Shipped'},{val:'200+',lbl:'Users Interviewed'},{val:'1.5 yrs',lbl:'At UniTeam'}],
+    email:'p.osei@uniteam.app', linkedin:'linkedin.com/in/peter-osei' },
+  // Level 3: Team members
+  { id:9, initials:'ON', name:'Oluwaseun Nwachukwu', role:'DevOps Engineer', dept:'Engineering', level:3, grad:['#0F8F96','#0B6E72'],
+    bio:'Seun manages UniTeam\'s cloud infrastructure, CI/CD pipelines, and ensures 99.9% uptime across all services. KCNA certified Kubernetes engineer.',
+    skills:['AWS','Docker','Kubernetes','CI/CD','Monitoring'],
+    stats:[{val:'99.9%',lbl:'Uptime'},{val:'0',lbl:'Prod Incidents'},{val:'1 yr',lbl:'At UniTeam'}],
+    email:'o.nwachukwu@uniteam.app', linkedin:'' },
+  { id:10, initials:'MA', name:'Miriam Agyemang', role:'QA Engineer', dept:'Engineering', level:3, grad:['#6B4035','#3B2621'],
+    bio:'Miriam ensures every UniTeam release meets the highest quality standards through automated and manual testing. She has a zero-tolerance approach to bugs that affect submission workflows.',
+    skills:['Test Automation','Cypress','Playwright','Bug Triage','Performance Testing'],
+    stats:[{val:'1,200+',lbl:'Test Cases'},{val:'99%',lbl:'Coverage'},{val:'1 yr',lbl:'At UniTeam'}],
+    email:'m.agyemang@uniteam.app', linkedin:'' },
+  { id:11, initials:'NK', name:'Naomi Kariuki', role:'UX Researcher', dept:'Design', level:3, grad:['#0B6E72','#E8B99A'],
+    bio:'Naomi conducts continuous user research across universities in East and West Africa, translating student insights into actionable product improvements. She speaks Swahili, English, and Kikuyu.',
+    skills:['User Interviews','Usability Testing','Journey Mapping','Survey Design','Data Synthesis'],
+    stats:[{val:'400+',lbl:'Users Researched'},{val:'12',lbl:'Studies Run'},{val:'1 yr',lbl:'At UniTeam'}],
+    email:'n.kariuki@uniteam.app', linkedin:'' },
+  { id:12, initials:'SS', name:'Sara Suleiman', role:'Content Strategist', dept:'Marketing', level:3, grad:['#3B2621','#0B6E72'],
+    bio:'Sara manages UniTeam\'s content marketing, blog, and in-app copy. She ensures every word we publish is clear, helpful, and reflects the voice of our student community.',
+    skills:['Content Strategy','Copywriting','SEO','Social Media','Email Marketing'],
+    stats:[{val:'50+',lbl:'Articles Written'},{val:'8K',lbl:'Monthly Readers'},{val:'1 yr',lbl:'At UniTeam'}],
+    email:'s.suleiman@uniteam.app', linkedin:'' },
+];
+
+const levelNames = ['Executive Leadership','C-Suite & Co-Founders','Department Heads & Leads','Team Members'];
+
+/* ════════════════════════════════════════
+   MARQUEE DATA
+════════════════════════════════════════ */
+const universities = [
+  { name:'Makerere University', abbr:'MAK', color:'#0B6E72' },
+  { name:'University of Ghana', abbr:'UG', color:'#D4621A' },
+  { name:'University of Lagos', abbr:'UNILAG', color:'#3B2621' },
+  { name:'University of Nairobi', abbr:'UoN', color:'#0F8F96' },
+  { name:'UCT Cape Town', abbr:'UCT', color:'#6B4035' },
+  { name:'KNUST', abbr:'KNUST', color:'#B8ADA8' },
+  { name:'University of Ibadan', abbr:'UI', color:'#0B6E72' },
+  { name:'Kenyatta University', abbr:'KU', color:'#D4621A' },
+  { name:'Addis Ababa Uni', abbr:'AAU', color:'#3B2621' },
+  { name:'UDSM Tanzania', abbr:'UDSM', color:'#0F8F96' },
+];
+
+/* ════════════════════════════════════════
+   FOOTER INJECTION
+════════════════════════════════════════ */
+function injectFooters() {
+  const tpl = document.getElementById('footerTpl');
+  ['home','about','services','news','team','faq','contact'].forEach(p => {
+    const el = document.getElementById(p + '-footer');
+    if (el) { el.innerHTML = tpl.innerHTML; }
+  });
+}
+
+/* ════════════════════════════════════════
+   MARQUEE BUILD
+════════════════════════════════════════ */
+function buildMarquee() {
+  const track = document.getElementById('marqueeTrack');
+  if (!track) return;
+  // Build double for seamless loop
+  let html = '';
+  for (let pass = 0; pass < 2; pass++) {
+    universities.forEach(u => {
+      html += `<div class="marquee-item">
+        <div class="marquee-logo-box" style="background:${u.color};">${u.abbr.charAt(0)}</div>
+        <span class="marquee-name">${u.name}</span>
+      </div>`;
+    });
+  }
+  track.innerHTML = html;
+}
+
+/* ════════════════════════════════════════
+   TEAM HIERARCHY BUILD
+════════════════════════════════════════ */
+function buildTeam() {
+  const wrap = document.getElementById('teamHierarchy');
+  if (!wrap) return;
+  let html = '';
+  for (let lvl = 0; lvl <= 3; lvl++) {
+    const members = teamData.filter(m => m.level === lvl);
+    if (!members.length) continue;
+    html += `<div class="hierarchy-level reveal">
+      <div class="hierarchy-level-label">
+        <div class="hl-line"></div>
+        <span class="hl-text">${levelNames[lvl]}</span>
+        <div class="hl-line"></div>
+      </div>
+      <div class="hierarchy-row ${lvl === 0 ? 'ceo-row' : ''}">`;
+    members.forEach((m, i) => {
+      html += `<div class="team-card ${lvl === 0 ? 'ceo-card' : ''} reveal reveal-delay-${Math.min(i+1,5)}" onclick="openTeamModal(${m.id})">
+        <div class="team-avatar ${lvl === 0 ? '' : ''}" style="background:linear-gradient(135deg,${m.grad[0]},${m.grad[1]});">${m.initials}</div>
+        <div class="team-name">${m.name}</div>
+        <div class="team-role">${m.role}</div>
+        <span class="team-dept">${m.dept}</span>
+        <div class="team-card-view">View Details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+/* ════════════════════════════════════════
+   TEAM MODAL
+════════════════════════════════════════ */
+function openTeamModal(id) {
+  const m = teamData.find(t => t.id === id);
+  if (!m) return;
+  const statsHtml = m.stats.map(s => `<div class="tms"><div class="tms-val">${s.val}</div><div class="tms-lbl">${s.lbl}</div></div>`).join('');
+  const tagsHtml = m.skills.map(s => `<span class="team-modal-tag">${s}</span>`).join('');
+  document.getElementById('teamModalContent').innerHTML = `
+    <div class="team-modal-header">
+      <button class="team-modal-close" onclick="closeTeamModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="team-modal-avatar" style="background:linear-gradient(135deg,${m.grad[0]},${m.grad[1]});">${m.initials}</div>
+      <div class="team-modal-name">${m.name}</div>
+      <div class="team-modal-role">${m.role} · ${m.dept}</div>
+    </div>
+    <div class="team-modal-body">
+      <div class="team-modal-section">
+        <div class="team-modal-section-title">About</div>
+        <p class="team-modal-bio">${m.bio}</p>
+      </div>
+      <div class="team-modal-section">
+        <div class="team-modal-section-title">Key Stats</div>
+        <div class="team-modal-stats">${statsHtml}</div>
+      </div>
+      <div class="team-modal-section">
+        <div class="team-modal-section-title">Skills & Expertise</div>
+        <div class="team-modal-tags">${tagsHtml}</div>
+      </div>
+      <div class="team-modal-section">
+        <div class="team-modal-section-title">Connect</div>
+        <div class="team-modal-contact">
+          <button class="tmc-btn" onclick="showToast('success','Email copied!','${m.email} copied to clipboard.')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email</button>
+          ${m.linkedin ? `<button class="tmc-btn" onclick="showToast('info','Opening LinkedIn...','Redirecting to ${m.name}\'s profile.')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('teamModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeTeamModal(e) {
+  if (e && e.target !== document.getElementById('teamModal')) return;
+  document.getElementById('teamModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTeamModal(); });
+
+/* ════════════════════════════════════════
+   PAGE NAVIGATION
+════════════════════════════════════════ */
+const pages = ['home','about','services','news','team','faq','contact'];
+function showPage(name) {
+  pages.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if (el) { el.classList.toggle('active', p === name); }
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(() => initReveal(), 80);
+}
+function navGo(page, el) {
+  showPage(page);
+  document.querySelectorAll('.nav-links a, .mobile-nav-links a').forEach(a => a.classList.remove('active'));
+  if (el) { el.classList.add('active'); }
+  else {
+    const pageNames = {home:'Home',about:'About',services:'Services',news:'News',team:'The Team',faq:'FAQ',contact:'Contact'};
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      if (a.textContent.trim() === pageNames[page]) a.classList.add('active');
+    });
+  }
+}
+
+/* ════════════════════════════════════════
+   MOBILE NAV
+════════════════════════════════════════ */
+function toggleMobile() {
+  const mn = document.getElementById('mobileNav');
+  const hb = document.getElementById('hamburger');
+  mn.classList.toggle('open');
+  hb.classList.toggle('open');
+}
+function closeMobile() {
+  document.getElementById('mobileNav').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const mn = document.getElementById('mobileNav');
+  const hb = document.getElementById('hamburger');
+  if (!mn.contains(e.target) && !hb.contains(e.target)) closeMobile();
+});
+
+/* ════════════════════════════════════════
+   DARK MODE
+════════════════════════════════════════ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') !== 'dark';
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+  localStorage.setItem('ut-theme', dark ? 'dark' : 'light');
+  const icon = document.getElementById('themeIcon');
+  icon.innerHTML = dark
+    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+// Load saved theme
+(function(){
+  const saved = localStorage.getItem('ut-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+})();
+
+/* ════════════════════════════════════════
+   SCROLL REVEAL
+════════════════════════════════════════ */
+function initReveal() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.10 });
+  document.querySelectorAll('.page.active .reveal:not(.visible), .page.active .reveal-left:not(.visible), .page.active .reveal-right:not(.visible)').forEach(el => obs.observe(el));
+}
+
+/* ════════════════════════════════════════
+   HERO SLIDESHOW
+════════════════════════════════════════ */
+let slideIdx = 0, slideTimer;
+function goSlide(n) {
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots = document.querySelectorAll('.hero-dot');
+  slides[slideIdx].classList.remove('active');
+  dots[slideIdx].classList.remove('active');
+  slideIdx = n;
+  slides[slideIdx].classList.add('active');
+  dots[slideIdx].classList.add('active');
+  resetSlideTimer();
+}
+function nextSlide() { goSlide((slideIdx + 1) % 5); }
+function resetSlideTimer() { clearInterval(slideTimer); slideTimer = setInterval(nextSlide, 5000); }
+
+/* ════════════════════════════════════════
+   NAVBAR SCROLL
+════════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+/* ════════════════════════════════════════
+   FAQ
+════════════════════════════════════════ */
+function toggleFaq(item) {
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+/* ════════════════════════════════════════
+   CONTACT FORM
+════════════════════════════════════════ */
+function submitContact(btn) {
+  btn.innerHTML = 'Sending…';
+  btn.style.opacity = '0.7';
+  setTimeout(() => {
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Message Sent!`;
+    btn.style.opacity = '1';
+    showToast('success', 'Message sent!', "We'll get back to you within 2 hours.");
+    setTimeout(() => { btn.innerHTML = 'Send Message <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'; }, 4000);
+  }, 1400);
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function showToast(type, title, msg) {
+  const colors = { success:{ bg:'rgba(11,110,114,0.12)', color:'#0B6E72', icon:'<polyline points="20 6 9 17 4 12"/>' }, error:{ bg:'rgba(212,98,26,0.12)', color:'#D4621A', icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' }, info:{ bg:'rgba(11,110,114,0.10)', color:'#0B6E72', icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' } };
+  const c = colors[type] || colors.info;
+  document.getElementById('toastIconWrap').style.background = c.bg;
+  document.getElementById('toastIconWrap').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${c.icon}</svg>`;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  injectFooters();
+  buildMarquee();
+  buildTeam();
+  resetSlideTimer();
+  setTimeout(initReveal, 120);
+});
+</script>
+</body>
+</html>
