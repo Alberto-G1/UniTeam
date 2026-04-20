@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'projects',
     'communication',
+    'public_fro',
 ]
 
 MIDDLEWARE = [
