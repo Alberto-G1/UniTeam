@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniTeam — Auth</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   ROOT VARIABLES
+═══════════════════════════════════════════ */
+:root {
+  /* Brand */
+  --teal:       #0B6E72;
+  --teal-mid:   #0F8F96;
+  --teal-light: #22C4CA;
+  --teal-dark:  #085A5E;
+  --orange:     #D4621A;
+  --orange-l:   #E8782A;
+
+  /* Light mode */
+  --bg:         #F5F2EE;
+  --glass-bg:   rgba(255,255,255,0.70);
+  --glass-border: rgba(255,255,255,0.85);
+  --glass-shadow: 0 24px 80px rgba(11,70,73,0.18);
+  --input-bg:   rgba(255,255,255,0.60);
+  --input-border: rgba(11,110,114,0.18);
+  --input-focus-border: #0B6E72;
+  --input-focus-glow: rgba(11,110,114,0.18);
+  --text-dark:  #1A2E2F;
+  --text-mid:   #3A5254;
+  --text-muted: #6B8A8C;
+  --label:      #2E4A4C;
+  --divider:    rgba(11,110,114,0.12);
+  --check-bg:   rgba(11,110,114,0.08);
+
+  /* Panel image — light */
+  --panel-img: url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=85');
+  --panel-overlay: linear-gradient(160deg, rgba(8,90,94,0.72) 0%, rgba(11,110,114,0.55) 50%, rgba(212,98,26,0.45) 100%);
+
+  --btn-radius: 14px;
+  --input-radius: 12px;
+  --card-radius: 28px;
+  --transition: 0.26s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theme="dark"] {
+  --bg:         #0A1416;
+  --glass-bg:   rgba(10,28,32,0.72);
+  --glass-border: rgba(11,110,114,0.30);
+  --glass-shadow: 0 24px 80px rgba(0,0,0,0.50);
+  --input-bg:   rgba(11,110,114,0.10);
+  --input-border: rgba(11,110,114,0.28);
+  --input-focus-border: #22C4CA;
+  --input-focus-glow: rgba(34,196,202,0.15);
+  --text-dark:  #E8F5F0;
+  --text-mid:   #9ECACC;
+  --text-muted: #5A8A8C;
+  --label:      #A0C8CA;
+  --divider:    rgba(34,196,202,0.12);
+  --check-bg:   rgba(34,196,202,0.08);
+
+  /* Panel image — dark: moody library / study room */
+  --panel-img: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&q=85');
+  --panel-overlay: linear-gradient(160deg, rgba(4,18,22,0.80) 0%, rgba(8,50,58,0.65) 50%, rgba(10,100,106,0.50) 100%);
+}
+
+/* ═══ RESET */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text-dark);overflow:hidden;transition:background .4s,color .4s;}
+
+/* ═══ LAYOUT */
+.auth-root{
+  display:flex;
+  width:100%;
+  height:100vh;
+  position:relative;
+}
+
+/* ═══ LEFT PANEL — IMAGE */
+.panel-left{
+  flex:1 1 0;
+  position:relative;
+  overflow:hidden;
+  min-width:0;
+}
+
+.panel-bg{
+  position:absolute;inset:0;
+  background-image:var(--panel-img);
+  background-size:cover;
+  background-position:center;
+  transition:background-image 0.8s ease;
+  animation:panelZoom 18s ease-in-out infinite alternate;
+}
+
+@keyframes panelZoom{
+  from{transform:scale(1.0);}
+  to{transform:scale(1.08);}
+}
+
+.panel-overlay{
+  position:absolute;inset:0;
+  background:var(--panel-overlay);
+  transition:background 0.8s ease;
+}
+
+/* Decorative mesh circles */
+.panel-deco{
+  position:absolute;inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.panel-deco::before{
+  content:'';
+  position:absolute;
+  bottom:-120px;left:-120px;
+  width:400px;height:400px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.08);
+  animation:decoSpin 30s linear infinite;
+}
+.panel-deco::after{
+  content:'';
+  position:absolute;
+  top:-80px;right:-80px;
+  width:300px;height:300px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.06);
+  animation:decoSpin 22s linear infinite reverse;
+}
+@keyframes decoSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+.panel-content{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  padding:48px 52px;
+  z-index:2;
+}
+
+.panel-logo{
+  display:flex;align-items:center;gap:12px;
+  animation:fadeDown 0.8s ease both;
+}
+.panel-logo-icon{
+  width:44px;height:44px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.18);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.25);
+  display:flex;align-items:center;justify-content:center;
+}
+.panel-logo-icon svg{width:22px;height:22px;}
+.panel-logo-name{
+  font-family:'Sora',sans-serif;
+  font-size:22px;font-weight:800;
+  color:#fff;letter-spacing:-0.5px;
+}
+
+.panel-headline{
+  animation:fadeUp 0.9s 0.2s ease both;
+}
+.panel-headline h2{
+  font-family:'Sora',sans-serif;
+  font-size:clamp(28px,3.2vw,44px);
+  font-weight:800;
+  color:#fff;
+  letter-spacing:-1.5px;
+  line-height:1.08;
+  margin-bottom:16px;
+  text-shadow:0 2px 20px rgba(0,0,0,0.30);
+}
+.panel-headline h2 em{
+  font-style:normal;
+  color:var(--teal-light);
+}
+.panel-headline p{
+  font-size:15px;
+  color:rgba(255,255,255,0.75);
+  line-height:1.7;
+  max-width:380px;
+}
+
+.panel-stats{
+  display:flex;gap:28px;
+  margin-top:32px;
+  animation:fadeUp 0.9s 0.35s ease both;
+}
+.panel-stat{
+  background:rgba(255,255,255,0.10);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:14px;
+  padding:14px 18px;
+}
+.panel-stat-val{
+  font-family:'Sora',sans-serif;
+  font-size:22px;font-weight:800;
+  color:#fff;letter-spacing:-0.8px;
+  line-height:1;
+}
+.panel-stat-lbl{
+  font-size:11px;color:rgba(255,255,255,0.60);
+  margin-top:3px;font-weight:500;
+}
+
+.panel-testimonial{
+  background:rgba(255,255,255,0.10);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:18px;
+  padding:22px 24px;
+  margin-top:20px;
+  animation:fadeUp 0.9s 0.45s ease both;
+}
+.testi-text{
+  font-size:14px;
+  color:rgba(255,255,255,0.88);
+  line-height:1.65;
+  font-style:italic;
+  margin-bottom:14px;
+}
+.testi-author{display:flex;align-items:center;gap:10px;}
+.testi-av{
+  width:34px;height:34px;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--teal),var(--teal-light));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff;
+  border:2px solid rgba(255,255,255,0.25);
+}
+.testi-name{font-size:13px;font-weight:700;color:#fff;}
+.testi-role{font-size:11px;color:rgba(255,255,255,0.55);margin-top:1px;}
+
+/* ═══ RIGHT PANEL — GLASSMORPHISM FORM */
+.panel-right{
+  width:clamp(420px,42vw,580px);
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  padding:24px;
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.panel-right::-webkit-scrollbar{display:none;}
+
+/* Dark/light mode blurred backdrop */
+.panel-right::before{
+  content:'';
+  position:fixed;
+  right:0;top:0;bottom:0;
+  width:clamp(420px,42vw,580px);
+  background:var(--bg);
+  opacity:0.4;
+  z-index:0;
+}
+
+.glass-card{
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:480px;
+  background:var(--glass-bg);
+  backdrop-filter:blur(28px) saturate(180%);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);
+  border:1px solid var(--glass-border);
+  border-radius:var(--card-radius);
+  padding:44px 44px 36px;
+  box-shadow:var(--glass-shadow);
+  transition:background .4s,border-color .4s,box-shadow .4s;
+  animation:cardRise 0.7s cubic-bezier(0.34,1.2,0.64,1) both;
+}
+
+@keyframes cardRise{
+  from{opacity:0;transform:translateY(30px) scale(0.97);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(22px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes fadeDown{
+  from{opacity:0;transform:translateY(-16px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes fadeIn{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%,60%{transform:translateX(-6px);}
+  40%,80%{transform:translateX(6px);}
+}
+
+/* ═══ FORM HEADER */
+.form-header{margin-bottom:32px;animation:fadeUp 0.6s 0.1s ease both;}
+.form-eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(11,110,114,0.10);
+  border:1px solid rgba(11,110,114,0.20);
+  border-radius:24px;
+  padding:5px 13px;
+  font-size:11px;font-weight:700;
+  color:var(--teal);
+  letter-spacing:0.07em;text-transform:uppercase;
+  margin-bottom:14px;
+}
+.form-eyebrow::before{
+  content:'';width:6px;height:6px;
+  border-radius:50%;background:var(--teal-light);
+}
+.form-title{
+  font-family:'Sora',sans-serif;
+  font-size:clamp(24px,3vw,32px);
+  font-weight:800;
+  color:var(--text-dark);
+  letter-spacing:-1px;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+.form-sub{
+  font-size:14px;
+  color:var(--text-muted);
+  line-height:1.6;
+}
+
+/* ═══ ROLE SELECTOR */
+.role-selector{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  margin-bottom:24px;
+  animation:fadeUp 0.6s 0.15s ease both;
+}
+.role-btn{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:16px 12px;
+  border-radius:14px;
+  border:1.5px solid var(--input-border);
+  background:var(--input-bg);
+  cursor:pointer;
+  transition:all var(--transition);
+  position:relative;overflow:hidden;
+}
+.role-btn::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--teal),var(--teal-light));
+  opacity:0;
+  transition:opacity var(--transition);
+}
+.role-btn.active{
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px var(--input-focus-glow);
+}
+.role-btn.active::before{opacity:0.08;}
+.role-icon{
+  width:38px;height:38px;
+  border-radius:10px;
+  background:var(--check-bg);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);
+  transition:all var(--transition);
+  position:relative;z-index:1;
+}
+.role-btn.active .role-icon{
+  background:var(--teal);
+  color:#fff;
+  box-shadow:0 4px 14px rgba(11,110,114,0.35);
+}
+.role-icon svg{width:18px;height:18px;}
+.role-label{
+  font-size:13px;font-weight:700;
+  color:var(--text-mid);
+  position:relative;z-index:1;
+  transition:color var(--transition);
+}
+.role-btn.active .role-label{color:var(--teal);}
+.role-check{
+  position:absolute;top:8px;right:8px;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:var(--teal);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(0.5);
+  transition:all var(--transition);
+  z-index:1;
+}
+.role-btn.active .role-check{opacity:1;transform:scale(1);}
+.role-check svg{width:10px;height:10px;}
+
+/* ═══ FORM ROW */
+.form-row{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:14px;margin-bottom:0;
+}
+
+/* ═══ FIELD */
+.field{
+  margin-bottom:16px;
+  animation:fadeUp 0.6s ease both;
+}
+.field-label{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;
+  color:var(--label);
+  margin-bottom:7px;
+  letter-spacing:0.02em;
+}
+.field-label svg{width:14px;height:14px;color:var(--teal);opacity:0.80;}
+.field-label .req{color:var(--orange);font-size:13px;}
+
+.input-wrap{position:relative;}
+.field-input{
+  width:100%;
+  background:var(--input-bg);
+  border:1.5px solid var(--input-border);
+  border-radius:var(--input-radius);
+  padding:12px 16px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  color:var(--text-dark);
+  outline:none;
+  transition:all var(--transition);
+  backdrop-filter:blur(8px);
+}
+.field-input:focus{
+  border-color:var(--input-focus-border);
+  box-shadow:0 0 0 3px var(--input-focus-glow);
+  background:rgba(255,255,255,0.85);
+}
+[data-theme="dark"] .field-input:focus{
+  background:rgba(11,110,114,0.15);
+}
+.field-input::placeholder{color:var(--text-muted);opacity:0.65;}
+.field-input.has-icon{padding-left:44px;}
+.field-input.has-eye{padding-right:44px;}
+.field-input.error{
+  border-color:#E05252;
+  box-shadow:0 0 0 3px rgba(224,82,82,0.12);
+}
+
+.input-icon-l{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:18px;height:18px;color:var(--teal);opacity:0.65;
+  pointer-events:none;
+}
+.eye-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;
+  color:var(--text-muted);padding:4px;
+  transition:color var(--transition);
+  display:flex;align-items:center;justify-content:center;
+}
+.eye-btn:hover{color:var(--teal);}
+.eye-btn svg{width:17px;height:17px;}
+
+.field-hint{
+  font-size:11px;color:var(--text-muted);
+  margin-top:5px;line-height:1.5;
+  display:flex;align-items:flex-start;gap:5px;
+}
+.field-hint svg{width:12px;height:12px;flex-shrink:0;margin-top:1px;color:var(--text-muted);}
+.field-error{
+  font-size:11px;color:#E05252;
+  margin-top:5px;
+  display:flex;align-items:center;gap:5px;
+  animation:fadeIn 0.2s ease both;
+}
+.field-error svg{width:12px;height:12px;}
+
+/* ═══ PASSWORD STRENGTH */
+.pw-strength{margin-top:8px;}
+.pw-bars{display:flex;gap:4px;margin-bottom:4px;}
+.pw-bar{
+  flex:1;height:3px;border-radius:3px;
+  background:var(--divider);
+  transition:background 0.4s ease;
+}
+.pw-bar.weak{background:#E05252;}
+.pw-bar.fair{background:var(--orange);}
+.pw-bar.good{background:var(--teal-light);}
+.pw-bar.strong{background:var(--teal);}
+.pw-label{font-size:10px;font-weight:700;color:var(--text-muted);}
+
+/* ═══ CHECKBOX */
+.check-row{
+  display:flex;align-items:flex-start;gap:10px;
+  margin-bottom:22px;
+  animation:fadeUp 0.6s ease both;
+}
+.check-box{
+  width:18px;height:18px;flex-shrink:0;
+  border:1.5px solid var(--input-border);
+  border-radius:5px;
+  background:var(--input-bg);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:1px;
+  transition:all var(--transition);
+  position:relative;overflow:hidden;
+}
+.check-box.checked{
+  background:var(--teal);
+  border-color:var(--teal);
+  box-shadow:0 2px 10px rgba(11,110,114,0.35);
+}
+.check-box svg{width:10px;height:10px;color:#fff;opacity:0;}
+.check-box.checked svg{opacity:1;}
+.check-label{font-size:13px;color:var(--text-mid);line-height:1.5;}
+.check-label a{color:var(--teal);font-weight:700;text-decoration:none;}
+.check-label a:hover{text-decoration:underline;}
+
+/* ═══ SUBMIT BUTTON */
+.submit-btn{
+  width:100%;
+  padding:14px 24px;
+  border-radius:var(--btn-radius);
+  border:none;
+  background:linear-gradient(135deg,var(--teal-dark),var(--teal),var(--teal-mid));
+  background-size:200% 200%;
+  color:#fff;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:700;
+  cursor:pointer;
+  transition:all var(--transition);
+  box-shadow:0 6px 24px rgba(11,110,114,0.40);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  position:relative;overflow:hidden;
+  animation:fadeUp 0.6s ease both;
+}
+.submit-btn::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0) 100%);
+  transform:translateX(-100%);
+  transition:transform 0.5s ease;
+}
+.submit-btn:hover::before{transform:translateX(100%);}
+.submit-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 30px rgba(11,110,114,0.50);
+}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn svg{width:17px;height:17px;}
+.submit-btn .btn-spinner{
+  width:18px;height:18px;
+  border:2px solid rgba(255,255,255,0.35);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  display:none;
+}
+.submit-btn.loading .btn-text{display:none;}
+.submit-btn.loading .btn-spinner{display:block;}
+.submit-btn.success{background:linear-gradient(135deg,#2A8A4A,#3DAA5C);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ═══ DIVIDER */
+.or-divider{
+  display:flex;align-items:center;gap:14px;
+  margin:20px 0;
+  animation:fadeIn 0.6s ease both;
+}
+.or-line{flex:1;height:1px;background:var(--divider);}
+.or-text{font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:0.05em;}
+
+/* ═══ SOCIAL BTNS */
+.social-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  margin-bottom:20px;
+  animation:fadeUp 0.6s ease both;
+}
+.social-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 16px;
+  border-radius:12px;
+  border:1.5px solid var(--input-border);
+  background:var(--input-bg);
+  backdrop-filter:blur(8px);
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:600;
+  color:var(--text-mid);
+  transition:all var(--transition);
+}
+.social-btn:hover{
+  border-color:var(--teal);
+  color:var(--teal);
+  transform:translateY(-2px);
+  box-shadow:0 4px 16px rgba(11,110,114,0.15);
+}
+.social-btn svg{width:18px;height:18px;}
+
+/* ═══ FORM FOOTER LINK */
+.form-footer{
+  text-align:center;
+  margin-top:20px;
+  font-size:13px;color:var(--text-muted);
+  animation:fadeIn 0.6s ease both;
+}
+.form-footer a{
+  color:var(--teal);font-weight:700;
+  text-decoration:none;cursor:pointer;
+}
+.form-footer a:hover{text-decoration:underline;}
+
+/* ═══ FORGOT PASSWORD LINK */
+.forgot-link{
+  font-size:12px;font-weight:700;
+  color:var(--teal);
+  text-decoration:none;cursor:pointer;
+  margin-left:auto;
+  flex-shrink:0;
+  transition:color var(--transition);
+}
+.forgot-link:hover{color:var(--orange);}
+.field-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+
+/* ═══ SUCCESS STATE */
+.success-state{
+  text-align:center;
+  padding:20px 0;
+  display:none;
+  animation:cardRise 0.5s ease both;
+}
+.success-icon{
+  width:72px;height:72px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--teal),var(--teal-light));
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;
+  box-shadow:0 8px 28px rgba(11,110,114,0.40);
+  animation:successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes successPop{
+  from{transform:scale(0.5);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+.success-icon svg{width:32px;height:32px;color:#fff;}
+.success-title{
+  font-family:'Sora',sans-serif;
+  font-size:22px;font-weight:800;
+  color:var(--text-dark);letter-spacing:-0.5px;
+  margin-bottom:10px;
+}
+.success-msg{font-size:14px;color:var(--text-muted);line-height:1.65;}
+
+/* ═══ BACK LINK */
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--text-muted);
+  cursor:pointer;text-decoration:none;
+  transition:color var(--transition);
+  margin-bottom:24px;
+}
+.back-link:hover{color:var(--teal);}
+.back-link svg{width:15px;height:15px;}
+
+/* ═══ THEME TOGGLE */
+.theme-toggle{
+  position:fixed;top:20px;right:20px;
+  z-index:100;
+  width:42px;height:42px;
+  border-radius:12px;
+  background:var(--glass-bg);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--glass-border);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);
+  box-shadow:0 4px 16px rgba(0,0,0,0.12);
+  transition:all var(--transition);
+}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal);}
+.theme-toggle svg{width:18px;height:18px;}
+
+/* ═══ PAGE SWITCHER (pages) */
+.auth-page{display:none;}
+.auth-page.active{display:flex;width:100%;height:100%;animation:pageIn 0.45s cubic-bezier(0.4,0,0.2,1) both;}
+@keyframes pageIn{
+  from{opacity:0;transform:translateX(20px);}
+  to{opacity:1;transform:translateX(0);}
+}
+
+/* ═══ PROGRESS DOTS */
+.progress-dots{
+  display:flex;gap:7px;
+  justify-content:center;
+  margin-bottom:28px;
+}
+.pd{
+  width:8px;height:8px;border-radius:4px;
+  background:var(--divider);
+  transition:all 0.4s ease;
+}
+.pd.active{width:24px;background:var(--teal);}
+.pd.done{background:var(--teal);opacity:0.4;}
+
+/* ═══ TOAST */
+.toast{
+  position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--glass-bg);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:14px;
+  padding:14px 20px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:var(--glass-shadow);
+  z-index:500;
+  opacity:0;
+  transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  min-width:280px;
+  pointer-events:none;
+}
+.toast.show{
+  opacity:1;transform:translateX(-50%) translateY(0);
+}
+.toast-icon{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.toast-icon.success{background:rgba(11,110,114,0.12);color:var(--teal);}
+.toast-icon.error{background:rgba(224,82,82,0.12);color:#E05252;}
+.toast-icon svg{width:16px;height:16px;}
+.toast-text{font-size:13px;color:var(--text-dark);font-weight:600;}
+
+/* ═══ FLOATING ORBS (behind right panel) */
+.orb{
+  position:fixed;
+  border-radius:50%;
+  filter:blur(60px);
+  pointer-events:none;
+  z-index:0;
+  animation:orbFloat 12s ease-in-out infinite;
+}
+.orb-1{
+  width:300px;height:300px;
+  right:180px;top:10%;
+  background:rgba(11,110,114,0.12);
+  animation-delay:0s;
+}
+.orb-2{
+  width:200px;height:200px;
+  right:80px;bottom:20%;
+  background:rgba(212,98,26,0.09);
+  animation-delay:4s;
+}
+.orb-3{
+  width:160px;height:160px;
+  right:260px;bottom:35%;
+  background:rgba(34,196,202,0.08);
+  animation-delay:8s;
+}
+@keyframes orbFloat{
+  0%,100%{transform:translateY(0) scale(1);}
+  50%{transform:translateY(-30px) scale(1.05);}
+}
+
+/* ═══ RESPONSIVE */
+@media(max-width:900px){
+  .panel-left{display:none;}
+  .panel-right{
+    width:100%;flex:1;
+    background:var(--bg);
+  }
+  .panel-right::before{width:100%;}
+  .glass-card{
+    padding:36px 28px 28px;
+    max-width:100%;
+    border-radius:0;
+    background:transparent;
+    backdrop-filter:none;
+    border:none;
+    box-shadow:none;
+  }
+  .auth-root{background:var(--bg);}
+  .orb{display:none;}
+}
+@media(max-width:480px){
+  .glass-card{padding:28px 20px 20px;}
+  .form-row{grid-template-columns:1fr;}
+  .social-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- Floating bg orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- Theme toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle dark mode">
+  <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+</button>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon"></div>
+  <div class="toast-text" id="toastText"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LOGIN PAGE
+══════════════════════════════════════ -->
+<div id="page-login" class="auth-page active">
+  <div class="auth-root">
+    <!-- Left Panel -->
+    <div class="panel-left">
+      <div class="panel-bg"></div>
+      <div class="panel-overlay"></div>
+      <div class="panel-deco"></div>
+      <div class="panel-content">
+        <div class="panel-logo">
+          <div class="panel-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="panel-logo-name">UniTeam</span>
+        </div>
+
+        <div class="panel-headline">
+          <h2>Welcome <em>back</em> to your academic hub</h2>
+          <p>Sign in to access your projects, track deadlines, and collaborate with your team in real time.</p>
+          <div class="panel-stats">
+            <div class="panel-stat">
+              <div class="panel-stat-val">12,400+</div>
+              <div class="panel-stat-lbl">Active Students</div>
+            </div>
+            <div class="panel-stat">
+              <div class="panel-stat-val">98%</div>
+              <div class="panel-stat-lbl">Satisfaction</div>
+            </div>
+            <div class="panel-stat">
+              <div class="panel-stat-val">340+</div>
+              <div class="panel-stat-lbl">Universities</div>
+            </div>
+          </div>
+          <div class="panel-testimonial">
+            <p class="testi-text">"UniTeam turned my chaotic final year into a smooth, organised experience. I actually submitted a week early!"</p>
+            <div class="testi-author">
+              <div class="testi-av">AM</div>
+              <div>
+                <div class="testi-name">Amara Mensah</div>
+                <div class="testi-role">BSc Computer Science, Year 4</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="panel-right">
+      <div class="glass-card">
+        <div class="form-header">
+          <div class="form-eyebrow">Secure Sign In</div>
+          <h1 class="form-title">Welcome Back</h1>
+          <p class="form-sub">Sign in to continue to your dashboard</p>
+        </div>
+
+        <!-- Social login -->
+        <div class="social-row">
+          <button class="social-btn" onclick="socialLogin('Google')">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.908 8.908 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z" fill="currentColor" opacity=".9"/></svg>
+            Google
+          </button>
+          <button class="social-btn" onclick="socialLogin('Microsoft')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" opacity=".85"/></svg>
+            Microsoft
+          </button>
+        </div>
+
+        <div class="or-divider">
+          <div class="or-line"></div>
+          <span class="or-text">or continue with email</span>
+          <div class="or-line"></div>
+        </div>
+
+        <div class="field" style="animation-delay:.15s">
+          <div class="field-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email or Username <span class="req">*</span>
+          </div>
+          <div class="input-wrap">
+            <input class="field-input" type="text" placeholder="john@university.edu" id="loginEmail" autocomplete="username">
+          </div>
+        </div>
+
+        <div class="field" style="animation-delay:.2s">
+          <div class="field-meta">
+            <div class="field-label" style="margin-bottom:0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Password <span class="req">*</span>
+            </div>
+            <a class="forgot-link" onclick="goTo('forgot')">Forgot password?</a>
+          </div>
+          <div class="input-wrap" style="margin-top:7px;">
+            <input class="field-input has-eye" type="password" placeholder="Enter your password" id="loginPw" autocomplete="current-password">
+            <button class="eye-btn" onclick="togglePw('loginPw',this)" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="check-row" style="animation-delay:.25s;margin-bottom:20px;">
+          <div class="check-box" id="rememberBox" onclick="toggleCheck('rememberBox')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="check-label">Remember me for 30 days</span>
+        </div>
+
+        <button class="submit-btn" onclick="handleLogin(this)" style="animation-delay:.3s">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span class="btn-text">Sign In</span>
+          <div class="btn-spinner"></div>
+        </button>
+
+        <div class="form-footer" style="animation-delay:.35s">
+          Don't have an account? <a onclick="goTo('register')">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     REGISTER PAGE
+══════════════════════════════════════ -->
+<div id="page-register" class="auth-page">
+  <div class="auth-root">
+    <div class="panel-left">
+      <div class="panel-bg"></div>
+      <div class="panel-overlay"></div>
+      <div class="panel-deco"></div>
+      <div class="panel-content">
+        <div class="panel-logo">
+          <div class="panel-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="panel-logo-name">UniTeam</span>
+        </div>
+        <div class="panel-headline">
+          <h2>Join <em>thousands</em> of university teams worldwide</h2>
+          <p>Create your free account and start collaborating on projects, tracking milestones, and hitting every deadline — together.</p>
+          <div class="panel-stats">
+            <div class="panel-stat">
+              <div class="panel-stat-val">Free</div>
+              <div class="panel-stat-lbl">Forever Plan</div>
+            </div>
+            <div class="panel-stat">
+              <div class="panel-stat-val">2 min</div>
+              <div class="panel-stat-lbl">Setup Time</div>
+            </div>
+            <div class="panel-stat">
+              <div class="panel-stat-val">No CC</div>
+              <div class="panel-stat-lbl">Required</div>
+            </div>
+          </div>
+          <div class="panel-testimonial">
+            <p class="testi-text">"Setup took literally two minutes. By the end of the day our entire group was on the platform and we had a full project plan."</p>
+            <div class="testi-author">
+              <div class="testi-av" style="background:linear-gradient(135deg,#D4621A,#E8782A);">KO</div>
+              <div>
+                <div class="testi-name">Kofi Owusu</div>
+                <div class="testi-role">MSc Data Science, Year 1</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="glass-card">
+        <!-- Success state -->
+        <div class="success-state" id="regSuccess">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="success-title">Account Created! 🎉</div>
+          <p class="success-msg">Welcome to UniTeam, <strong id="regName"></strong>! Check your email for a verification link, then sign in to get started.</p>
+          <button class="submit-btn" style="margin-top:28px;" onclick="goTo('login')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/></svg>
+            <span class="btn-text">Go to Sign In</span>
+          </button>
+        </div>
+
+        <!-- Form state -->
+        <div id="regForm">
+          <div class="form-header">
+            <div class="form-eyebrow">Free Account</div>
+            <h1 class="form-title">Create Account</h1>
+            <p class="form-sub">Fill in your details to get started</p>
+          </div>
+
+          <!-- Role selector -->
+          <div style="margin-bottom:20px;animation:fadeUp 0.6s 0.1s ease both;">
+            <div class="field-label" style="margin-bottom:10px;">
+              I am a <span class="req">*</span>
+            </div>
+            <div class="role-selector">
+              <div class="role-btn active" id="role-student" onclick="selectRole('student')">
+                <div class="role-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <span class="role-label">Student</span>
+                <div class="role-check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="role-btn" id="role-lecturer" onclick="selectRole('lecturer')">
+                <div class="role-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <span class="role-label">Lecturer</span>
+                <div class="role-check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field" style="animation-delay:.15s;margin-bottom:16px;">
+              <div class="field-label">First Name <span class="req">*</span></div>
+              <input class="field-input" type="text" placeholder="John" id="regFirst" autocomplete="given-name">
+            </div>
+            <div class="field" style="animation-delay:.18s;margin-bottom:16px;">
+              <div class="field-label">Last Name <span class="req">*</span></div>
+              <input class="field-input" type="text" placeholder="Doe" id="regLast" autocomplete="family-name">
+            </div>
+          </div>
+
+          <div class="field" style="animation-delay:.2s">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Username <span class="req">*</span>
+            </div>
+            <input class="field-input" type="text" placeholder="e.g. john_doe" id="regUsername" autocomplete="username">
+          </div>
+
+          <div class="field" style="animation-delay:.23s">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Email Address <span class="req">*</span>
+            </div>
+            <input class="field-input" type="email" placeholder="john@university.edu" id="regEmail" autocomplete="email">
+          </div>
+
+          <div class="form-row">
+            <div class="field" style="animation-delay:.26s;margin-bottom:16px;">
+              <div class="field-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Password <span class="req">*</span>
+              </div>
+              <div class="input-wrap">
+                <input class="field-input has-eye" type="password" placeholder="••••••••" id="regPw" oninput="checkPwStrength(this.value)" autocomplete="new-password">
+                <button class="eye-btn" onclick="togglePw('regPw',this)" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <div class="pw-strength">
+                <div class="pw-bars">
+                  <div class="pw-bar" id="bar1"></div>
+                  <div class="pw-bar" id="bar2"></div>
+                  <div class="pw-bar" id="bar3"></div>
+                  <div class="pw-bar" id="bar4"></div>
+                </div>
+                <div class="pw-label" id="pwLabel">Must contain 8+ chars, uppercase, lowercase &amp; numbers</div>
+              </div>
+            </div>
+            <div class="field" style="animation-delay:.28s;margin-bottom:16px;">
+              <div class="field-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Confirm Password <span class="req">*</span>
+              </div>
+              <div class="input-wrap">
+                <input class="field-input has-eye" type="password" placeholder="••••••••" id="regPwConfirm" autocomplete="new-password">
+                <button class="eye-btn" onclick="togglePw('regPwConfirm',this)" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="check-row" style="animation-delay:.3s">
+            <div class="check-box" id="termsBox" onclick="toggleCheck('termsBox')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="check-label">I agree to the <a href="#" onclick="return false;">Terms of Service</a> and <a href="#" onclick="return false;">Privacy Policy</a></span>
+          </div>
+
+          <button class="submit-btn" onclick="handleRegister(this)" style="animation-delay:.32s">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span class="btn-text">Create Account</span>
+            <div class="btn-spinner"></div>
+          </button>
+
+          <div class="form-footer" style="animation-delay:.36s">
+            Already have an account? <a onclick="goTo('login')">Sign in here</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FORGOT PASSWORD PAGE
+══════════════════════════════════════ -->
+<div id="page-forgot" class="auth-page">
+  <div class="auth-root">
+    <div class="panel-left">
+      <div class="panel-bg"></div>
+      <div class="panel-overlay"></div>
+      <div class="panel-deco"></div>
+      <div class="panel-content">
+        <div class="panel-logo">
+          <div class="panel-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="panel-logo-name">UniTeam</span>
+        </div>
+        <div class="panel-headline">
+          <h2>We'll help you get back <em>in</em> quickly</h2>
+          <p>Enter the email linked to your account and we'll send you a secure reset link within seconds.</p>
+          <div class="panel-stats">
+            <div class="panel-stat">
+              <div class="panel-stat-val">&lt;30s</div>
+              <div class="panel-stat-lbl">Email Delivery</div>
+            </div>
+            <div class="panel-stat">
+              <div class="panel-stat-val">AES-256</div>
+              <div class="panel-stat-lbl">Encryption</div>
+            </div>
+          </div>
+          <div class="panel-testimonial">
+            <p class="testi-text">"Password reset was instant and secure. Back to my project in less than a minute — exactly what you want during exam season."</p>
+            <div class="testi-author">
+              <div class="testi-av" style="background:linear-gradient(135deg,#085A5E,#22C4CA);">LN</div>
+              <div>
+                <div class="testi-name">Lydia Nakato</div>
+                <div class="testi-role">PhD Research Student</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="glass-card">
+        <!-- Success state -->
+        <div class="success-state" id="forgotSuccess">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="success-title">Check your email</div>
+          <p class="success-msg">We sent a password reset link to <strong id="forgotEmailDisplay"></strong>. The link expires in 15 minutes.</p>
+          <div style="display:flex;gap:12px;margin-top:28px;flex-direction:column;">
+            <button class="submit-btn" onclick="goTo('login')">
+              <span class="btn-text">Back to Sign In</span>
+            </button>
+            <button class="submit-btn" style="background:transparent;color:var(--teal);border:1.5px solid var(--input-border);box-shadow:none;" onclick="resendEmail()">
+              <span class="btn-text">Resend Email</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form state -->
+        <div id="forgotForm">
+          <a class="back-link" onclick="goTo('login')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to sign in
+          </a>
+
+          <div class="form-header" style="margin-bottom:28px;">
+            <div class="form-eyebrow">Password Reset</div>
+            <h1 class="form-title">Forgot Password?</h1>
+            <p class="form-sub">No worries! Enter your email and we'll send you a reset link.</p>
+          </div>
+
+          <div class="field" style="animation-delay:.1s">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Email Address <span class="req">*</span>
+            </div>
+            <input class="field-input" type="email" placeholder="john@university.edu" id="forgotEmail" autocomplete="email">
+            <div class="field-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              We'll send a secure link to this address if it's registered.
+            </div>
+          </div>
+
+          <!-- OTP section (visible after send) -->
+          <div id="otpSection" style="display:none;animation:fadeUp 0.5s ease both;">
+            <div class="field">
+              <div class="field-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Verification Code <span class="req">*</span>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px;" id="otpInputs">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,0)">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,1)">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,2)">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,3)">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,4)">
+                <input class="field-input" type="text" maxlength="1" style="text-align:center;font-size:20px;font-weight:700;padding:12px 0;font-family:'DM Mono',monospace;" oninput="otpNext(this,5)">
+              </div>
+              <div class="field-hint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Code expires in <span id="otpTimer" style="font-weight:700;color:var(--teal);">14:59</span>
+              </div>
+            </div>
+
+            <div class="field" style="animation-delay:.1s">
+              <div class="field-label">New Password <span class="req">*</span></div>
+              <div class="input-wrap">
+                <input class="field-input has-eye" type="password" placeholder="New password" id="newPw" autocomplete="new-password">
+                <button class="eye-btn" onclick="togglePw('newPw',this)" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button class="submit-btn" id="forgotBtn" onclick="handleForgot(this)" style="animation-delay:.2s;margin-top:4px;">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span class="btn-text">Send Reset Link</span>
+            <div class="btn-spinner"></div>
+          </button>
+
+          <div class="form-footer" style="margin-top:20px;animation-delay:.25s">
+            Remember your password? <a onclick="goTo('login')">Sign in</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   PAGE NAVIGATION
+════════════════════════════════════════ */
+function goTo(page) {
+  document.querySelectorAll('.auth-page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) {
+    target.classList.add('active');
+    window.scrollTo(0,0);
+  }
+  // Reset forms
+  if (page === 'register') {
+    document.getElementById('regForm').style.display = '';
+    document.getElementById('regSuccess').style.display = 'none';
+  }
+  if (page === 'forgot') {
+    document.getElementById('forgotForm').style.display = '';
+    document.getElementById('forgotSuccess').style.display = 'none';
+    document.getElementById('otpSection').style.display = 'none';
+    if (otpInterval) clearInterval(otpInterval);
+  }
+}
+
+/* ════════════════════════════════════════
+   THEME TOGGLE
+════════════════════════════════════════ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') !== 'dark';
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+  localStorage.setItem('ut-auth-theme', dark ? 'dark' : 'light');
+  const icon = document.getElementById('themeIcon');
+  icon.innerHTML = dark
+    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+(function() {
+  const saved = localStorage.getItem('ut-auth-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+})();
+
+/* ════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════ */
+function togglePw(id, btn) {
+  const input = document.getElementById(id);
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  btn.innerHTML = isText
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
+function toggleCheck(id) {
+  document.getElementById(id).classList.toggle('checked');
+}
+
+function selectRole(role) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('role-' + role).classList.add('active');
+}
+
+function socialLogin(provider) {
+  showToast('info', 'Redirecting to ' + provider + '…', 'info');
+}
+
+/* ════════════════════════════════════════
+   PASSWORD STRENGTH
+════════════════════════════════════════ */
+function checkPwStrength(pw) {
+  const bars = [document.getElementById('bar1'),document.getElementById('bar2'),document.getElementById('bar3'),document.getElementById('bar4')];
+  const label = document.getElementById('pwLabel');
+  bars.forEach(b => { b.className = 'pw-bar'; });
+
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  const strength = score <= 1 ? 'weak' : score <= 2 ? 'fair' : score <= 3 ? 'good' : 'strong';
+  const labels = { weak:'Weak', fair:'Fair', good:'Good', strong:'Strong 🔒' };
+  const colors = { weak:'#E05252', fair:'#D4621A', good:'#22C4CA', strong:'#0B6E72' };
+
+  for (let i = 0; i < Math.min(score, 4); i++) {
+    bars[i].className = 'pw-bar ' + strength;
+  }
+  label.textContent = pw ? labels[strength] : 'Must contain 8+ chars, uppercase, lowercase & numbers';
+  label.style.color = pw ? colors[strength] : '';
+}
+
+/* ════════════════════════════════════════
+   FORM HANDLERS
+════════════════════════════════════════ */
+function handleLogin(btn) {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPw').value;
+  if (!email || !pw) {
+    shakeCard(btn);
+    showToast('Please fill in all fields', 'error');
+    return;
+  }
+  btn.classList.add('loading');
+  setTimeout(() => {
+    btn.classList.remove('loading');
+    showToast('Welcome back! Redirecting to dashboard…', 'success');
+    setTimeout(() => { window.location.href = 'studyflow-dashboard.html'; }, 1500);
+  }, 1800);
+}
+
+function handleRegister(btn) {
+  const first = document.getElementById('regFirst').value.trim();
+  const last = document.getElementById('regLast').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPw').value;
+  const pwc = document.getElementById('regPwConfirm').value;
+  const terms = document.getElementById('termsBox').classList.contains('checked');
+
+  if (!first || !last || !email || !pw) {
+    shakeCard(btn);
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  if (pw !== pwc) {
+    document.getElementById('regPwConfirm').classList.add('error');
+    shakeCard(btn);
+    showToast('Passwords do not match', 'error');
+    return;
+  }
+  if (!terms) {
+    shakeCard(btn);
+    showToast('Please accept the Terms of Service', 'error');
+    return;
+  }
+  btn.classList.add('loading');
+  setTimeout(() => {
+    btn.classList.remove('loading');
+    document.getElementById('regName').textContent = first;
+    document.getElementById('regForm').style.display = 'none';
+    document.getElementById('regSuccess').style.display = 'block';
+  }, 2000);
+}
+
+let forgotSent = false;
+function handleForgot(btn) {
+  if (!forgotSent) {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) {
+      shakeCard(btn);
+      showToast('Please enter your email address', 'error');
+      return;
+    }
+    btn.classList.add('loading');
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      forgotSent = true;
+      document.getElementById('otpSection').style.display = 'block';
+      document.getElementById('forgotEmail').readOnly = true;
+      btn.querySelector('.btn-text').textContent = 'Verify & Reset Password';
+      btn.querySelector('.btn-icon').innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+      startOtpTimer();
+      showToast('Reset code sent! Check your email.', 'success');
+      document.getElementById('otpInputs').querySelectorAll('input')[0].focus();
+    }, 1600);
+  } else {
+    const email = document.getElementById('forgotEmail').value.trim();
+    btn.classList.add('loading');
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      document.getElementById('forgotEmailDisplay').textContent = email;
+      document.getElementById('forgotForm').style.display = 'none';
+      document.getElementById('forgotSuccess').style.display = 'block';
+      if (otpInterval) clearInterval(otpInterval);
+      forgotSent = false;
+    }, 1500);
+  }
+}
+
+function resendEmail() {
+  showToast('New reset link sent!', 'success');
+}
+
+/* ════════════════════════════════════════
+   OTP TIMER & INPUTS
+════════════════════════════════════════ */
+let otpInterval = null;
+function startOtpTimer() {
+  let seconds = 14 * 60 + 59;
+  const el = document.getElementById('otpTimer');
+  otpInterval = setInterval(() => {
+    seconds--;
+    if (seconds <= 0) { clearInterval(otpInterval); el.textContent = '00:00'; return; }
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    if (seconds <= 60) el.style.color = '#E05252';
+  }, 1000);
+}
+
+function otpNext(input, idx) {
+  const inputs = document.getElementById('otpInputs').querySelectorAll('input');
+  input.value = input.value.replace(/[^0-9]/g,'');
+  if (input.value && idx < 5) inputs[idx + 1].focus();
+  // Style filled boxes
+  inputs.forEach(i => {
+    i.style.borderColor = i.value ? 'var(--teal)' : '';
+    i.style.background = i.value ? 'rgba(11,110,114,0.08)' : '';
+  });
+}
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+function shakeCard(el) {
+  const card = el.closest('.glass-card');
+  card.style.animation = 'shake .4s ease';
+  setTimeout(() => { card.style.animation = ''; }, 400);
+}
+
+function showToast(msg, type = 'success') {
+  const icons = {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  };
+  const t = type === 'success' ? 'success' : type === 'error' ? 'error' : 'success';
+  document.getElementById('toastIcon').className = 'toast-icon ' + t;
+  document.getElementById('toastIcon').innerHTML = icons[type] || icons.info;
+  document.getElementById('toastText').textContent = msg;
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+/* ════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const page = document.querySelector('.auth-page.active');
+    if (page?.id === 'page-login') handleLogin(page.querySelector('.submit-btn'));
+    if (page?.id === 'page-register') handleRegister(page.querySelector('.submit-btn'));
+    if (page?.id === 'page-forgot') handleForgot(document.getElementById('forgotBtn'));
+  }
+});
+
+/* Input real-time validation */
+document.getElementById('regPwConfirm').addEventListener('input', function() {
+  const match = this.value === document.getElementById('regPw').value;
+  this.classList.toggle('error', this.value.length > 0 && !match);
+});
+</script>
+</body>
+</html>
