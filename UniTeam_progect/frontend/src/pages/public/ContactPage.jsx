@@ -1,6 +1,7 @@
 // src/pages/public/ContactPage.jsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { publicAPI } from '../../services/api';
 import './ContactPage.css';
 
 const ContactPage = () => {
@@ -46,10 +47,9 @@ const ContactPage = () => {
     setSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await publicAPI.submitContact(formData);
       setSubmitted(true);
-      setTicketRef('TICKET-' + Math.floor(Math.random() * 10000));
+      setTicketRef(response?.ticket?.reference || '');
       setFormData({
         name: '',
         email: '',
@@ -152,9 +152,8 @@ const ContactPage = () => {
                     <label className="form-label">I am a...</label>
                     <select className="form-input" name="inquiry_type" value={formData.inquiry_type} onChange={handleChange}>
                       <option value="GENERAL">General Inquiry</option>
-                      <option value="STUDENT">Student</option>
-                      <option value="LECTURER">Lecturer / Supervisor</option>
-                      <option value="ADMIN">University Administrator</option>
+                      <option value="ONBOARDING">Institution Onboarding</option>
+                      <option value="SUPPORT">Technical Support</option>
                       <option value="PARTNERSHIP">Partnership</option>
                     </select>
                   </div>

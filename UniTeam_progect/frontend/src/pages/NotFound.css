@@ -75,7 +75,7 @@
   margin-bottom: 2rem;
 }
 
-.btn {
+.not-found-container .btn {
   padding: 0.875rem 1.5rem;
   border: none;
   border-radius: 0.5rem;
@@ -89,23 +89,23 @@
   gap: 0.5rem;
 }
 
-.btn-primary {
+.not-found-container .btn-primary {
   background: var(--accent-1, #C0392B);
   color: white;
 }
 
-.btn-primary:hover {
+.not-found-container .btn-primary:hover {
   background: #a02f23;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
 }
 
-.btn-secondary {
+.not-found-container .btn-secondary {
   background: var(--accent-2, #2C3E50);
   color: white;
 }
 
-.btn-secondary:hover {
+.not-found-container .btn-secondary:hover {
   background: #1a2634;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);

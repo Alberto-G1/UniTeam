@@ -229,7 +229,7 @@
   animation: slideUp 0.4s ease-out;
 }
 
-.section-title {
+.profile-section .section-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-dark, #1a1a1a);
@@ -341,7 +341,7 @@
    BUTTON STYLES
    ============================================ */
 
-.btn {
+.profile-wrapper .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -357,23 +357,23 @@
   white-space: nowrap;
 }
 
-.btn-primary {
+.profile-wrapper .btn-primary {
   background: var(--accent-1, #C0392B);
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
+.profile-wrapper .btn-primary:hover:not(:disabled) {
   background: #a02f23;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
 }
 
-.btn-secondary {
+.profile-wrapper .btn-secondary {
   background: var(--accent-2, #2C3E50);
   color: white;
 }
 
-.btn-secondary:hover:not(:disabled) {
+.profile-wrapper .btn-secondary:hover:not(:disabled) {
   background: #1a2634;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
@@ -426,7 +426,7 @@
     padding: 1rem;
   }
 
-  .section-title {
+  .profile-section .section-title {
     font-size: 1.1rem;
   }
 }

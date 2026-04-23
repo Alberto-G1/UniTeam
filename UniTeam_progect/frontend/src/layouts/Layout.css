@@ -350,7 +350,7 @@
 }
 
 /* Button Styles */
-.btn {
+.layout .btn {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -359,44 +359,44 @@
   transition: all 0.2s;
 }
 
-.btn-primary {
+.layout .btn-primary {
   background: #007bff;
   color: white;
 }
 
-.btn-primary:hover {
+.layout .btn-primary:hover {
   background: #0056b3;
 }
 
-.btn-secondary {
+.layout .btn-secondary {
   background: #6c757d;
   color: white;
 }
 
-.btn-secondary:hover {
+.layout .btn-secondary:hover {
   background: #545b62;
 }
 
-.btn-success {
+.layout .btn-success {
   background: #28a745;
   color: white;
 }
 
-.btn-success:hover {
+.layout .btn-success:hover {
   background: #218838;
 }
 
-.btn-danger {
+.layout .btn-danger {
   background: #dc3545;
   color: white;
 }
 
-.btn-danger:hover {
+.layout .btn-danger:hover {
   background: #c82333;
 }
 
 /* Loading Spinner */
-.loading-container {
+.layout .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -405,7 +405,7 @@
   gap: 1rem;
 }
 
-.spinner {
+.layout .spinner {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
