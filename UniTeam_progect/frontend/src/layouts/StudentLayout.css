@@ -13,7 +13,7 @@
 /* Sidebar */
 .student-sidebar {
   width: 280px;
-  background: linear-gradient(180deg, #0B3D2E 0%, #176B52 100%);
+  background: linear-gradient(180deg, var(--teal-dark) 0%, var(--teal) 100%);
   position: fixed;
   left: 0;
   top: 0;
@@ -26,7 +26,7 @@
 }
 
 [data-theme="dark"] .student-sidebar {
-  background: linear-gradient(180deg, #212E40 0%, #1e2d3d 100%);
+  background: linear-gradient(180deg, #1f3a3b 0%, #2a4345 100%);
 }
 
 .student-sidebar.open {
@@ -51,14 +51,14 @@
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  background: linear-gradient(135deg, var(--teal-light), var(--teal-mid));
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 1.25rem;
-  box-shadow: 0 4px 12px rgba(39, 201, 154, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 196, 202, 0.3);
 }
 
 .logo-text {
@@ -134,8 +134,8 @@
 }
 
 .sidebar-item.active {
-  background: rgba(39, 201, 154, 0.15);
-  color: #27C99A;
+  background: var(--teal-tint2);
+  color: var(--teal-light);
 }
 
 .sidebar-item.active::before {
@@ -145,7 +145,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #27C99A;
+  background: var(--teal-light);
   border-radius: 0 3px 3px 0;
 }
 
@@ -162,7 +162,7 @@
 }
 
 .sidebar-badge {
-  background: #27C99A;
+  background: var(--teal-light);
   color: white;
   font-size: 0.7rem;
   font-weight: 700;
@@ -190,7 +190,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  background: linear-gradient(135deg, var(--teal-light), var(--teal-mid));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,9 +214,9 @@
   right: 2px;
   width: 10px;
   height: 10px;
-  background: #4DC96C;
+  background: #72b37f;
   border-radius: 50%;
-  border: 2px solid #0B3D2E;
+  border: 2px solid var(--teal-dark);
 }
 
 .sidebar-user-info {
@@ -441,7 +441,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  background: linear-gradient(135deg, var(--teal-light), var(--teal-mid));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -521,7 +521,7 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #27C99A, #1FA97E);
+  background: linear-gradient(135deg, var(--teal-light), var(--teal-mid));
   display: flex;
   align-items: center;
   justify-content: center;

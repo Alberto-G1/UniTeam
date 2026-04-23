@@ -142,6 +142,53 @@ const AboutPage = () => {
         </div>
       </section>
 
+      <section className="section" style={{ background: 'var(--page-bg)' }}>
+        <div className="container">
+          <div className="reveal">
+            <div className="section-tag">Strategic Objectives</div>
+            <h2 className="section-title">Specific <span className="accent">Objectives</span></h2>
+            <p className="section-body">Concrete, measurable targets that guide our product and growth strategy.</p>
+          </div>
+          <div className="objectives-list">
+            <div className="objective-item reveal reveal-delay-1"><div className="obj-num">01</div><div><div className="obj-title">Expand University Partnerships</div><div className="obj-desc">Partner with 500 new institutions across Sub-Saharan Africa and diaspora markets by end of 2026.</div></div></div>
+            <div className="objective-item reveal reveal-delay-2"><div className="obj-num">02</div><div><div className="obj-title">Launch Offline-First Mobile App</div><div className="obj-desc">Release fully offline-capable mobile support for low-connectivity environments.</div></div></div>
+            <div className="objective-item reveal reveal-delay-1"><div className="obj-num">03</div><div><div className="obj-title">AI Deadline Risk Prediction</div><div className="obj-desc">Predict at-risk submissions ahead of deadlines and reduce avoidable delays.</div></div></div>
+            <div className="objective-item reveal reveal-delay-2"><div className="obj-num">04</div><div><div className="obj-title">LMS Integration Suite</div><div className="obj-desc">Expand integrations with Moodle, Blackboard, Canvas, and related systems.</div></div></div>
+            <div className="objective-item reveal reveal-delay-1"><div className="obj-num">05</div><div><div className="obj-title">Reduce Missed Submissions</div><div className="obj-desc">Drive measurable reduction in missed deadlines among active UniTeam cohorts.</div></div></div>
+            <div className="objective-item reveal reveal-delay-2"><div className="obj-num">06</div><div><div className="obj-title">Build Developer Ecosystem</div><div className="obj-desc">Launch partner-friendly APIs and extensions for institutional customization.</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" style={{ background: 'var(--section-alt)' }}>
+        <div className="container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'start' }}>
+            <div className="reveal-left">
+              <div className="section-tag">Our Journey</div>
+              <h2 className="section-title" style={{ fontSize: '36px' }}>From a <span className="accent">dorm room</span> to 340 universities</h2>
+              <p className="section-body">Every great platform starts with a real problem. Here is how we got here.</p>
+              <div className="timeline">
+                <div className="timeline-item"><div className="timeline-dot"></div><div className="timeline-year">2022 · Q1</div><div className="timeline-title">The Idea</div><div className="timeline-desc">A student-led prototype started during a university hackathon.</div></div>
+                <div className="timeline-item"><div className="timeline-dot"></div><div className="timeline-year">2022 · Q3</div><div className="timeline-title">First Pilot</div><div className="timeline-desc">First cohort rollout with early student and lecturer teams.</div></div>
+                <div className="timeline-item"><div className="timeline-dot"></div><div className="timeline-year">2023 · Q2</div><div className="timeline-title">Seed Growth</div><div className="timeline-desc">Scaled platform reliability, onboarding, and support workflows.</div></div>
+                <div className="timeline-item"><div className="timeline-dot"></div><div className="timeline-year">2024</div><div className="timeline-title">Regional Expansion</div><div className="timeline-desc">Expanded to multi-country university partnerships.</div></div>
+                <div className="timeline-item"><div className="timeline-dot" style={{ borderColor: 'var(--orange)' }}></div><div className="timeline-year">2026 · Now</div><div className="timeline-title">340+ Universities</div><div className="timeline-desc">UniTeam supports thousands of students with live collaboration tools.</div></div>
+              </div>
+            </div>
+            <div className="reveal-right">
+              <div className="section-tag">Our Values</div>
+              <h2 className="section-title" style={{ fontSize: '36px' }}>What we <span className="accent">stand for</span></h2>
+              <p className="section-body">These principles guide how we build, hire, and serve.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '28px' }}>
+                <div className="value-item"><div className="value-icon" style={{ background: 'var(--teal-tint)', color: 'var(--teal)' }}>✓</div><div><div className="value-title">Student-first design</div><div className="value-desc">We prioritize practical academic workflows over complexity.</div></div></div>
+                <div className="value-item"><div className="value-icon" style={{ background: 'var(--orange-tint)', color: 'var(--orange)' }}>⚡</div><div><div className="value-title">Reliable delivery</div><div className="value-desc">Deadlines matter, so platform clarity and uptime matter too.</div></div></div>
+                <div className="value-item"><div className="value-icon" style={{ background: 'var(--teal-tint)', color: 'var(--teal)' }}>◎</div><div><div className="value-title">Transparent collaboration</div><div className="value-desc">Clear ownership, visible progress, and fair contribution tracking.</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Band */}
       <div className="cta-band">
         <div className="container">
